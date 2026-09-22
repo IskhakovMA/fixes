@@ -66,7 +66,74 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+class _BodyTooLarge(Exception):
+    pass
+
+
+class BodySizeLimitMiddleware:
+    """Отклоняет тело больше config.MAX_REQUEST_BODY_BYTES кодом 413 до того,
+    как FastAPI буферизует и разбирает его (и до проверки сессии): и по
+    Content-Length, и по фактически полученным байтам (chunked)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        limit = config.MAX_REQUEST_BODY_BYTES
+        for name, value in scope.get("headers", []):
+            if name == b"content-length":
+                try:
+                    too_large = int(value) > limit
+                except ValueError:
+                    too_large = True
+                if too_large:
+                    await self._reject(send)
+                    return
+        received = 0
+        started = False
+        rejected = False
+
+        async def limited_receive():
+            nonlocal received, rejected
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > limit:
+                    # Ответить 413 сразу: приложение может перехватить
+                    # исключение чтения тела и попытаться ответить само.
+                    if not started and not rejected:
+                        rejected = True
+                        await self._reject(send)
+                    raise _BodyTooLarge()
+            return message
+
+        async def tracking_send(message):
+            nonlocal started
+            if rejected:
+                return
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracking_send)
+        except _BodyTooLarge:
+            pass
+
+    @staticmethod
+    async def _reject(send):
+        body = b'{"error":"Request body too large"}'
+        await send({"type": "http.response.start", "status": 413, "headers": [
+            (b"content-type", b"application/json"), (b"content-length", str(len(body)).encode()),
+        ]})
+        await send({"type": "http.response.body", "body": body})
+
+
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=[config.HOST, "127.0.0.1", "localhost"])
+app.add_middleware(BodySizeLimitMiddleware)
 
 
 @app.middleware("http")

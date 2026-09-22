@@ -57,6 +57,9 @@ LOGIN_RATE_LIMIT_MAX_BUCKETS = 1_000
 REQUEST_RATE_LIMIT_MAX_BUCKETS = 1_000
 
 MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024  # 5MB
+# Предел тела любого запроса (до маршрутизации и аутентификации). С запасом
+# над самым большим легитимным телом — импортом (raw до 6M символов, UTF-8).
+MAX_REQUEST_BODY_BYTES = int(os.environ.get("CLINIC_MAX_REQUEST_BODY_BYTES", str(16 * 1024 * 1024)))
 MAX_IMPORT_PATIENTS = 500
 MAX_EVENTS_PER_HISTORY_ENTRY = 200
 MAX_HISTORY_ENTRIES_PER_PATIENT = 200
