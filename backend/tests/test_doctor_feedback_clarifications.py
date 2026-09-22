@@ -2,7 +2,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from .conftest import create_account, create_department, get_conn, login, make_patient_payload
+from .conftest import DEV_USERNAME, create_account, create_department, get_conn, login, make_patient_payload
 
 
 def _create_patient(client, **overrides):
@@ -200,7 +200,7 @@ def test_import_export_accepts_prev7_legacy_and_v8_structured_fields(auth_client
     raw = json.dumps(v8_doc, ensure_ascii=False)
     assert auth_client.post("/api/import/preview", json={"raw": raw}).json()["valid"] is True
     assert auth_client.post("/api/import/commit", json={"raw": raw, "mode": "add"}, headers=auth_client.csrf).status_code == 200
-    exported = json.loads(auth_client.get("/api/export").text)
+    exported = json.loads(auth_client.get("/api/export", headers=auth_client.csrf).text)
     structured = next(p for p in exported["patients"] if p["name"] == "Structured v8")
     assert exported["schemaVersion"] == 9
     assert structured["pgiResult"] == "confirmed"
@@ -376,6 +376,8 @@ def test_schema_v9_encrypted_backup_restore_preserves_structured_feedback_and_at
 
     restore = maintenance.restore_database(backup, db_path, confirm_offline=True)
     assert restore["schema_version"] == config.SCHEMA_VERSION
+    # Restore revokes every session from the snapshot; sign in again.
+    assert login(auth_client, DEV_USERNAME).status_code == 200
     restored = auth_client.get(f"/api/patients/{patient['id']}").json()
     assert restored["consiliumCode"] == "OK-LEGACY-BACKUP"
     assert restored["pgiCode"] == "PGI-LEGACY-BACKUP"

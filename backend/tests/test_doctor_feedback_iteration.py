@@ -3,7 +3,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from .conftest import get_conn, make_patient_payload
+from .conftest import DEV_USERNAME, get_conn, login, make_patient_payload
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -172,7 +172,7 @@ def test_active_patient_contract_has_no_disease_stage_or_future_plans_and_sets_p
     assert "diseaseStage" not in created
     assert "futurePlans" not in created
 
-    exported = json.loads(auth_client.get("/api/export").text)
+    exported = json.loads(auth_client.get("/api/export", headers=auth_client.csrf).text)
     patient = next(p for p in exported["patients"] if p["id"] == created["id"])
     assert "diseaseStage" not in patient
     assert "futurePlans" not in patient
@@ -325,7 +325,7 @@ def test_legacy_consilium_and_pgi_codes_are_preserved_but_not_active_fields(auth
     )
     assert legacy_patch.status_code == 422
 
-    exported = json.loads(auth_client.get("/api/export").text)
+    exported = json.loads(auth_client.get("/api/export", headers=auth_client.csrf).text)
     patient = exported["patients"][0]
     assert patient["consiliumCode"] == "OK-123"
     assert patient["pgiCode"] == "PGI-456"
@@ -435,7 +435,7 @@ def test_consilium_outcomes_treatment_and_dispensary_are_distinct(auth_client):
     notifications.generate_due_reminders(conn, user)
     assert conn.execute("SELECT COUNT(*) FROM notifications WHERE patient_id = ?", (dispensary["id"],)).fetchone()[0] == 0
 
-    exported = json.loads(auth_client.get("/api/export").text)
+    exported = json.loads(auth_client.get("/api/export", headers=auth_client.csrf).text)
     exported_dispensary = next(p for p in exported["patients"] if p["id"] == dispensary["id"])
     assert exported_dispensary["stage"] == "dispensary-observation"
     raw = json.dumps({"schemaVersion": exported["schemaVersion"], "patients": [exported_dispensary]}, ensure_ascii=False)
@@ -579,6 +579,8 @@ def test_schema_v9_encrypted_backup_restore_preserves_doctor_feedback_fields(aut
     assert auth_client.get(f"/api/patients/{patient['id']}").status_code == 404
     restore = maintenance.restore_database(backup, db_path, confirm_offline=True)
     assert restore["schema_version"] == 9
+    # Restore revokes every session from the snapshot; sign in again.
+    assert login(auth_client, DEV_USERNAME).status_code == 200
     restored = auth_client.get(f"/api/patients/{patient['id']}").json()
     assert restored["stage"] == "dispensary-observation"
     assert restored["consiliumCode"] == "OK-BACKUP"
