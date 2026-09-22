@@ -111,4 +111,7 @@ AI_MAX_TOOL_CALLS = max(1, min(int(os.environ.get("CLINIC_AI_MAX_TOOL_CALLS", "8
 AI_MAX_HISTORY_MESSAGES = max(0, min(int(os.environ.get("CLINIC_AI_MAX_HISTORY_MESSAGES", "12")), 24))
 AI_MAX_USER_MESSAGE_CHARS = max(200, min(int(os.environ.get("CLINIC_AI_MAX_USER_MESSAGE_CHARS", "4000")), 12000))
 AI_RATE_LIMIT_REQUESTS = max(1, min(int(os.environ.get("CLINIC_AI_RATE_LIMIT_REQUESTS", "30")), 120))
+# Одновременных запросов к провайдеру: блокирующий вызов держит поток из
+# общего пула, который нужен и остальным запросам (включая вход).
+AI_MAX_CONCURRENT_REQUESTS = max(1, min(int(os.environ.get("CLINIC_AI_MAX_CONCURRENT_REQUESTS", "4")), 32))
 AI_RATE_LIMIT_WINDOW_SECONDS = max(60, min(int(os.environ.get("CLINIC_AI_RATE_LIMIT_WINDOW_SECONDS", "300")), 3600))
