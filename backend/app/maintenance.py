@@ -710,10 +710,13 @@ def _reconcile_account_security(staging: Path, live: sqlite3.Connection) -> int:
     статус — более строгий из двух (снимок может заблокировать, но не
     разблокировать); пароль — более новый по password_changed_at (сброс после
     снимка сохраняется); роль и связи с отделениями — текущие (снимок не может
-    вернуть роль или область видимости). Пользователи, которых нет в текущей
-    базе, не трогаются, чтобы restore на пустую установку не блокировал всех.
-    Возвращает число пользователей, у которых что-то изменилось."""
+    вернуть роль или область видимости). Отделение, архивированное после
+    снимка, остаётся в архиве: статус отделения тоже часть области видимости
+    заведующего. Пользователи, которых нет в текущей базе, не трогаются, чтобы
+    restore на пустую установку не блокировал всех.
+    Возвращает число пользователей и отделений, у которых что-то изменилось."""
     live.row_factory = sqlite3.Row
+    archived_live = {r["id"] for r in live.execute("SELECT id FROM departments WHERE status = 'archived'")}
     current = {r["id"]: r for r in live.execute(
         "SELECT id, status, role_id, password_hash, must_change_password, password_changed_at FROM users"
     )}
@@ -728,6 +731,10 @@ def _reconcile_account_security(staging: Path, live: sqlite3.Connection) -> int:
     try:
         with conn:
             dept_ids = {r[0] for r in conn.execute("SELECT id FROM departments")}
+            for dept_id in sorted(archived_live & dept_ids):
+                changed += conn.execute(
+                    "UPDATE departments SET status = 'archived' WHERE id = ? AND status != 'archived'", (dept_id,)
+                ).rowcount
             for snap in conn.execute(
                 "SELECT id, status, role_id, password_hash, must_change_password, password_changed_at FROM users"
             ).fetchall():

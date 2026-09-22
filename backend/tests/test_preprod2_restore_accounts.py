@@ -84,3 +84,19 @@ def test_snapshot_block_is_not_lifted_by_restore(auth_client, tmp_path):
     _restore(tmp_path, backup)
     from backend.app import db
     assert db.get_connection().execute("SELECT status FROM users WHERE id = ?", (uid,)).fetchone()[0] == "blocked"
+
+
+def test_department_archived_after_snapshot_stays_archived(auth_client, tmp_path):
+    """preprod-run-3 department-status-not-reconciled: restore must not bring
+    back an archived department and with it the head's patient scope."""
+    from backend.app import maintenance, policy, users
+    d1 = create_department("Отд-архив")
+    uid = create_account("head.arch", "department_head", department_ids=[d1])
+    backup = maintenance.backup_database(tmp_path / "clinic.db", tmp_path / "snap.cbk")
+    users.update_department(get_conn(), d1, status="archived")
+
+    _restore(tmp_path, backup)
+    from backend.app import db
+    c = db.get_connection()
+    assert c.execute("SELECT status FROM departments WHERE id = ?", (d1,)).fetchone()[0] == "archived"
+    assert list(policy.load_current_user(c, uid).department_ids) == []
