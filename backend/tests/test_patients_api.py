@@ -85,7 +85,7 @@ def test_get_cannot_mutate(auth_client):
     _create(auth_client)
     before = auth_client.get("/api/patients").json()
     auth_client.get("/api/patients")
-    auth_client.get("/api/export")
+    auth_client.get("/api/export", headers=auth_client.csrf)
     after = auth_client.get("/api/patients").json()
     assert before == after
 

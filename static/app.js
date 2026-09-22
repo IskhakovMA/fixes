@@ -6617,7 +6617,10 @@ const app = {
 
         try {
             const ids = Array.from(this.exportSelectedIds);
-            const response = await fetch('/api/export?ids=' + encodeURIComponent(ids.join(',')), { credentials: 'include' });
+            const response = await fetch('/api/export?ids=' + encodeURIComponent(ids.join(',')), {
+                credentials: 'include',
+                headers: { 'X-CSRF-Token': getCookie('clinic_csrf') || '' },
+            });
             if (!response.ok) throw new Error(`сервер ответил ${response.status}`);
             const blob = await response.blob();
             const disposition = response.headers.get('content-disposition') || '';

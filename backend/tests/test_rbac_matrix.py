@@ -117,7 +117,7 @@ def test_readonly_roles_see_all_but_cannot_write(client, rbac, username):
     assert client.post("/api/import/commit",
                        json={"raw": "[]", "mode": "add"}, headers=csrf).status_code == 403
     # экспорт запрещён (массовый экспорт read-only ролям не предоставляется)
-    assert client.get("/api/export").status_code == 403
+    assert client.get("/api/export", headers=client.csrf).status_code == 403
     # управление сотрудниками и структурой запрещено
     assert client.get("/api/users").status_code == 403
     assert client.get("/api/departments").status_code == 403
@@ -149,9 +149,9 @@ def test_head_scope_limited_to_own_departments(client, rbac):
     assert client.get(f"/api/patients/{rbac['p_unresolved']}").status_code == 404
     # экспорт отфильтрован scope даже при подмене ids
     import json as _json
-    doc = _json.loads(client.get(f"/api/export?ids={rbac['p_b1']}").text)
+    doc = _json.loads(client.get(f"/api/export?ids={rbac['p_b1']}", headers=client.csrf).text)
     assert doc["patients"] == []
-    doc = _json.loads(client.get("/api/export").text)
+    doc = _json.loads(client.get("/api/export", headers=client.csrf).text)
     assert {p["name"] for p in doc["patients"]} == {"Пациентов А-Один", "Пациентов А-Два"}
     # управление сотрудниками/структурой запрещено
     assert client.get("/api/users").status_code == 403
@@ -211,7 +211,7 @@ def test_doctor_sees_only_own_patients_even_same_department(client, rbac):
                         json={"field": "age", "value": 45}, headers=client.csrf).status_code == 200
     # экспорт — только свои
     import json as _json
-    doc = _json.loads(client.get("/api/export").text)
+    doc = _json.loads(client.get("/api/export", headers=client.csrf).text)
     assert {p["name"] for p in doc["patients"]} == {"Пациентов А-Один"}
     # аудит и администрирование закрыты
     assert client.get("/api/audit").status_code == 403

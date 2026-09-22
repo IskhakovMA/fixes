@@ -37,7 +37,7 @@ def test_full_scenario(client):
     assert len(r.json()["history"][0]["events"]) == 1
 
     # 7. Export
-    exported = client.get("/api/export")
+    exported = client.get("/api/export", headers=csrf)
     assert exported.status_code == 200
     doc = json.loads(exported.text)
     assert doc["patients"][0]["id"] == pid

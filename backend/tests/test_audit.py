@@ -88,7 +88,7 @@ def test_import_and_export_recorded_with_counts_only(auth_client):
     }, ensure_ascii=False)
     auth_client.post("/api/import/preview", json={"raw": doc})
     auth_client.post("/api/import/commit", json={"raw": doc, "mode": "add"}, headers=auth_client.csrf)
-    auth_client.get("/api/export")
+    auth_client.get("/api/export", headers=auth_client.csrf)
 
     events = auth_client.get("/api/audit").json()["events"]
     types = [e["event_type"] for e in events]
@@ -144,7 +144,7 @@ def test_backup_and_restore_recorded(auth_client, tmp_path, monkeypatch):
 
 def test_audit_contains_no_secrets_or_medical_data(auth_client):
     auth_client.post("/api/patients", json=make_patient_payload(), headers=auth_client.csrf)
-    auth_client.get("/api/export")
+    auth_client.get("/api/export", headers=auth_client.csrf)
     text = _audit_text(auth_client)
     for marker in SENSITIVE_MARKERS:
         assert marker not in text, f"audit leaked: {marker}"

@@ -51,7 +51,7 @@ def test_payload_in_note_and_checklist(auth_client):
 def test_payload_survives_export_import(auth_client):
     payload = PAYLOADS[2]
     auth_client.post("/api/patients", json=make_patient_payload(name=payload), headers=auth_client.csrf)
-    exported = auth_client.get("/api/export").text
+    exported = auth_client.get("/api/export", headers=auth_client.csrf).text
     r = auth_client.post(
         "/api/import/commit", json={"raw": exported, "mode": "replace"}, headers=auth_client.csrf
     )
