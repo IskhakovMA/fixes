@@ -22,6 +22,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger("clinic")
 
+
+class _DropQueryStringFilter(logging.Filter):
+    """uvicorn access log пишет полный request target. Строка запроса может
+    содержать ФИО пациента (поиск в списках), поэтому она отбрасывается —
+    в журнал попадает только путь."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) >= 3 and isinstance(args[2], str) and "?" in args[2]:
+            record.args = args[:2] + (args[2].split("?", 1)[0],) + args[3:]
+        return True
+
+
+_access_logger = logging.getLogger("uvicorn.access")
+if not any(isinstance(f, _DropQueryStringFilter) for f in _access_logger.filters):
+    _access_logger.addFilter(_DropQueryStringFilter())
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 FRONTEND_HTML = PROJECT_ROOT / "index.html"
 STATIC_DIR = PROJECT_ROOT / "static"
