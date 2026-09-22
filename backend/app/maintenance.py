@@ -652,6 +652,7 @@ def restore_database(backup_path: Path, db_path: Path, *, confirm_offline: bool 
 
             try:
                 _sqlite_backup_to_file(plaintext, staging)
+                _revoke_restored_sessions(staging)
                 _fsync_file(staging)
             except OSError as exc:
                 staging.unlink(missing_ok=True)
@@ -680,6 +681,17 @@ def restore_database(backup_path: Path, db_path: Path, *, confirm_offline: bool 
         "format_version": report.get("version"),
         "key_id": report.get("key_id"),
     }
+
+
+def _revoke_restored_sessions(db_file: Path) -> None:
+    """Сессии из снимка не переживают restore: их отзыв после снимка
+    (logout, блокировка, сброс пароля) иначе был бы отменён."""
+    conn = sqlite3.connect(str(db_file))
+    try:
+        with conn:
+            conn.execute("DELETE FROM sessions")
+    finally:
+        conn.close()
 
 
 def _acquire_exclusive_restore_lock(db_path: Path) -> sqlite3.Connection:

@@ -124,11 +124,15 @@ def me(request: Request, conn: sqlite3.Connection = Depends(get_db)):
 @router.post("/change-password", dependencies=[Depends(require_csrf)])
 def change_password(
     body: ChangePasswordIn,
+    response: Response,
     conn: sqlite3.Connection = Depends(get_db),
     user: policy.CurrentUser = Depends(require_user),
 ):
     """Смена собственного пароля. Доступна и при must_change_password —
-    это единственный разрешённый в таком состоянии endpoint."""
+    это единственный разрешённый в таком состоянии endpoint.
+
+    После смены все сессии пользователя завершаются (включая открытые по
+    временному паролю), а вызывающему выдаётся новая сессия и CSRF-токен."""
     row = users.get_user(conn, user.id)
     if not security.verify_password(body.currentPassword, row["password_hash"]):
         audit.record(conn, audit.PASSWORD_CHANGED, result=audit.RESULT_DENIED,
@@ -138,5 +142,8 @@ def change_password(
         users.change_own_password(conn, user.id, body.newPassword)
     except security.WeakPasswordError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    users.terminate_sessions(conn, user.id)
+    session_token, csrf_token, _expires = security.create_session(conn, user.id)
+    _set_auth_cookies(response, session_token, csrf_token)
     audit.record(conn, audit.PASSWORD_CHANGED, **audit.actor_ctx(user))
     return {"changed": True}
