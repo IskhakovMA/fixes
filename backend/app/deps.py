@@ -7,9 +7,17 @@ from . import audit, config, policy, security
 from .db import _connect, init_db
 
 
+_initialized_db_paths: set[str] = set()
+
+
 def get_db():
     conn = _connect(config.DB_PATH)
-    init_db(conn)
+    # Схема и сиды применяются один раз на путь в процессе (lifespan тоже
+    # вызывает init_db), а не отдельной пишущей транзакцией на каждый запрос.
+    key = str(config.DB_PATH)
+    if key not in _initialized_db_paths:
+        init_db(conn)
+        _initialized_db_paths.add(key)
     try:
         yield conn
     finally:
