@@ -1,5 +1,6 @@
 """SQLite storage layer: connection handling, schema init, migrations."""
 import hashlib
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -357,8 +358,32 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_hardened_paths: set[str] = set()
+
+
+def _harden_permissions(db_path: Path) -> None:
+    """Каталог данных 0700, файл БД 0600 (SQLite создаёт -wal/-shm с правами
+    основного файла). Best effort, один раз на путь в процессе: не зависит
+    от umask сервиса и чинит права существующей установки при старте."""
+    key = str(db_path)
+    if key in _hardened_paths:
+        return
+    db_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if not db_path.exists():
+        os.close(os.open(str(db_path), os.O_CREAT | os.O_WRONLY, 0o600))
+    for path, mode in ((db_path.parent, 0o700), (db_path, 0o600),
+                       (db_path.with_name(db_path.name + "-wal"), 0o600),
+                       (db_path.with_name(db_path.name + "-shm"), 0o600)):
+        try:
+            if path.exists():
+                path.chmod(mode)
+        except (OSError, NotImplementedError):
+            pass
+    _hardened_paths.add(key)
+
+
 def _connect(db_path: Path) -> sqlite3.Connection:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    _harden_permissions(db_path)
     conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
