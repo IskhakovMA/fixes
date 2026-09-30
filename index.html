@@ -71,6 +71,7 @@
         </div>
 
         <nav class="nav" aria-label="Основная навигация">
+            <button type="button" class="nav__item is-hidden" data-view="home" id="homeNavItem">Пульс клиники</button>
             <button type="button" class="nav__item is-active" data-view="patients" aria-current="page">Пациенты</button>
             <button type="button" class="nav__item" data-view="calendar">Календарь</button>
             <button type="button" class="nav__item" data-view="notifications">Уведомления</button>
@@ -169,6 +170,46 @@
         </aside>
 
         <main class="content" id="content">
+
+            <!-- РОЛЕВОЕ РАБОЧЕЕ ПРОСТРАНСТВО -->
+            <section class="view is-hidden" id="view-home">
+                <div class="pagehead">
+                    <div class="pagehead__text">
+                        <h1 class="pagehead__title" id="executiveHomeTitle">Пульс клиники</h1>
+                        <p class="pagehead__subtitle" id="executiveHomeSubtitle">Состояние пациентских маршрутов</p>
+                    </div>
+                    <div class="pagehead__actions">
+                        <button type="button" class="btn btn--ghost" id="executiveRefreshBtn">Обновить</button>
+                    </div>
+                </div>
+
+                <div class="executive-meta" id="executiveMeta" role="status"></div>
+                <div class="stats executive-kpis" id="executiveStatsRow" aria-label="Ключевые показатели"></div>
+
+                <div class="executive-grid">
+                    <section class="panel panel--pad executive-panel" aria-labelledby="executivePrioritiesTitle">
+                        <div class="section-head">
+                            <div>
+                                <h2 class="panel__title" id="executivePrioritiesTitle">Приоритеты контроля</h2>
+                                <p class="pagehead__subtitle">Проблемы, с которых следует начать работу</p>
+                            </div>
+                        </div>
+                        <div class="executive-priorities" id="executivePriorityList"></div>
+                    </section>
+
+                    <section class="panel panel--pad executive-panel" aria-labelledby="executiveRouteTitle">
+                        <h2 class="panel__title" id="executiveRouteTitle">Управленческий маршрут</h2>
+                        <ol class="executive-route">
+                            <li><strong>Пульс</strong><span>видим состояние доступного контура</span></li>
+                            <li><strong>Риск</strong><span>выбираем отклонение</span></li>
+                            <li><strong>Пациент</strong><span>проверяем маршрут и timeline</span></li>
+                            <li><strong>Действие</strong><span>переходим в существующую карточку</span></li>
+                        </ol>
+                    </section>
+                </div>
+
+                <section class="panel panel--pad executive-details is-hidden" id="executiveDetailsPanel" aria-live="polite"></section>
+            </section>
 
             <!-- СПИСОК ПАЦИЕНТОВ -->
             <section class="view" id="view-patients">
@@ -1159,6 +1200,6 @@
 
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
-<script src="/static/app.js?v=pr35-treatment-quality-polish"></script>
+<script src="/static/app.js?v=executive-demo-v1-foundation"></script>
 </body>
 </html>

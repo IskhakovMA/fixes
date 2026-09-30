@@ -41,6 +41,24 @@ SUMMARY_DEFINITIONS = {
     "nosology_filter": "Фильтр по локализации/клиентскому пути; внутреннее API/БД поле остаётся nosology.",
 }
 
+PULSE_DEFINITIONS = {
+    "active_patients": "Пациенты на незавершённых этапах маршрута в текущей области доступа.",
+    "routes_under_control": (
+        "Доля активных пациентов с будущим плановым действием, без просроченного события, "
+        "активной ручной отметки внимания и критической проблемы качества данных."
+    ),
+    "needs_attention": (
+        "Уникальные активные пациенты с просроченным событием, активной ручной отметкой "
+        "внимания, критической проблемой качества данных или без следующего планового действия."
+    ),
+    "overdue_routes": "Уникальные активные пациенты с плановым событием в прошлом без фактического выполнения.",
+    "no_next_action": (
+        "Активные пациенты без незавершённого планового события на сегодня или будущее "
+        "в текущем этапе маршрута."
+    ),
+    "open_problems": "Открытые ручные отметки «требует внимания» по доступным активным пациентам.",
+}
+
 
 def _computed_meta(user: policy.CurrentUser, filters: AnalyticsFilters, definitions: dict[str, str] | None = None) -> dict:
     return {
@@ -208,6 +226,134 @@ def _notification_counts(conn: sqlite3.Connection, patient_ids: set[str]) -> dic
     counts = {status: 0 for status in notifications.QUEUE_STATUSES}
     counts.update({r["status"]: r["c"] for r in rows})
     return counts
+
+
+def _future_action_patient_ids(conn: sqlite3.Connection, patient_ids: set[str]) -> set[str]:
+    """Patients with an unfinished dated event today or later in the current route entry."""
+    if not patient_ids:
+        return set()
+    cond, params = _ids_clause(conn, patient_ids)
+    rows = conn.execute(
+        f"""SELECT DISTINCT patients.id
+            FROM patients
+            JOIN history_entries h ON h.patient_id = patients.id
+             AND h.seq = (SELECT MAX(current_h.seq) FROM history_entries current_h
+                          WHERE current_h.patient_id = patients.id)
+            JOIN events e ON e.history_entry_id = h.id
+            WHERE {cond}
+              AND COALESCE(e.no_plan, 0) = 0
+              AND COALESCE(e.actual_date, '') = ''
+              AND COALESCE(e.date, '') >= ?""",  # nosec B608 - generated patient-id placeholders only.
+        [*params, today_local().isoformat()],
+    ).fetchall()
+    return {row["id"] for row in rows}
+
+
+def _open_attention_issue_count(conn: sqlite3.Connection, patient_ids: set[str]) -> int:
+    if not patient_ids:
+        return 0
+    total = 0
+    for chunk in in_chunks(conn, sorted(patient_ids)):
+        marks = ",".join("?" for _ in chunk)
+        row = conn.execute(
+            f"""SELECT COUNT(*) AS c FROM patient_attention_issues
+                WHERE status = 'open' AND patient_id IN ({marks})""",  # nosec B608 - placeholders generated server-side.
+            chunk,
+        ).fetchone()
+        total += int(row["c"] or 0)
+    return total
+
+
+def _pulse_state(conn: sqlite3.Connection, user: policy.CurrentUser, filters: AnalyticsFilters) -> dict[str, Any]:
+    quality = _quality_context(conn, user)
+    patient_ids = _filtered_patient_ids(conn, user, filters, quality)
+    rows = _patient_rows(conn, patient_ids)
+    active_ids = {row["id"] for row in rows if row["stage"] not in TERMINAL_STAGES}
+    overdue_ids = _quality_issue_ids(quality, code="overdue_event") & active_ids
+    critical_quality_ids = _quality_issue_ids(quality, severity="critical") & active_ids
+    attention_ids = patient_attention.active_patient_ids(conn, active_ids)
+    future_action_ids = _future_action_patient_ids(conn, active_ids)
+    no_next_action_ids = active_ids - future_action_ids
+    needs_attention_ids = overdue_ids | critical_quality_ids | attention_ids | no_next_action_ids
+    under_control_ids = future_action_ids - overdue_ids - critical_quality_ids - attention_ids
+    return {
+        "rows": rows,
+        "active_ids": active_ids,
+        "overdue_ids": overdue_ids,
+        "critical_quality_ids": critical_quality_ids,
+        "attention_ids": attention_ids,
+        "future_action_ids": future_action_ids,
+        "no_next_action_ids": no_next_action_ids,
+        "needs_attention_ids": needs_attention_ids,
+        "under_control_ids": under_control_ids,
+        "open_problem_count": _open_attention_issue_count(conn, active_ids),
+        "quality": quality,
+    }
+
+
+def _pulse_workspace(user: policy.CurrentUser) -> dict[str, str]:
+    if user.role_id in {policy.ROLE_DEPUTY_CHIEF, policy.ROLE_CAOP_HEAD}:
+        return {
+            "code": "clinic_pulse",
+            "title": "Пульс клиники",
+            "subtitle": "Состояние пациентских маршрутов и отклонения, требующие управленческого внимания",
+        }
+    if user.role_id == policy.ROLE_DEPARTMENT_HEAD:
+        return {
+            "code": "department_contour",
+            "title": "Контур отделения",
+            "subtitle": "Маршруты, сроки и проблемы пациентов вашего отделения",
+        }
+    if user.role_id == policy.ROLE_DOCTOR:
+        return {
+            "code": "my_day",
+            "title": "Мой день",
+            "subtitle": "Пациенты и действия, которые требуют вашего внимания",
+        }
+    return {
+        "code": "admin",
+        "title": "Административный обзор",
+        "subtitle": "Сводное состояние доступных пациентских маршрутов",
+    }
+
+
+def pulse(conn: sqlite3.Connection, user: policy.CurrentUser, filters: AnalyticsFilters) -> dict:
+    state = _pulse_state(conn, user, filters)
+    active_count = len(state["active_ids"])
+    controlled_count = len(state["under_control_ids"])
+    controlled_percent = percent(controlled_count, active_count) if active_count else None
+    metrics = [
+        {
+            "code": "active_patients", "label": "Активные пациенты", "value": active_count,
+            "unit": "count", "detail_type": "pulse_active", "definition": PULSE_DEFINITIONS["active_patients"],
+        },
+        {
+            "code": "routes_under_control", "label": "Маршруты под контролем", "value": controlled_percent,
+            "unit": "percent", "detail_type": "pulse_under_control", "definition": PULSE_DEFINITIONS["routes_under_control"],
+            "numerator": controlled_count, "denominator": active_count,
+        },
+        {
+            "code": "needs_attention", "label": "Требуют внимания", "value": len(state["needs_attention_ids"]),
+            "unit": "count", "detail_type": "pulse_needs_attention", "definition": PULSE_DEFINITIONS["needs_attention"],
+        },
+        {
+            "code": "overdue_routes", "label": "Просроченные маршруты", "value": len(state["overdue_ids"]),
+            "unit": "count", "detail_type": "pulse_overdue", "definition": PULSE_DEFINITIONS["overdue_routes"],
+        },
+        {
+            "code": "no_next_action", "label": "Без следующего действия", "value": len(state["no_next_action_ids"]),
+            "unit": "count", "detail_type": "pulse_no_next_action", "definition": PULSE_DEFINITIONS["no_next_action"],
+        },
+        {
+            "code": "open_problems", "label": "Открытые проблемы", "value": state["open_problem_count"],
+            "unit": "count", "detail_type": "pulse_open_problems", "definition": PULSE_DEFINITIONS["open_problems"],
+        },
+    ]
+    return {
+        "meta": _computed_meta(user, filters, PULSE_DEFINITIONS),
+        "workspace": _pulse_workspace(user),
+        "metrics": metrics,
+    }
 
 
 def _checklist_state(conn: sqlite3.Connection, patient_ids: set[str]) -> dict:
@@ -852,38 +998,94 @@ DETAIL_TYPES = {
     "notifications_pending",
     "notifications_failed",
     "attention_patients",
+    "pulse_active",
+    "pulse_under_control",
+    "pulse_needs_attention",
+    "pulse_overdue",
+    "pulse_no_next_action",
+    "pulse_open_problems",
 }
+
+
+def _open_attention_details(conn: sqlite3.Connection, patient_ids: set[str]) -> list[dict[str, Any]]:
+    if not patient_ids:
+        return []
+    cond, params = _ids_clause(conn, patient_ids)
+    rows = conn.execute(
+        f"""SELECT i.id AS issue_id, i.patient_id, i.reason_code, i.created_at,
+                   patients.name AS patient_name, patients.stage,
+                   u.full_name AS treating_doctor_name, patients.doctor,
+                   GROUP_CONCAT(DISTINCT d.name) AS department_names
+            FROM patient_attention_issues i
+            JOIN patients ON patients.id = i.patient_id
+            LEFT JOIN users u ON u.id = patients.treating_doctor_user_id
+            LEFT JOIN user_departments ud ON ud.user_id = patients.treating_doctor_user_id
+            LEFT JOIN departments d ON d.id = ud.department_id AND d.status = 'active'
+            WHERE {cond} AND i.status = 'open'
+            GROUP BY i.id
+            ORDER BY i.created_at ASC, i.id ASC""",  # nosec B608 - generated patient-id placeholders only.
+        params,
+    ).fetchall()
+    return [
+        {
+            "issue_id": row["issue_id"],
+            "patient_id": row["patient_id"],
+            "patient_name": row["patient_name"],
+            "stage": row["stage"],
+            "stage_label": stage_label(row["stage"]),
+            "treating_doctor_name": row["treating_doctor_name"] or row["doctor"] or "Не назначен",
+            "department_names": [x for x in (row["department_names"] or "").split(",") if x],
+            "reason_code": row["reason_code"],
+            "reason_label": patient_attention.reason_label(row["reason_code"]),
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
 
 
 def details(conn: sqlite3.Connection, user: policy.CurrentUser, filters: AnalyticsFilters, detail_type: str) -> dict:
     if detail_type not in DETAIL_TYPES:
         raise ValueError("unknown detail type")
-    quality = _quality_context(conn, user)
-    patient_ids = _filtered_patient_ids(conn, user, filters, quality)
     items: list[dict[str, Any]]
-    if detail_type == "patients":
-        items = [_patient_ref(r) for r in _patient_rows(conn, patient_ids)]
-    elif detail_type == "unassigned_patients":
-        items = [_patient_ref(r) for r in _patient_rows(conn, patient_ids) if not r["treating_doctor_user_id"]]
-    elif detail_type == "attention_patients":
-        attention_ids = patient_attention.active_patient_ids(conn, patient_ids, filters.attention_reason)
-        items = [_patient_ref(r) for r in _patient_rows(conn, attention_ids)]
-    elif detail_type == "overdue_events":
-        items = _overdue_state(conn, user, filters)["items"]
-    elif detail_type in {"quality_critical", "quality_warning"}:
-        sev = "critical" if detail_type.endswith("critical") else "warning"
-        patient_map = {r["id"]: _patient_ref(r) for r in _patient_rows(conn, patient_ids)}
-        items = [
-            {"code": i["code"], "severity": i["severity"], "title": i["title"], **patient_map[i["patient_id"]]}
-            for i in quality["issues"] if i["severity"] == sev and i["patient_id"] in patient_map
-        ]
-    elif detail_type == "incomplete_checklists":
-        items = _checklist_state(conn, patient_ids)["patients"]
-    elif detail_type in {"notifications_pending", "notifications_failed"}:
-        status_value = "pending" if detail_type.endswith("pending") else "failed"
-        items = _notification_details(conn, patient_ids, status_value, filters)
+    if detail_type.startswith("pulse_"):
+        pulse_state = _pulse_state(conn, user, filters)
+        detail_ids = {
+            "pulse_active": pulse_state["active_ids"],
+            "pulse_under_control": pulse_state["under_control_ids"],
+            "pulse_needs_attention": pulse_state["needs_attention_ids"],
+            "pulse_overdue": pulse_state["overdue_ids"],
+            "pulse_no_next_action": pulse_state["no_next_action_ids"],
+        }
+        if detail_type == "pulse_open_problems":
+            items = _open_attention_details(conn, pulse_state["active_ids"])
+        else:
+            items = [_patient_ref(r) for r in _patient_rows(conn, detail_ids[detail_type])]
     else:
-        items = []
+        quality = _quality_context(conn, user)
+        patient_ids = _filtered_patient_ids(conn, user, filters, quality)
+        if detail_type == "patients":
+            items = [_patient_ref(r) for r in _patient_rows(conn, patient_ids)]
+        elif detail_type == "unassigned_patients":
+            items = [_patient_ref(r) for r in _patient_rows(conn, patient_ids) if not r["treating_doctor_user_id"]]
+        elif detail_type == "attention_patients":
+            attention_ids = patient_attention.active_patient_ids(conn, patient_ids, filters.attention_reason)
+            items = [_patient_ref(r) for r in _patient_rows(conn, attention_ids)]
+        elif detail_type == "overdue_events":
+            items = _overdue_state(conn, user, filters)["items"]
+        elif detail_type in {"quality_critical", "quality_warning"}:
+            sev = "critical" if detail_type.endswith("critical") else "warning"
+            patient_map = {r["id"]: _patient_ref(r) for r in _patient_rows(conn, patient_ids)}
+            items = [
+                {"code": i["code"], "severity": i["severity"], "title": i["title"], **patient_map[i["patient_id"]]}
+                for i in quality["issues"] if i["severity"] == sev and i["patient_id"] in patient_map
+            ]
+        elif detail_type == "incomplete_checklists":
+            items = _checklist_state(conn, patient_ids)["patients"]
+        elif detail_type in {"notifications_pending", "notifications_failed"}:
+            status_value = "pending" if detail_type.endswith("pending") else "failed"
+            items = _notification_details(conn, patient_ids, status_value, filters)
+        else:
+            items = []
     total = len(items)
     items = items[filters.offset:filters.offset + filters.limit]
     return {
