@@ -89,6 +89,7 @@ def test_registered_analytics_routes_inventory():
             if path.startswith("/api/analytics"):
                 routes.add((tuple(sorted(child.methods)), path, child.name))
     assert routes >= {
+        (("GET",), "/api/analytics/pulse", "pulse"),
         (("GET",), "/api/analytics/summary", "summary"),
         (("GET",), "/api/analytics/dashboard", "dashboard"),
         (("GET",), "/api/analytics/stages", "stages"),
@@ -101,6 +102,62 @@ def test_registered_analytics_routes_inventory():
         (("GET",), "/api/analytics/details", "details"),
         (("POST",), "/api/analytics/export", "export"),
     }
+
+
+def test_executive_pulse_metrics_drilldown_and_role_scope(client):
+    ids = _stand(client)
+    _as_user(client, "analytics.dev")
+    created = client.post(
+        f"/api/patients/{ids['p_a']}/attention",
+        json={"reasonCode": "critical_overdue", "comment": "Синтетический контрольный пример"},
+        headers=client.csrf,
+    )
+    assert created.status_code == 201, created.text
+
+    pulse = client.get("/api/analytics/pulse").json()
+    metrics = {metric["code"]: metric for metric in pulse["metrics"]}
+    assert pulse["workspace"]["code"] == "admin"
+    assert metrics["active_patients"]["value"] == 3
+    assert metrics["routes_under_control"]["value"] == 33.3
+    assert metrics["routes_under_control"]["numerator"] == 1
+    assert metrics["routes_under_control"]["denominator"] == 3
+    assert metrics["needs_attention"]["value"] == 2
+    assert metrics["overdue_routes"]["value"] == 1
+    assert metrics["no_next_action"]["value"] == 2
+    assert metrics["open_problems"]["value"] == 1
+    assert pulse["meta"]["definitions"]["routes_under_control"]
+
+    overdue = client.get("/api/analytics/details?type=pulse_overdue").json()
+    assert overdue["total"] == 1
+    assert overdue["items"][0]["patient_id"] == ids["p_a"]
+    problems = client.get("/api/analytics/details?type=pulse_open_problems").json()
+    assert problems["total"] == 1
+    assert problems["items"][0]["reason_code"] == "critical_overdue"
+
+    _as_user(client, "analytics.read")
+    assert client.get("/api/analytics/pulse").json()["workspace"]["code"] == "clinic_pulse"
+
+    _as_user(client, "analytics.head.a")
+    head_pulse = client.get("/api/analytics/pulse").json()
+    assert head_pulse["workspace"]["code"] == "department_contour"
+    assert {m["code"]: m["value"] for m in head_pulse["metrics"]}["active_patients"] == 1
+
+    _as_user(client, "analytics.doc.a")
+    doctor_pulse = client.get("/api/analytics/pulse").json()
+    assert doctor_pulse["workspace"]["code"] == "my_day"
+    assert {m["code"]: m["value"] for m in doctor_pulse["metrics"]}["active_patients"] == 1
+    scoped = client.get("/api/analytics/details?type=pulse_needs_attention").json()
+    assert [item["patient_id"] for item in scoped["items"]] == [ids["p_a"]]
+
+
+def test_executive_pulse_empty_scope_does_not_invent_control_rate(client):
+    create_account("analytics.pulse.empty", "deputy_chief_oncology", "Пустой Руководитель")
+    _as_user(client, "analytics.pulse.empty")
+    pulse = client.get("/api/analytics/pulse").json()
+    metrics = {metric["code"]: metric for metric in pulse["metrics"]}
+    assert metrics["active_patients"]["value"] == 0
+    assert metrics["routes_under_control"]["value"] is None
+    assert metrics["routes_under_control"]["denominator"] == 0
 
 
 def test_dashboard_empty_database_contract(client):

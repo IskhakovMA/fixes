@@ -136,7 +136,7 @@ def test_canonical_page_is_served(client):
     assert response.status_code == 200
     body = response.text
     assert '<link rel="stylesheet" href="/static/styles.css">' in body
-    assert '<script src="/static/app.js?v=pr35-treatment-quality-polish"></script>' in body
+    assert '<script src="/static/app.js?v=executive-demo-v1-foundation"></script>' in body
     # ни одного <style> и ни одного inline-скрипта в документе
     assert "<style" not in body
     assert not re.search(r"<script(?![^>]*\ssrc=)", body)
@@ -254,7 +254,7 @@ def test_route_treatment_and_semantic_color_frontend_contracts_are_present():
     assert "this.treatmentTypeOptions(ev.treatmentType || '')" in js
     assert "Направить на дообследование" in js
     assert "this.advanceToStage(patientId, 'exam', this.stageNames.exam)" in js
-    assert "pr35-treatment-quality-polish" in html
+    assert "executive-demo-v1-foundation" in html
 
     for marker in (
         "analyticsCardToneClass",
@@ -280,6 +280,21 @@ def test_analytics_renderer_does_not_assign_to_append_return_value():
     assert "Cannot set properties of undefined" not in js
     assert "Не удалось загрузить аналитику. Попробуйте обновить данные." in js
     assert "Не удалось загрузить аналитику: ${e.message}" not in js
+
+
+def test_executive_demo_role_landing_uses_safe_existing_frontend_patterns():
+    html = HTML.read_text(encoding="utf-8")
+    js = JS.read_text(encoding="utf-8")
+
+    assert 'id="view-home"' in html
+    assert 'id="homeNavItem"' in html
+    assert 'id="executiveStatsRow"' in html
+    assert "this.user && this.user.roleId !== 'developer' ? 'home' : 'patients'" in js
+    assert "deputy_chief_oncology: 'Пульс клиники'" in js
+    assert "department_head: 'Контур отделения'" in js
+    assert "doctor: 'Мой день'" in js
+    assert "apiGetJson('/api/analytics/pulse')" in js
+    assert "this.openPatient(item.patient_id)" in js
 
 
 def test_policy_number_frontend_contract_is_present():

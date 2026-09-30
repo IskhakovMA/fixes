@@ -387,6 +387,12 @@ const app = {
             attentionReason: '',
         },
     },
+    executive: {
+        pulse: null,
+        details: null,
+        loading: false,
+        error: '',
+    },
 
     QUALITY_SEVERITY_LABELS: {
         critical: 'Критическая ошибка',
@@ -1661,13 +1667,15 @@ const app = {
         $('loginScreen').classList.add('is-hidden');
         $('appScreen').classList.remove('is-hidden');
         this.applyRoleUI();
+        this.executive.pulse = null;
+        this.executive.details = null;
         await this.loadPatients();
         await this.loadActivity();
         await this.loadDoctors();
         this.fillStaticSelects();
         await this.refreshAIStatus();
         await this.refreshInternalNotificationSummary();
-        this.showView('patients');
+        this.showView(this.user && this.user.roleId !== 'developer' ? 'home' : 'patients');
         if (this.can('importData')) this.maybeOfferLegacyMigration();
     },
 
@@ -1698,6 +1706,7 @@ const app = {
         }
 
         const navVisibility = {
+            home: u.roleId !== 'developer',
             data: this.can('importData') || this.can('exportData'),
             staff: this.can('manageUsers'),
             structure: this.can('manageDepartments'),
@@ -1707,6 +1716,14 @@ const app = {
             const view = item.dataset.view;
             if (view in navVisibility) item.classList.toggle('is-hidden', !navVisibility[view]);
         }
+
+        const homeLabels = {
+            deputy_chief_oncology: 'Пульс клиники',
+            caop_head: 'Пульс клиники',
+            department_head: 'Контур отделения',
+            doctor: 'Мой день',
+        };
+        $('homeNavItem').textContent = homeLabels[u.roleId] || 'Пульс клиники';
 
         $('readOnlyChip').classList.toggle('is-hidden', !this.isReadOnly());
         $('openAddBtn').classList.toggle('is-hidden', !this.can('createPatients'));
@@ -1773,6 +1790,8 @@ const app = {
         const index = this.patients.findIndex(x => x.id === updated.id);
         if (index === -1) this.patients.push(updated);
         else this.patients[index] = updated;
+        this.executive.pulse = null;
+        this.executive.details = null;
         if (this.user) this.refreshInternalNotificationSummary();
     },
 
@@ -1797,6 +1816,7 @@ const app = {
         $('sidebarScrim').hidden = true;
         $('sidebarToggle').setAttribute('aria-expanded', 'false');
 
+        if (view === 'home') this.renderExecutiveHome();
         if (view === 'patients') this.renderPatients();
         if (view === 'calendar') this.renderCalendar();
         if (view === 'checklists') this.renderChecklistsView();
@@ -4690,6 +4710,153 @@ const app = {
         ]));
     },
 
+    /* =============================================================== EXECUTIVE DEMO: РОЛЕВОЙ СТАРТОВЫЙ ЭКРАН */
+
+    executiveMetricTone(metric) {
+        if (metric.code === 'routes_under_control') {
+            if (metric.value === null) return 'info';
+            if (Number(metric.value) >= 80) return 'good';
+            if (Number(metric.value) >= 60) return 'warning';
+            return 'danger';
+        }
+        if (metric.code === 'active_patients') return 'info';
+        return Number(metric.value || 0) > 0 ? 'danger' : 'good';
+    },
+
+    executiveMetricValue(metric) {
+        if (metric.value === null || metric.value === undefined) return '—';
+        return metric.unit === 'percent' ? `${metric.value}%` : String(metric.value);
+    },
+
+    executiveMetricMeta(metric) {
+        if (metric.unit === 'percent' && metric.denominator !== null && metric.denominator !== undefined) {
+            return `${metric.numerator || 0} из ${metric.denominator} активных`;
+        }
+        return 'Открыть список пациентов';
+    },
+
+    async renderExecutiveHome(force = false) {
+        const stats = $('executiveStatsRow');
+        const priorities = $('executivePriorityList');
+        const details = $('executiveDetailsPanel');
+        if (!force && this.executive.pulse && !this.executive.error) {
+            this.renderExecutivePulse();
+            return;
+        }
+        this.executive.loading = true;
+        this.executive.error = '';
+        stats.replaceChildren(el('div', { class: 'stat' }, [
+            el('span', { class: 'stat__label', text: 'Загрузка показателей…' }),
+        ]));
+        priorities.replaceChildren(el('div', { class: 'empty', text: 'Формируется рабочая сводка…' }));
+        details.classList.add('is-hidden');
+        details.replaceChildren();
+        try {
+            this.executive.pulse = await apiGetJson('/api/analytics/pulse');
+            this.executive.details = null;
+            this.renderExecutivePulse();
+        } catch (error) {
+            this.executive.error = error.message;
+            stats.replaceChildren(el('div', { class: 'alert alert--danger', role: 'alert', text: 'Не удалось загрузить рабочую сводку.' }));
+            priorities.replaceChildren(el('button', {
+                type: 'button', class: 'btn btn--ghost', text: 'Повторить',
+                on: { click: () => this.renderExecutiveHome(true) },
+            }));
+        } finally {
+            this.executive.loading = false;
+        }
+    },
+
+    renderExecutivePulse() {
+        const pulse = this.executive.pulse || {};
+        const workspace = pulse.workspace || {};
+        const metrics = pulse.metrics || [];
+        $('executiveHomeTitle').textContent = workspace.title || 'Пульс клиники';
+        $('executiveHomeSubtitle').textContent = workspace.subtitle || 'Состояние пациентских маршрутов';
+        $('homeNavItem').textContent = workspace.title || $('homeNavItem').textContent;
+
+        const computedAt = pulse.meta && pulse.meta.computed_at ? new Date(pulse.meta.computed_at) : null;
+        $('executiveMeta').textContent = computedAt && !Number.isNaN(computedAt.getTime())
+            ? `Данные на ${computedAt.toLocaleString('ru-RU')} · показатели ограничены вашей областью доступа`
+            : 'Показатели ограничены вашей областью доступа';
+
+        $('executiveStatsRow').replaceChildren(frag(metrics.map(metric => el('button', {
+            type: 'button',
+            class: `stat stat--button stat--${this.executiveMetricTone(metric)}`,
+            title: metric.definition,
+            on: { click: () => this.openExecutiveDetail(metric) },
+        }, [
+            el('span', { class: 'stat__label', text: metric.label }),
+            el('strong', { class: 'stat__value', text: this.executiveMetricValue(metric) }),
+            el('span', { class: 'stat__meta', text: this.executiveMetricMeta(metric) }),
+        ]))));
+
+        const priorityCodes = new Set(['needs_attention', 'overdue_routes', 'no_next_action', 'open_problems']);
+        const priorityMetrics = metrics.filter(metric => priorityCodes.has(metric.code));
+        const nonZero = priorityMetrics.filter(metric => Number(metric.value || 0) > 0);
+        const visible = nonZero.length ? nonZero : priorityMetrics;
+        $('executivePriorityList').replaceChildren(frag(visible.map(metric => el('button', {
+            type: 'button', class: 'executive-priority',
+            on: { click: () => this.openExecutiveDetail(metric) },
+        }, [
+            el('span', { class: 'executive-priority__text' }, [
+                el('strong', { text: metric.label }),
+                el('span', { text: Number(metric.value || 0) > 0 ? metric.definition : 'Отклонений в текущей области доступа нет.' }),
+            ]),
+            el('strong', { class: 'executive-priority__value', text: this.executiveMetricValue(metric) }),
+        ]))));
+    },
+
+    async openExecutiveDetail(metric) {
+        const panel = $('executiveDetailsPanel');
+        panel.classList.remove('is-hidden');
+        panel.setAttribute('tabindex', '-1');
+        panel.replaceChildren(el('div', { class: 'empty', text: 'Загрузка списка пациентов…' }));
+        panel.focus();
+        try {
+            const type = encodeURIComponent(metric.detail_type);
+            const data = await apiGetJson(`/api/analytics/details?type=${type}&limit=50&offset=0`);
+            this.executive.details = data;
+            const items = data.items || [];
+            panel.replaceChildren(frag([
+                el('div', { class: 'section-head' }, [
+                    el('div', {}, [
+                        el('h2', { class: 'panel__title', text: metric.label }),
+                        el('p', { class: 'pagehead__subtitle', text: `${metric.definition} Найдено: ${data.total}.` }),
+                    ]),
+                    el('button', {
+                        type: 'button', class: 'btn btn--ghost btn--sm', text: 'Скрыть',
+                        on: { click: () => { panel.classList.add('is-hidden'); panel.replaceChildren(); } },
+                    }),
+                ]),
+                items.length
+                    ? el('div', { class: 'executive-detail-list' }, items.map(item => this.executiveDetailRow(item)))
+                    : el('div', { class: 'empty', text: 'Пациенты по выбранному показателю не найдены.' }),
+                data.total > items.length
+                    ? el('p', { class: 'panel__text', text: `Показаны первые ${items.length} из ${data.total}. Полный список доступен в аналитике.` })
+                    : null,
+            ]));
+        } catch (error) {
+            panel.replaceChildren(el('div', { class: 'alert alert--danger', role: 'alert', text: 'Не удалось загрузить детализацию.' }));
+        }
+    },
+
+    executiveDetailRow(item) {
+        const departments = Array.isArray(item.department_names) && item.department_names.length
+            ? item.department_names.join(', ')
+            : 'Отделение не указано';
+        const signal = item.reason_label || item.title || item.stage_label || 'Маршрут пациента';
+        return el('div', { class: 'executive-detail-row' }, [
+            el('strong', { text: item.patient_name || 'Пациент' }),
+            el('span', { text: signal }),
+            el('small', { text: `${item.treating_doctor_name || 'Врач не назначен'} · ${departments}` }),
+            el('button', {
+                type: 'button', class: 'btn btn--ghost btn--sm', text: 'Открыть карточку',
+                on: { click: () => this.openPatient(item.patient_id) },
+            }),
+        ]);
+    },
+
     /* =============================================================== РЕНДЕР: АНАЛИТИКА */
 
     analyticsParams(extra = {}) {
@@ -6852,6 +7019,7 @@ const app = {
         for (const item of document.querySelectorAll('.nav__item')) {
             item.addEventListener('click', () => this.showView(item.dataset.view));
         }
+        on('executiveRefreshBtn', 'click', () => this.renderExecutiveHome(true));
         on('backToList', 'click', () => this.showView('patients'));
         on('sidebarToggle', 'click', () => {
             const shell = $('appScreen');

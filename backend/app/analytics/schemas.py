@@ -29,6 +29,29 @@ class AnalyticsSummaryOut(BaseModel):
     cards: list[MetricCard]
 
 
+class PulseMetric(BaseModel):
+    code: str
+    label: str
+    value: int | float | None
+    unit: Literal["count", "percent"] = "count"
+    detail_type: str
+    definition: str
+    numerator: int | None = None
+    denominator: int | None = None
+
+
+class PulseWorkspace(BaseModel):
+    code: Literal["clinic_pulse", "department_contour", "my_day", "admin"]
+    title: str
+    subtitle: str
+
+
+class ExecutivePulseOut(BaseModel):
+    meta: AnalyticsMeta
+    workspace: PulseWorkspace
+    metrics: list[PulseMetric]
+
+
 class DashboardChartRow(BaseModel):
     code: str | None = None
     label: str
