@@ -1023,6 +1023,32 @@ code { font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border
 .pcard__sub { font-size: var(--text-sm); color: var(--text-3); margin-top: var(--sp-1); }
 .pcard__actions { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-4); }
 
+.route-control__title {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--text-md);
+}
+
+.route-control__grid {
+    display: grid;
+    grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+    gap: var(--sp-2) var(--sp-3);
+    margin: 0;
+}
+
+.route-control__grid dt {
+    color: var(--text-3);
+    font-size: var(--text-sm);
+}
+
+.route-control__grid dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .tabs {
     display: flex; gap: var(--sp-1);
     padding: var(--sp-1);
@@ -2531,6 +2557,11 @@ code { font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border
     .executive-kpis,
     .executive-grid { grid-template-columns: 1fr; }
     .executive-detail-row { grid-template-columns: 1fr; }
+    .executive-details .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .executive-details .section-head > .btn { align-self: flex-start; }
     .analytics-dashboard { grid-template-columns: 1fr; }
     .analytics-kpis { grid-template-columns: 1fr; }
     .analytics-controls {

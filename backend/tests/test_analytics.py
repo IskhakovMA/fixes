@@ -125,6 +125,10 @@ def test_executive_pulse_metrics_drilldown_and_role_scope(client):
     assert metrics["overdue_routes"]["value"] == 1
     assert metrics["no_next_action"]["value"] == 2
     assert metrics["open_problems"]["value"] == 1
+    assert metrics["needs_attention"]["label"] == "Пациенты с сигналами риска"
+    assert metrics["needs_attention"]["unit_label"] == "уникальные пациенты"
+    assert metrics["overdue_routes"]["label"] == "Пациенты с просрочкой"
+    assert metrics["open_problems"]["unit_label"] == "проблемы"
     assert pulse["meta"]["definitions"]["routes_under_control"]
 
     overdue = client.get("/api/analytics/details?type=pulse_overdue").json()

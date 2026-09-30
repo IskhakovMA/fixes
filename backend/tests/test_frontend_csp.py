@@ -295,6 +295,10 @@ def test_executive_demo_role_landing_uses_safe_existing_frontend_patterns():
     assert "doctor: 'Мой день'" in js
     assert "apiGetJson('/api/analytics/pulse')" in js
     assert "this.openPatient(item.patient_id)" in js
+    assert "Контроль маршрута" in js
+    assert "К списку риска" in js
+    assert "window.history.pushState" in js
+    assert "window.addEventListener('popstate'" in js
 
 
 def test_policy_number_frontend_contract_is_present():

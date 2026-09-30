@@ -390,6 +390,8 @@ const app = {
     executive: {
         pulse: null,
         details: null,
+        activeMetric: null,
+        returnContext: null,
         loading: false,
         error: '',
     },
@@ -1833,11 +1835,46 @@ const app = {
         window.scrollTo(0, 0);
     },
 
-    openPatient(id) {
+    openPatient(id, options = {}) {
+        const fromExecutiveDetail = this.currentView === 'home' && this.executive.activeMetric;
+        if (fromExecutiveDetail && options.preserveHistory !== false) {
+            this.executive.returnContext = {
+                metric: this.executive.activeMetric,
+                scrollY: window.scrollY,
+            };
+            window.history.pushState({
+                clinicView: 'patient',
+                patientId: id,
+                from: 'executive-detail',
+            }, '');
+        }
         this.currentPatientId = id;
         this.currentTab = 'overview';
         this.showView('patient');
         this.renderPatientView();
+    },
+
+    restoreExecutiveDetail() {
+        const context = this.executive.returnContext;
+        if (!context || !context.metric) {
+            this.showView('patients');
+            return;
+        }
+        this.showView('home');
+        this.openExecutiveDetail(context.metric, { pushHistory: false, focus: false })
+            .finally(() => window.scrollTo(0, context.scrollY || 0));
+    },
+
+    backFromPatient() {
+        if (this.executive.returnContext) {
+            if (window.history.state && window.history.state.from === 'executive-detail') {
+                window.history.back();
+            } else {
+                this.restoreExecutiveDetail();
+            }
+            return;
+        }
+        this.showView('patients');
     },
 
     /* ----------------------------------------------------------------- Тема */
@@ -2652,6 +2689,8 @@ const app = {
             return;
         }
         $('crumbPatientName').textContent = p.name;
+        const backLabel = $('backToList').querySelector('span');
+        if (backLabel) backLabel.textContent = this.executive.returnContext ? 'К списку риска' : 'Пациенты';
         this.renderPatientSide(p);
         this.renderTabs(p);
         this.renderTabPanel(p);
@@ -2708,6 +2747,7 @@ const app = {
                 ]),
                 this.statusChip(p),
                 this.renderPatientAttentionSummary(p),
+                this.renderRouteControl(p),
 
                 el('div', { class: 'pcard__block' }, [
                     el('div', { class: 'pcard__label', text: 'Этап лечения' }),
@@ -4730,9 +4770,9 @@ const app = {
 
     executiveMetricMeta(metric) {
         if (metric.unit === 'percent' && metric.denominator !== null && metric.denominator !== undefined) {
-            return `${metric.numerator || 0} из ${metric.denominator} активных`;
+            return `${metric.numerator || 0} из ${metric.denominator} активных пациентов`;
         }
-        return 'Открыть список пациентов';
+        return `Единица: ${metric.unit_label || 'пациенты'}`;
     },
 
     async renderExecutiveHome(force = false) {
@@ -4807,12 +4847,19 @@ const app = {
         ]))));
     },
 
-    async openExecutiveDetail(metric) {
+    async openExecutiveDetail(metric, options = {}) {
         const panel = $('executiveDetailsPanel');
+        this.executive.activeMetric = metric;
+        if (options.pushHistory !== false) {
+            window.history.pushState({
+                clinicView: 'executive-detail',
+                detailType: metric.detail_type,
+            }, '');
+        }
         panel.classList.remove('is-hidden');
         panel.setAttribute('tabindex', '-1');
         panel.replaceChildren(el('div', { class: 'empty', text: 'Загрузка списка пациентов…' }));
-        panel.focus();
+        if (options.focus !== false) panel.focus();
         try {
             const type = encodeURIComponent(metric.detail_type);
             const data = await apiGetJson(`/api/analytics/details?type=${type}&limit=50&offset=0`);
@@ -4826,7 +4873,11 @@ const app = {
                     ]),
                     el('button', {
                         type: 'button', class: 'btn btn--ghost btn--sm', text: 'Скрыть',
-                        on: { click: () => { panel.classList.add('is-hidden'); panel.replaceChildren(); } },
+                        on: { click: () => {
+                            this.executive.activeMetric = null;
+                            panel.classList.add('is-hidden');
+                            panel.replaceChildren();
+                        } },
                     }),
                 ]),
                 items.length
@@ -4854,6 +4905,61 @@ const app = {
                 type: 'button', class: 'btn btn--ghost btn--sm', text: 'Открыть карточку',
                 on: { click: () => this.openPatient(item.patient_id) },
             }),
+        ]);
+    },
+
+    routeControlData(p) {
+        const current = this.getCurrentOccurrence(p);
+        const pending = ((current && current.events) || [])
+            .filter(event => !event.actualDate && !event.noPlan)
+            .slice()
+            .sort((a, b) => String(a.date || '9999-12-31').localeCompare(String(b.date || '9999-12-31')));
+        const nextEvent = pending[0] || null;
+        const nextNode = this.buildTimelineNodes(p).find(node => node.status === 'future' && node.isNext);
+        const eventName = nextEvent && nextEvent.treatmentType
+            ? (this.TREATMENT_LABELS[nextEvent.treatmentType] || nextEvent.treatmentType)
+            : '';
+        const nextStep = nextEvent
+            ? (eventName || 'Плановое действие текущего этапа')
+            : ((nextNode ? this.stageNames[nextNode.stage] : '') || 'Не назначено');
+        const deadline = nextEvent && nextEvent.date
+            ? `${this.formatDeadlineDate(new Date(`${nextEvent.date}T00:00:00`))}${nextEvent.time ? ' · ' + nextEvent.time : ''}`
+            : 'Не назначено';
+        const overdueDays = nextEvent && nextEvent.date ? this.getDaysUntil(nextEvent.date) : null;
+        const attention = p.attention || {};
+        let blocker = 'Не назначено';
+        if (attention.active && attention.primaryReasonLabel) blocker = attention.primaryReasonLabel;
+        else if (overdueDays !== null && overdueDays < 0) blocker = `Плановое действие просрочено на ${Math.abs(overdueDays)} дн.`;
+        else if (!nextEvent) blocker = 'Следующее плановое действие не назначено';
+        const action = nextEvent
+            ? (eventName || 'Выполнить плановое действие')
+            : (nextNode ? `Следующий этап: ${this.stageNames[nextNode.stage]}` : 'Не назначено');
+        return {
+            current: this.getCurrentStageLabel(p) || 'Не назначено',
+            next: nextStep,
+            responsible: p.treatingDoctorName || p.doctor || 'Не назначено',
+            deadline,
+            blocker,
+            action,
+        };
+    },
+
+    renderRouteControl(p) {
+        const data = this.routeControlData(p);
+        const fields = [
+            ['Сейчас', data.current],
+            ['Далее', data.next],
+            ['Ответственный', data.responsible],
+            ['Срок', data.deadline],
+            ['Блокер', data.blocker],
+            ['Действие', data.action],
+        ];
+        return el('section', { class: 'pcard__block route-control', 'aria-labelledby': 'routeControlTitle' }, [
+            el('h2', { class: 'route-control__title', id: 'routeControlTitle', text: 'Контроль маршрута' }),
+            el('dl', { class: 'route-control__grid' }, fields.flatMap(([label, value]) => [
+                el('dt', { text: label }),
+                el('dd', { text: value || 'Не назначено' }),
+            ])),
         ]);
     },
 
@@ -7017,10 +7123,30 @@ const app = {
 
         // Навигация
         for (const item of document.querySelectorAll('.nav__item')) {
-            item.addEventListener('click', () => this.showView(item.dataset.view));
+            item.addEventListener('click', () => {
+                if (item.dataset.view !== 'home') {
+                    this.executive.activeMetric = null;
+                    this.executive.returnContext = null;
+                }
+                this.showView(item.dataset.view);
+            });
         }
         on('executiveRefreshBtn', 'click', () => this.renderExecutiveHome(true));
-        on('backToList', 'click', () => this.showView('patients'));
+        on('backToList', 'click', () => this.backFromPatient());
+        window.addEventListener('popstate', (event) => {
+            const state = event.state || {};
+            if (state.clinicView === 'executive-detail' && this.executive.returnContext) {
+                this.restoreExecutiveDetail();
+                return;
+            }
+            if (state.clinicView === 'patient' && state.patientId) {
+                this.openPatient(state.patientId, { preserveHistory: false });
+                return;
+            }
+            if (this.currentView === 'patient' && this.executive.returnContext) {
+                this.restoreExecutiveDetail();
+            }
+        });
         on('sidebarToggle', 'click', () => {
             const shell = $('appScreen');
             const open = !shell.classList.contains('is-nav-open');

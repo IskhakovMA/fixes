@@ -325,28 +325,34 @@ def pulse(conn: sqlite3.Connection, user: policy.CurrentUser, filters: Analytics
     metrics = [
         {
             "code": "active_patients", "label": "Активные пациенты", "value": active_count,
-            "unit": "count", "detail_type": "pulse_active", "definition": PULSE_DEFINITIONS["active_patients"],
+            "unit": "count", "unit_label": "пациенты", "detail_type": "pulse_active",
+            "definition": PULSE_DEFINITIONS["active_patients"],
         },
         {
-            "code": "routes_under_control", "label": "Маршруты под контролем", "value": controlled_percent,
-            "unit": "percent", "detail_type": "pulse_under_control", "definition": PULSE_DEFINITIONS["routes_under_control"],
+            "code": "routes_under_control", "label": "Пациенты под контролем", "value": controlled_percent,
+            "unit": "percent", "unit_label": "доля активных пациентов", "detail_type": "pulse_under_control",
+            "definition": PULSE_DEFINITIONS["routes_under_control"],
             "numerator": controlled_count, "denominator": active_count,
         },
         {
-            "code": "needs_attention", "label": "Требуют внимания", "value": len(state["needs_attention_ids"]),
-            "unit": "count", "detail_type": "pulse_needs_attention", "definition": PULSE_DEFINITIONS["needs_attention"],
+            "code": "needs_attention", "label": "Пациенты с сигналами риска", "value": len(state["needs_attention_ids"]),
+            "unit": "count", "unit_label": "уникальные пациенты", "detail_type": "pulse_needs_attention",
+            "definition": PULSE_DEFINITIONS["needs_attention"],
         },
         {
-            "code": "overdue_routes", "label": "Просроченные маршруты", "value": len(state["overdue_ids"]),
-            "unit": "count", "detail_type": "pulse_overdue", "definition": PULSE_DEFINITIONS["overdue_routes"],
+            "code": "overdue_routes", "label": "Пациенты с просрочкой", "value": len(state["overdue_ids"]),
+            "unit": "count", "unit_label": "уникальные пациенты", "detail_type": "pulse_overdue",
+            "definition": PULSE_DEFINITIONS["overdue_routes"],
         },
         {
-            "code": "no_next_action", "label": "Без следующего действия", "value": len(state["no_next_action_ids"]),
-            "unit": "count", "detail_type": "pulse_no_next_action", "definition": PULSE_DEFINITIONS["no_next_action"],
+            "code": "no_next_action", "label": "Пациенты без следующего действия", "value": len(state["no_next_action_ids"]),
+            "unit": "count", "unit_label": "уникальные пациенты", "detail_type": "pulse_no_next_action",
+            "definition": PULSE_DEFINITIONS["no_next_action"],
         },
         {
             "code": "open_problems", "label": "Открытые проблемы", "value": state["open_problem_count"],
-            "unit": "count", "detail_type": "pulse_open_problems", "definition": PULSE_DEFINITIONS["open_problems"],
+            "unit": "count", "unit_label": "проблемы", "detail_type": "pulse_open_problems",
+            "definition": PULSE_DEFINITIONS["open_problems"],
         },
     ]
     return {

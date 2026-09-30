@@ -34,6 +34,7 @@ class PulseMetric(BaseModel):
     label: str
     value: int | float | None
     unit: Literal["count", "percent"] = "count"
+    unit_label: str
     detail_type: str
     definition: str
     numerator: int | None = None
