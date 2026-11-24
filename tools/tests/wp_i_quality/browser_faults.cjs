@@ -264,22 +264,49 @@ async function ownerReassignment(browser, ui) {
     const admin = await privileged(browser);
     try {
         await withQuality(browser, ui, async (page, context, ledger) => {
-            const first = getQuality(page, 'patient_issues');
-            await (await ui.waitPatient(page, fixture.ownerPatientId)).click();
+            const owner = fixture.ownerPatientId;
+            const objectPath = '/api/patients/' + encodeURIComponent(owner);
+            const ownerIssues = response => {
+                const url = new URL(response.url());
+                return isQuality(url.href) && url.searchParams.get('view') === 'patient_issues'
+                    && url.searchParams.get('owner_patient_id') === owner;
+            };
+            const overviewReads = () => ['attention', 'portal-access'].map(section =>
+                page.waitForRequest(request => request.method() === 'GET'
+                    && new URL(request.url()).pathname === objectPath + '/' + section));
+            const finishOverviewReads = async requests => {
+                await Promise.all(requests.map(async pending => {
+                    const request = await pending;
+                    const response = await boundedWait(request.response(), 'owner Overview response was not received');
+                    assert.equal(response?.status(), 200, 'owner Overview read completed before reassignment');
+                    assert.equal(await boundedWait(response.finished(), 'owner Overview response did not finish'), null);
+                }));
+            };
+
+            const initialReads = overviewReads();
+            const first = page.waitForResponse(ownerIssues);
+            await (await ui.waitPatient(page, owner)).click();
             await successful(await first, 'patient_issues');
+            await finishOverviewReads(initialReads);
             await ui.action(ui.section(page, 'issues', '#patientQualityBlock'), 'finding').first()
                 .waitFor({ state: 'visible' });
             await page.getByRole('tab', { name: 'Данные', exact: true }).click();
             const phone = page.locator('#patientPanels input[type="tel"]');
             await phone.fill('+70000000999');
-            await page.evaluate(() => app.capturePatientEdits());
-            await page.waitForFunction(id => [...app.sessionFieldDrafts.values()]
-                .some(value => value.patientId === id), fixture.ownerPatientId);
-            const objectPath = '/api/patients/' + encodeURIComponent(fixture.ownerPatientId);
+            const epoch = await page.evaluate(() => app.sessionEpoch || 0);
+            const overview = overviewReads();
+            let reassignmentStarted = false;
             let assigned = 0;
             await page.route(qualityRequests, async route => {
                 const query = new URL(route.request().url()).searchParams;
-                if (query.get('view') === 'patient_issues' && query.get('owner_patient_id') === fixture.ownerPatientId && !assigned) {
+                if (query.get('view') === 'patient_issues' && query.get('owner_patient_id') === owner && !reassignmentStarted) {
+                    reassignmentStarted = true;
+                    // Finish the other audited Overview reads before changing ownership.
+                    // Their concurrent release can lock the session with its own 409.
+                    await finishOverviewReads(overview);
+                    await page.waitForFunction(id => app.currentView === 'patient' && app.currentPatientId === id
+                        && app.patientDetails.has(id) && [...app.sessionFieldDrafts.values()]
+                            .some(value => value.patientId === id), owner);
                     const current = await api(admin, 'GET', objectPath);
                     assert.equal(current.status(), 200);
                     const expectedVersion = (await current.json()).version;
@@ -291,17 +318,19 @@ async function ownerReassignment(browser, ui) {
                 }
                 await route.continue();
             });
-            const denied = getQuality(page, 'patient_issues');
+            const denied = page.waitForResponse(ownerIssues);
             await page.getByRole('tab', { name: 'Обзор', exact: true }).click();
             const reply = await denied;
             assert.equal(reply.status(), 404);
             assert.equal(assigned, 1, 'real offline-synthetic actor no longer owns the selected patient');
             await page.waitForFunction(id => app.currentView === 'patients' && app.currentPatientId === null
                 && !app.patientDetails.has(id) && !app.patientRows.some(row => row.id === id)
-                && ![...app.sessionFieldDrafts.values()].some(value => value.patientId === id), fixture.ownerPatientId);
-            assert.equal(await page.evaluate(() => app.user.id), fixture.accountIds.doctor);
+                && ![...app.sessionFieldDrafts.values()].some(value => value.patientId === id), owner);
+            assert.deepEqual(await page.evaluate(() => ({
+                user: app.user.id, epoch: app.sessionEpoch || 0, expired: !!app.sessionExpired,
+            })), { user: fixture.accountIds.doctor, epoch, expired: false });
             assert.equal(await page.locator('#loginScreen').isVisible(), false);
-            assert.equal(await page.locator('#patientQualityBlock').count(), 0);
+            assert.equal(await page.locator('#patientQualityBlock, #patientPanels input[type="tel"]').count(), 0);
             assert.equal(ledger.quality.filter(row => row.view === 'patient_issues').length, 2);
             ui.noLegacyOrWrites(ledger);
         }, fixture.accounts.doctor);
