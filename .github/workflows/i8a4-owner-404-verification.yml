@@ -41,7 +41,9 @@ jobs:
           test "$(git rev-parse HEAD)" = a9a23ba1f556f7f4ced4953a2ca8997230811d87
           export PLAYWRIGHT_MODULE="$RUNNER_TEMP/quality-deps/node_modules/playwright"
           export AXE_SOURCE="$RUNNER_TEMP/quality-deps/node_modules/axe-core/axe.min.js"
-          output="$RUNNER_TEMP/quality-results"
+          scratch="$(mktemp -d /tmp/i8a4.XXXXXX)"
+          trap 'rm -rf -- "$scratch"' EXIT
+          output="$scratch/run"
           if ! python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"; then
             if [ -f "$output/browser.local.log" ]; then
               grep -E '^(AssertionError|.*: Timeout|browserType[.]launch|.*error while loading shared libraries|.*FATAL|.*Host system is missing|.*Permission denied|    at .*wp_i_quality/)' "$output/browser.local.log" | tail -12 || true
