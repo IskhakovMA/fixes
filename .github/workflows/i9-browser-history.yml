@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [history, wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality]
+        suite: [history-navigation, history-saving, history-transportAndIdentity, history-objectRevocation, wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 104044ac8683805911f9e2bf939d1a12eadca775
+          ref: 7d2a9482764eb20dc3944879bba401f4b9d6ae5d
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -32,7 +32,7 @@ jobs:
       - name: Verify and run exact candidate
         env:
           SUITE: ${{ matrix.suite }}
-          CANDIDATE: 104044ac8683805911f9e2bf939d1a12eadca775
+          CANDIDATE: 7d2a9482764eb20dc3944879bba401f4b9d6ae5d
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE"
@@ -40,7 +40,6 @@ jobs:
           export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
           export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
           export WP_H_FULL_CHROMIUM="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
-          export BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
           test -x "$WP_H_FULL_CHROMIUM"
           "$WP_H_FULL_CHROMIUM" --version
           root="$RUNNER_TEMP/i9-results"
@@ -54,7 +53,8 @@ jobs:
             else
               local code="$?"
               echo "I9_CASE=$name FAIL $code"
-              find "$root" -maxdepth 3 -type f \( -name '*.log' -o -name '*.err' \) -path "*$name*" -exec grep -hE 'AssertionError|Timeout|Error:|Traceback|exit=|history.cjs:' {} + | sed -E 's/(locator\.fill\().*/\1[REDACTED])/' | tail -22 || true
+              find "$root" -maxdepth 3 -type f -path "*$name*" \( -name "*.runner.log" -o -name "card.log" -o -name "browser.local.log" -o -name "browser.log" \) \
+                -exec tail -n 38 {} + | sed -E 's/(locator\.fill\().*/\1[REDACTED])/;s/[[:alnum:]_-]{43}([^[:alnum:]_-]|$)/[REDACTED]\1/g' | tail -55 || true
               result=1
             fi
           }
@@ -90,7 +90,8 @@ jobs:
             done
           }
           case "$SUITE" in
-            history)
+            history-*)
+              export HISTORY_SCENARIO="${SUITE#history-}" BROWSER_EXECUTABLE="$WP_H_FULL_CHROMIUM"
               suites wp_i_card 100 history ;;
             wp-d)
               run_case wp_d_browser timeout 300 node tools/tests/wp_d_browser.cjs
@@ -134,10 +135,10 @@ jobs:
           esac
           exit "$result"
       - name: Upload safe navigation assertions
-        if: always() && matrix.suite == 'history'
+        if: always() && startsWith(matrix.suite, 'history-')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: i9-browser-history-assertions
-          path: ${{ runner.temp }}/i9-results/wp_i_card-history/history-receipt.json
+          name: i9-browser-${{ matrix.suite }}-assertions
+          path: ${{ runner.temp }}/i9-results/wp_i_card-history/history-results.json
           if-no-files-found: warn
           retention-days: 14
