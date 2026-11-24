@@ -1,0 +1,205 @@
+name: I-8A4 owner lifecycle trace
+on:
+  push:
+    branches: [verify/i8a4-quality-owner-404]
+    paths: ['.github/workflows/i8a4-owner-404-trace.yml']
+permissions:
+  contents: read
+jobs:
+  lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: a9a23ba1f556f7f4ced4953a2ca8997230811d87
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
+          npm install --prefix "$RUNNER_TEMP/quality-deps" playwright@1.62.1 axe-core@4.11.0
+          "$RUNNER_TEMP/quality-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Trace exact candidate and late owner 200
+        run: |
+          test "$(git rev-parse HEAD)" = a9a23ba1f556f7f4ced4953a2ca8997230811d87
+          scratch="$(mktemp -d /tmp/i8trace.XXXXXX)"
+          trap 'rm -rf -- "$scratch"' EXIT
+          cat > "$scratch/owner-trace.cjs" <<'I8A4_TRACE_SOURCE'
+          const Module = require('node:module');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const loadJS = Module._extensions['.js'];
+          const mark = 'owner404-trace ';
+          function replace(source, from, to) {
+              if (source.split(from).length !== 2) throw Error('trace anchor missing or ambiguous');
+              return source.replace(from, to);
+          }
+          function reader(source) {
+              source = replace(source, 'constructor(host, config, owner = null) {', "constructor(host, config, owner = null) {\n            window.__owner404('panel-create', {owner: owner === window.__owner404Target});");
+              source = replace(source, 'clear(forget) {', "clear(forget) {\n            window.__owner404('panel-clear', {owner: this.owner === window.__owner404Target, forget, connected: this.host.isConnected});");
+              source = replace(source, 'clear(reason) {', "clear(reason) {\n            window.__owner404('reader-clear', {owner: this.owner === window.__owner404Target, reason: reason || null, generation: this.generation});");
+              source = replace(source, 'this.publish({state: \'loading\', key, selector, cursor});', `
+                  const traceCurrent = (outcome, status) => {
+                      window.__owner404('reader-' + outcome, {
+                          key, view: selector.view, owner: owner === window.__owner404Target,
+                          generation, actualGeneration: this.generation, version,
+                          actualVersion: this.versions.get(key) ?? null, current: current(),
+                          sameQuery: query === this.query, sameOwner: owner === this.owner,
+                          sameRoot: publishedRoot === this.root, sameContext: context === this.context(),
+                          visible: this.visible(), status,
+                      });
+                  };
+                  traceCurrent('start');
+                  this.publish({state: 'loading', key, selector, cursor});
+              `);
+              source = replace(source, 'if (!current()) return false;\n                if (!validated', `traceCurrent('success', 200);
+                          if (!current()) return false;
+                          if (!validated`);
+              return replace(source, 'catch (error) {\n                if (!current()) return false;', `catch (error) {
+                          traceCurrent('error', error?.status ?? null);
+                          if (!current()) return false;`);
+          }
+          function app(source) {
+              const probes = [
+                  ['    async renderPatientQualityBlock(patientId) {','panel-render'],
+                  ['                this.qualityV1.card = null;','panel-detach'],
+                  ['            onOwnerUnavailable: owner => {','onOwnerUnavailable'],
+                  ['    forgetDeniedPatient(patientId) {','forgetDeniedPatient-start'],
+                  ["        this.currentPatientId = null;\n        this.showView('patients');\n    },\n\n    async confirmClinicalNavigation", 'unused'],
+                  ['    async updatePatientField(patientId, fieldName, value) {','field-write-start'],
+                  ['    replacePatientInCache(updated) {','detail-cache-update'],
+                  ['    renderPatientView() {','card-render'],
+              ];
+              for (const [key,name] of probes) if (name !== 'unused') source = replace(source,key,key + '\n        window.__owner404("' + name + '");');
+              source = replace(source, probes[3][0], probes[3][0].replace("        this.showView('patients');","        this.showView('patients');\n        window.__owner404('forgetDeniedPatient-complete');"));
+              return source;
+          }
+          async function attach(page, fixture) {
+              const out = path.join(process.env.WP_I_QUALITY_OUT, 'owner-trace.jsonl');
+              let seq=0;
+              function write(event, detail = {}) {
+                  fs.appendFileSync(out, JSON.stringify({seq: ++seq, monotonicMs: Math.round(performance.now() * 1000) / 1000, event, ...detail})+'\n');
+              }
+              await page.addInitScript(({target, user, prefix}) => {
+                  window.__owner404Target = target;
+                  window.__owner404 = (event, details = {}) => {
+                      let a;
+                      try { a = app; } catch {}
+                      const dom = document.getElementById('patientQualityBlock');
+                      if (event === 'reader-success' && details.owner && details.key === 'groups' && !details.current) {
+                          window.__owner404LateGroupDiscarded = true;
+                      }
+                      console.log(prefix+JSON.stringify({event, browserMs: Math.round(performance.now()*1000)/1000,
+                          state: a && {
+                              view: a.currentView, tab: a.currentTab, selected: a.currentPatientId == null ? 'none' :
+                                  a.currentPatientId === target ? 'owner' : 'other',
+                              detail: a.patientDetails?.has(target),
+                              row: a.patientRows?.some(p => p.id === target),
+                              draft: Array.from(a.sessionFieldDrafts?.values() || []).some(d => d.patientId === target),
+                              qualityDom: Boolean(dom), sessionEpoch: a.sessionEpoch ?? 0,
+                              sameUser: a.user?.id === user, sessionExpired: Boolean(a.sessionExpired),
+                          }, details}));
+                  };
+                  for (const type of ['pointerdown','blur','change','click']) document.addEventListener(type, e => {
+                      if (e.target?.matches?.('#tab-overview, input[type="tel"]')) {
+                          window.__owner404('dom-'+type, {target: e.target.id === 'tab-overview' ? 'overview' : 'telephone'});
+                      }
+                  }, true);
+              }, {target: fixture.ownerPatientId, user: fixture.accountIds.doctor, prefix: mark});
+              await page.route(/\/static\/(app|quality-v1)\.js(?:\?.*)?$/, async route => {
+                  const reply = await route.fetch();
+                  const original = await reply.text();
+                  const url = new URL(route.request().url());
+                  await route.fulfill({response: reply, body: url.pathname.endsWith('/app.js') ? app(original) : reader(original)});
+              });
+              page.on('console', message => {
+                  if (message.text().startsWith(mark)) {
+                      const {event, ...detail}=JSON.parse(message.text().slice(mark.length));
+                      write(event, detail);
+                  }
+              });
+              page.on('pageerror', error => write('pageerror', {name:error.name}));
+              const ids=new WeakMap();
+              const requestInfo = request => {
+                  const url=new URL(request.url());
+                  const ownerPath='/api/patients/'+fixture.ownerPatientId;
+                  if (![fixture.qualityPath,'/api/auth/me','/api/patients',ownerPath,ownerPath+'/attention',ownerPath+'/portal-access'].includes(url.pathname)) return;
+                  return {method:request.method(),endpoint:url.pathname.startsWith(ownerPath) ? 'owner-object' + url.pathname.slice(ownerPath.length) : url.pathname,
+                      view:url.searchParams.get('view'), owner:url.searchParams.get('owner_patient_id') === fixture.ownerPatientId,
+                      requestId:ids.get(request)};
+              };
+              page.on('request', request=>{
+                  if (requestInfo(request)) {
+                      ids.set(request,seq+1);
+                      write('request',requestInfo(request));
+                  }
+              });
+              page.on('response', response=>{
+                  const info=requestInfo(response.request());
+                  if (info) write('response',{...info,status:response.status()});
+              });
+              const exactGroups = url => url.pathname === fixture.qualityPath &&
+                  url.searchParams.get('view') === 'groups' && url.searchParams.get('owner_patient_id') === fixture.ownerPatientId;
+              let resume, prepared, claimed = false;
+              const hold = new Promise(resolve => { resume = resolve; });
+              const ready = new Promise(resolve => { prepared = resolve; });
+              await page.route(exactGroups, async route => {
+                  if (claimed) return route.continue();
+                  claimed = true;
+                  const reply = await route.fetch();
+                  if (reply.status() !== 200) throw Error('expected a real pre-reassignment owner groups 200');
+                  write('late-owner-groups-200-held');
+                  prepared(true);
+                  await hold;
+                  await route.fulfill({response: reply});
+                  write('late-owner-groups-200-released');
+              });
+              write.ready = ready;
+              write.release = resume;
+              return write;
+          }
+          Module._extensions['.cjs'] = function load(mod, filename) {
+              if (!filename.endsWith('/wp_i_quality/browser_faults.cjs')) return loadJS(mod,filename);
+              let source = fs.readFileSync(filename,'utf8');
+              source = replace(source,'username = fixture.accounts.developer) {','username = fixture.accounts.developer, onSetup = null) {');
+              source = replace(source,'    const page = await context.newPage();\n    try {\n        await login(page, username);',
+                  '    const page = await context.newPage();\n    try {\n        if (onSetup) await onSetup(page, fixture);\n        await login(page, username);');
+              source = replace(source,'async function ownerReassignment(browser, ui) {\n    const admin',
+                  'async function ownerReassignment(browser, ui) {\n    let ownerTrace;\n    const admin');
+              source = replace(source,"        }, fixture.accounts.doctor);\n    } finally {\n        await admin.close();", `
+                  }, fixture.accounts.doctor, async (page, fixture) => { ownerTrace = await __owner404Attach(page, fixture); });
+              } finally {
+                  await admin.close();`);
+              source = replace(source, "                .waitFor({ state: 'visible' });\n            await page.getByRole('tab', { name: 'Данные', exact: true }).click();", "                .waitFor({ state: 'visible' });\n            await boundedWait(ownerTrace.ready, 'owner groups 200 not held');\n            await page.getByRole('tab', { name: 'Данные', exact: true }).click();");
+              source = replace(source, "            assert.equal(ledger.quality.filter(row => row.view === 'patient_issues').length, 2);", `
+                      ownerTrace.release();
+                      await page.waitForFunction(() => window.__owner404LateGroupDiscarded === true);
+                      await page.waitForFunction(id => app.currentView === 'patients' && app.currentPatientId === null
+                          && !app.patientDetails.has(id) && !app.patientRows.some(row => row.id === id)
+                          && ![...app.sessionFieldDrafts.values()].some(value => value.patientId === id), owner);
+                      assert.equal(await page.locator('#patientQualityBlock').count(), 0);
+                      ownerTrace('late-owner-groups-200-no-resurrection');
+                      assert.equal(ledger.quality.filter(row => row.view === 'patient_issues').length, 2);`);
+              source = replace(source,'                    assigned++;','                    ownerTrace("admin-assignment",{status:changed.status()});\n                    assigned++;');
+              source = 'const __owner404Attach = require(' + JSON.stringify(__filename) + ');\n' + source;
+              return mod._compile(source, filename);
+          };
+          module.exports=attach;
+          I8A4_TRACE_SOURCE
+          export PLAYWRIGHT_MODULE="$RUNNER_TEMP/quality-deps/node_modules/playwright"
+          export AXE_SOURCE="$RUNNER_TEMP/quality-deps/node_modules/axe-core/axe.min.js"
+          export NODE_OPTIONS="--require=$scratch/owner-trace.cjs"
+          if ! python tools/tests/wp_i_quality/run_browser.py --out "$scratch/run"; then
+            if [ -f "$scratch/run/browser.local.log" ]; then
+              grep -E '^(AssertionError|Error:|.*: Timeout|    at .*wp_i_quality/)' "$scratch/run/browser.local.log" | tail -16 || true
+            fi
+            exit 1
+          fi
+          grep -q 'late-owner-groups-200-no-resurrection' "$scratch/run/owner-trace.jsonl"
+          sed 's/^/I8A4_TRACE=/' "$scratch/run/owner-trace.jsonl"
