@@ -62,18 +62,11 @@ jobs:
           export PLAYWRIGHT_MODULE="$RUNNER_TEMP/quality-deps/node_modules/playwright"
           export AXE_SOURCE="$RUNNER_TEMP/quality-deps/node_modules/axe-core/axe.min.js"
           output="$RUNNER_TEMP/quality-results"
-          if [ "$SUITE" = browser_zoom ]; then
-            command -v xvfb-run
-            xvfb-run -a python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"
-          else
-            python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"
+          if ! python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"; then
+            if [ -f "$output/browser.local.log" ]; then
+              grep -E '^(AssertionError|.*: Timeout|    at .*wp_i_quality/)' "$output/browser.local.log" | tail -12 || true
+            fi
+            exit 1
           fi
           test -s "$output/$RESULT"
-          mkdir "$RUNNER_TEMP/evidence"
-          cp "$output/$RESULT" "$RUNNER_TEMP/evidence/"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: i8a4-${{ matrix.run }}
-          path: ${{ runner.temp }}/evidence/
-          if-no-files-found: error
-          retention-days: 14
+          python -c 'import json,sys; print("I8A4_EVIDENCE=" + json.dumps(json.load(open(sys.argv[1])), separators=(",",":")))' "$output/$RESULT"
