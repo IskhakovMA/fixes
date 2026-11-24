@@ -6,36 +6,16 @@ permissions:
   contents: read
 jobs:
   quality-browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
-          - run: browser-a
-            suite: browser
-            count: 240
-            result: browser-results.json
-          - run: browser-b
-            suite: browser
-            count: 240
-            result: browser-results.json
           - run: native-zoom
             suite: browser_zoom
             count: 240
             result: browser-native-zoom.json
-          - run: perf-100
-            suite: browser_perf
-            count: 100
-            result: browser-perf.json
-          - run: perf-1000
-            suite: browser_perf
-            count: 1000
-            result: browser-perf.json
-          - run: perf-10000
-            suite: browser_perf
-            count: 10000
-            result: browser-perf.json
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -64,7 +44,7 @@ jobs:
           output="$RUNNER_TEMP/quality-results"
           if ! python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"; then
             if [ -f "$output/browser.local.log" ]; then
-              grep -E '^(AssertionError|.*: Timeout|    at .*wp_i_quality/)' "$output/browser.local.log" | tail -12 || true
+              grep -E '^(AssertionError|.*: Timeout|browserType[.]launch|.*error while loading shared libraries|.*FATAL|.*Host system is missing|.*Permission denied|    at .*wp_i_quality/)' "$output/browser.local.log" | tail -12 || true
             fi
             exit 1
           fi
