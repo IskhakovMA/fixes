@@ -1,0 +1,143 @@
+name: I-9 browser history and synthetic regression
+on:
+  push:
+    branches: [verification/i9-browser-history]
+permissions:
+  contents: read
+jobs:
+  synthetic-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [history, wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 104044ac8683805911f9e2bf939d1a12eadca775
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install locked synthetic test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
+          npm ci --ignore-scripts --prefix tools/tests/wp_h
+          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify and run exact candidate
+        env:
+          SUITE: ${{ matrix.suite }}
+          CANDIDATE: 104044ac8683805911f9e2bf939d1a12eadca775
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE"
+          echo "I9_ENV=$CANDIDATE $(uname -sm) $(python -V) node=$(node -v)"
+          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
+          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
+          export WP_H_FULL_CHROMIUM="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
+          export BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
+          test -x "$WP_H_FULL_CHROMIUM"
+          "$WP_H_FULL_CHROMIUM" --version
+          root="$RUNNER_TEMP/i9-results"
+          mkdir -m 700 "$root"
+          result=0
+          run_case() {
+            local name="$1"
+            shift
+            if "$@" > "$root/$name.runner.log" 2>&1; then
+              echo "I9_CASE=$name PASS"
+            else
+              local code="$?"
+              echo "I9_CASE=$name FAIL $code"
+              find "$root" -maxdepth 3 -type f \( -name '*.log' -o -name '*.err' \) -path "*$name*" -exec grep -hE 'AssertionError|Timeout|Error:|Traceback|exit=|history.cjs:' {} + | sed -E 's/(locator\.fill\().*/\1[REDACTED])/' | tail -22 || true
+              result=1
+            fi
+          }
+          legacy() (
+            set -euo pipefail
+            local server="$1" script="$2" variable="$3" host="$4"
+            shift 4
+            local port=18427 pid
+            python "tools/tests/$server.py" --port "$port" "$@" > "$root/$script.server.log" 2>&1 &
+            pid=$!
+            trap 'kill -INT "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true' EXIT
+            python - "$port" <<'I9_WAIT_PY'
+          import socket, sys, time
+          deadline = time.monotonic() + 60
+          while time.monotonic() < deadline:
+              try:
+                  with socket.create_connection(("127.0.0.1", int(sys.argv[1])), timeout=1):
+                      break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit("Synthetic service failed to listen")
+          I9_WAIT_PY
+            env "$variable=http://$host:$port" timeout 300 node "tools/tests/$script.cjs"
+          )
+          suites() {
+            local folder="$1" count="$2"
+            shift 2
+            local s name
+            for s in "$@"; do
+              name="$folder-$s"
+              run_case "$name" python "tools/tests/$folder/run.py" --suite "$s" --count "$count" --out "$root/$name"
+            done
+          }
+          case "$SUITE" in
+            history)
+              suites wp_i_card 100 history ;;
+            wp-d)
+              run_case wp_d_browser timeout 300 node tools/tests/wp_d_browser.cjs
+              for s in wp_d_live_browser wp_d_fix1_browser wp_d_fix2_browser; do
+                run_case "$s" legacy wp_d_synthetic_server "$s" WP_D_SYNTHETIC_ORIGIN 127.0.0.1
+              done ;;
+            wp-e-f-g)
+              run_case wp_e_browser legacy wp_e_synthetic_server wp_e_browser WP_E_SYNTHETIC_ORIGIN 127.0.0.1 --now 2026-10-01T11:00:00+03:00
+              run_case wp_f_fix2_browser legacy wp_d_synthetic_server wp_f_fix2_browser WP_D_SYNTHETIC_ORIGIN 127.0.0.1
+              run_case wp_g_idle_browser legacy wp_g_synthetic_server wp_g_idle_browser WP_D_SYNTHETIC_ORIGIN 127.0.0.1
+              run_case wp_g_mfa_browser legacy wp_g_mfa_synthetic_server wp_g_mfa_browser SYNTHETIC_MFA_ORIGIN localhost
+              run_case wp_g_stage2c_browser legacy wp_g_stage2c_synthetic_server wp_g_stage2c_browser STAGE2C_SYNTHETIC_ORIGIN localhost ;;
+            wp-h)
+              for s in browser drafts zoom; do
+                run_case "wp-h-$s" python tools/tests/wp_h/run.py "$s" --out "$root/wp-h-$s"
+              done ;;
+            registry-card)
+              for count in 100 1000 10000; do
+                run_case "registry-$count" python tools/tests/wp_i/run.py --count "$count" --out "$root/registry-$count"
+              done
+              suites wp_i_card 100 card errors clinical zoom ;;
+            create)
+              suites wp_i_create 100 create errors workflows zoom ;;
+            consilium-schedule)
+              suites wp_i_consilium 1000 schedule workflows loading zoom ;;
+            consilium-records)
+              suites wp_i_consilium 1000 decisions decisionzoom records recordszoom ;;
+            notifications)
+              suites wp_i_notifications 100 browser workflows retry zoom
+              suites wp_i_notifications 1000 fix1 fix2 ;;
+            ai)
+              suites wp_i_ai 1000 browser workflows zoom ;;
+            management-audit)
+              suites wp_i_management 1000 browser workflows zoom
+              suites wp_i_audit_chair 1000 browser workflows zoom ;;
+            workspace-quality)
+              suites wp_i_workspace 1000 browser workflows zoom
+              for s in browser browser_zoom; do
+                run_case "quality-$s" python tools/tests/wp_i_quality/run_browser.py --suite "$s" --count 240 --out "$root/quality-$s"
+              done ;;
+          esac
+          exit "$result"
+      - name: Upload safe navigation assertions
+        if: always() && matrix.suite == 'history'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: i9-browser-history-assertions
+          path: ${{ runner.temp }}/i9-results/wp_i_card-history/history-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
