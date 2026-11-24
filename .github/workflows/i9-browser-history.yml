@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [history-navigation, history-saving, history-transportAndIdentity, history-objectRevocation, wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality]
+        suite: [history-navigation, history-saving, history-transportAndIdentity, history-objectRevocation, history-unknownDraft, history-unknownDenial, history-unknownRace, wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: c2f59041d455b2232a9a2a2cdeac94eabfd3d8b5
+          ref: 549d74dca51b59cec65f7ac49791b4984f7fd8ca
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -32,7 +32,7 @@ jobs:
       - name: Verify and run exact candidate
         env:
           SUITE: ${{ matrix.suite }}
-          CANDIDATE: c2f59041d455b2232a9a2a2cdeac94eabfd3d8b5
+          CANDIDATE: 549d74dca51b59cec65f7ac49791b4984f7fd8ca
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$CANDIDATE"
