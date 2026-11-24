@@ -1,0 +1,79 @@
+name: I-8A4 synthetic browser verification
+on:
+  push:
+    branches: [verify/i8a4-quality-owner-404]
+permissions:
+  contents: read
+jobs:
+  quality-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - run: browser-a
+            suite: browser
+            count: 240
+            result: browser-results.json
+          - run: browser-b
+            suite: browser
+            count: 240
+            result: browser-results.json
+          - run: native-zoom
+            suite: browser_zoom
+            count: 240
+            result: browser-native-zoom.json
+          - run: perf-100
+            suite: browser_perf
+            count: 100
+            result: browser-perf.json
+          - run: perf-1000
+            suite: browser_perf
+            count: 1000
+            result: browser-perf.json
+          - run: perf-10000
+            suite: browser_perf
+            count: 10000
+            result: browser-perf.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: a9a23ba1f556f7f4ced4953a2ca8997230811d87
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
+          npm install --prefix "$RUNNER_TEMP/quality-deps" playwright@1.62.1 axe-core@4.11.0
+          "$RUNNER_TEMP/quality-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Run against disposable loopback fixture
+        env:
+          SUITE: ${{ matrix.suite }}
+          COUNT: ${{ matrix.count }}
+          RESULT: ${{ matrix.result }}
+        run: |
+          test "$(git rev-parse HEAD)" = a9a23ba1f556f7f4ced4953a2ca8997230811d87
+          export PLAYWRIGHT_MODULE="$RUNNER_TEMP/quality-deps/node_modules/playwright"
+          export AXE_SOURCE="$RUNNER_TEMP/quality-deps/node_modules/axe-core/axe.min.js"
+          output="$RUNNER_TEMP/quality-results"
+          if [ "$SUITE" = browser_zoom ]; then
+            command -v xvfb-run
+            xvfb-run -a python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"
+          else
+            python tools/tests/wp_i_quality/run_browser.py --out "$output" --suite "$SUITE" --count "$COUNT"
+          fi
+          test -s "$output/$RESULT"
+          mkdir "$RUNNER_TEMP/evidence"
+          cp "$output/$RESULT" "$RUNNER_TEMP/evidence/"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: i8a4-${{ matrix.run }}
+          path: ${{ runner.temp }}/evidence/
+          if-no-files-found: error
+          retention-days: 14
