@@ -31,8 +31,8 @@ jobs:
           DEBUG: pw:browser
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$CANDIDATE"
-          git diff --exit-code "$CANDIDATE" -- . ':!.github/workflows/i9-quality-native-zoom.yml' ':!tools/tests/wp_i_quality/browser_zoom.cjs'
+          test "$(git rev-parse HEAD^^)" = "$CANDIDATE"
+          git diff --exit-code "$CANDIDATE" -- . ':!.github/workflows/i9-quality-native-zoom.yml' ':!tools/tests/wp_i_quality/browser_zoom.cjs' ':!tools/tests/wp_i_quality/run_browser.py'
           export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
           export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
           export WP_H_FULL_CHROMIUM="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
@@ -43,8 +43,14 @@ jobs:
           extended="$(mktemp -d /tmp/qz.XXXXXX)"
           mkdir -m 700 "$evidence"
           zoom=tools/tests/wp_i_quality/browser_zoom.cjs
+          runner=tools/tests/wp_i_quality/run_browser.py
           cp "$zoom" "$raw/extended.cjs"
-          trap 'cp "$raw/extended.cjs" "$zoom"' EXIT
+          cp "$runner" "$raw/fixed-runner.py"
+          restore() {
+            cp "$raw/extended.cjs" "$zoom"
+            cp "$raw/fixed-runner.py" "$runner"
+          }
+          trap restore EXIT
           {
             printf 'candidate=%s\nverification=%s\n' "$CANDIDATE" "$(git rev-parse HEAD)"
             uname -sm
@@ -58,7 +64,7 @@ jobs:
             local label="$1" output="$2" code=0
             python tools/tests/wp_i_quality/run_browser.py --suite browser_zoom --count 240 --out "$output" > "$raw/$label.runner.log" 2>&1 || code=$?
             printf '%s exit=%s\n' "$label" "$code" | tee -a "$evidence/status.txt"
-            python - "$label" "$raw" "$output" "$evidence" <<'PY'
+            python - "$label" "$raw" "$output" "$evidence" <<'PY' || return 125
           import re
           import sys
           from pathlib import Path
@@ -82,6 +88,7 @@ jobs:
             return "$code"
           }
           git show "$CANDIDATE:$zoom" > "$zoom"
+          git show "$CANDIDATE:$runner" > "$runner"
           original_status=0
           run_case original "$RUNNER_TEMP/i9-results/quality-browser_zoom" || original_status=$?
           short_status=0
@@ -92,8 +99,18 @@ jobs:
           if [ "$original_status" -ne 0 ]; then
             echo "::notice::Original Quality zoom reproduced a failure. See the diagnostic artifact."
           fi
+          cp "$raw/fixed-runner.py" "$runner"
+          git show "$CANDIDATE:$zoom" > "$zoom"
+          fixed_status=0
+          run_case fixed "$RUNNER_TEMP/i9-results/fixed-browser_zoom" || fixed_status=$?
+          cp "$raw/extended.cjs" "$zoom"
+          fixed_extended_status=0
+          run_case fixed-extended "$RUNNER_TEMP/i9-results/fixed-extended-browser_zoom" || fixed_extended_status=$?
+          test "$original_status" -ne 125
           test "$short_status" -eq 0
           test "$extended_status" -eq 0
+          test "$fixed_status" -eq 0
+          test "$fixed_extended_status" -eq 0
       - name: Publish sanitized diagnostic evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

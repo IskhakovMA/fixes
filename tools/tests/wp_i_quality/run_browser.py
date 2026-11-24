@@ -1,5 +1,6 @@
 """Run the browser suite against the localhost-only synthetic I-8A3 FastAPI lab."""
 import argparse
+from contextlib import ExitStack
 from pathlib import Path
 import os
 import signal
@@ -26,8 +27,12 @@ def main():
     output = args.out.resolve()
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     here = Path(__file__).resolve().parent
-    with tempfile.TemporaryDirectory(prefix='private-fixture-', dir=output) as private:
-        scratch = Path(private)
+    with ExitStack() as temporary:
+        scratch = Path(temporary.enter_context(tempfile.TemporaryDirectory(prefix='private-fixture-', dir=output)))
+        browser_tmp = scratch
+        if sys.platform == 'linux' and args.suite == 'browser_zoom':
+            # Chromium's ProcessSingleton must fit its socket path into Linux sockaddr_un.
+            browser_tmp = Path(temporary.enter_context(tempfile.TemporaryDirectory(prefix='qz.', dir='/tmp')))
         fixture = scratch / 'fixture.local.json'
         ready = threading.Event()
         port = loopback_port()
@@ -58,7 +63,7 @@ def main():
                         raise RuntimeError('The synthetic server is not ready.')
                 env = {
                     **os.environ, 'WP_I_QUALITY_FIXTURE': str(fixture), 'WP_I_QUALITY_OUT': str(output),
-                    'TMPDIR': str(scratch),
+                    'TMPDIR': str(browser_tmp),
                 }
                 with (output / 'browser.local.log').open('wb') as browser_log:
                     result = subprocess.run(
