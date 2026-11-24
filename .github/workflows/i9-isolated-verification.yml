@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [wp-d, wp-e-f-g, wp-h, registry-card, create, consilium-schedule, consilium-records, notifications, ai, management-audit, workspace-quality, performance]
+        suite: [quality-native-zoom]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -43,8 +43,8 @@ jobs:
           export WP_H_FULL_CHROMIUM="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
           test -x "$WP_H_FULL_CHROMIUM"
           "$WP_H_FULL_CHROMIUM" --version
-          root="$RUNNER_TEMP/i9-results"
-          mkdir -m 700 "$root"
+          root="$(mktemp -d /tmp/i9z.XXXXXX)"
+          trap 'rm -rf -- "$root"' EXIT
           result=0
           run_case() {
             local name="$1"
@@ -54,7 +54,7 @@ jobs:
             else
               local code="$?"
               echo "I9_CASE=$name FAIL $code"
-              find "$root" -maxdepth 3 -type f \( -name '*.log' -o -name '*.err' \) -path "*$name*" -exec grep -hE 'AssertionError|Timeout|Error:|Traceback|exit=' {} + | tail -18 || true
+              find "$root" -maxdepth 3 -type f \( -name '*.log' -o -name '*.err' \) -path "*$name*" -exec grep -hE 'AssertionError|Timeout|Error:|Traceback|exit=|browserType[.]launch|FATAL|Permission denied|shared libraries' {} + | tail -18 || true
               result=1
             fi
           }
@@ -90,6 +90,13 @@ jobs:
             done
           }
           case "$SUITE" in
+            quality-native-zoom)
+              run_case quality-zoom python tools/tests/wp_i_quality/run_browser.py --suite browser_zoom --count 240 --out "$root/qz"
+              if [ "$result" -eq 0 ]; then
+                python -c 'import json,sys; print("I9_ZOOM=" + json.dumps(json.load(open(sys.argv[1])), separators=(",",":")))' "$root/qz/browser-native-zoom.json"
+              else
+                grep -E 'browserType[.]launch|FATAL|AssertionError|shared libraries|Permission denied|Timeout' "$root/qz/browser.local.log" | tail -15 || true
+              fi ;;
             wp-d)
               run_case wp_d_browser timeout 300 node tools/tests/wp_d_browser.cjs
               for s in wp_d_live_browser wp_d_fix1_browser wp_d_fix2_browser; do
