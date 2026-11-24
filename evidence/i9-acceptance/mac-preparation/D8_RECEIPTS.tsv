@@ -1,0 +1,22 @@
+status	scenario	platform	candidate_sha	fixture_ref	os_build	browser_build	screen_reader_build	keyboard_settings	role	locale	theme	css_width	dpr	orientation	native_zoom	observed_url_redacted	expected	actual	spoken_redacted	focus_result	reviewer	timestamp	proof_ref
+OPEN	D8-01	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-02	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-03	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-04	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-05	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-06	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-07	macOS Safari VoiceOver	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-01	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-02	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-03	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-04	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-05	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-06	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-07	Windows Firefox NVDA	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-01	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-02	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-03	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-04	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-05	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-06	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
+OPEN	D8-07	supported mobile	72dad18c11feb8d9d8b62b702b05f54ed7ffad1d																				
