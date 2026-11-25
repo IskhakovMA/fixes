@@ -1,0 +1,241 @@
+diff --git a/.github/workflows/i9-v33-linux-browser.yml b/.github/workflows/i9-v33-linux-browser.yml
+index 27bc271..fcb3138 100644
+--- a/.github/workflows/i9-v33-linux-browser.yml
++++ b/.github/workflows/i9-v33-linux-browser.yml
+@@ -51,28 +51,40 @@ jobs:
+         run: |
+           set -euo pipefail
+           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          targeted=4fff9faff8044005b50086a23e25934aefc67079
++          diagnostic=225b41c90ec2808e2211c501c49fad516628df7f
++          previous=8d0c28fcf49edb27eca13272e38942b378ff1d67
+           parent=8149e69504fb372a9e9037f35fe09ae2a0e6bfb6
+           original=9ac9a2b2d5b93c76910cefb3c9ec27b4bc85f94c
+           initial=9472103cd17ba857ab54c35a5d84d7b01d052c9d
+           workflow=.github/workflows/i9-v33-linux-browser.yml
+           diag=tools/tests/wp_i_workspace/diagnostic
+-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $parent"
++          history_probe=tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
++          history_fix=tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch
++          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $targeted"
++          test "$(git rev-list --parents -n1 "$targeted")" = "$targeted $diagnostic"
++          test "$(git diff --name-status "$targeted" HEAD)" = "$(printf 'M\t%s' "$workflow")"
++          test "$(git rev-list --parents -n1 "$diagnostic")" = "$diagnostic $previous"
++          test "$(git diff --name-status "$diagnostic" "$targeted")" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_fix")"
++          git show "HEAD:$history_fix" > "$RUNNER_TEMP/unknown-denial-harness.patch"
++          test "$(git rev-list --parents -n1 "$previous")" = "$previous $parent"
++          test "$(git diff --name-status "$previous" "$diagnostic")" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_probe")"
+           test "$(git rev-list --parents -n1 "$parent")" = "$parent $original"
+           test "$(git rev-list --parents -n1 "$original")" = "$original $initial"
+           test "$(git rev-list --parents -n1 "$initial")" = "$initial $CANDIDATE_SHA"
+           test "$(git diff --name-status "$CANDIDATE_SHA" "$original")" = "$(printf 'A\t%s' "$workflow")"
+           expected=$(printf 'M\t%s\nA\t%s/apply_precondition.py\nA\t%s/quiesce.cjs' "$workflow" "$diag" "$diag")
+-          test "$(git diff --name-status "$parent" HEAD)" = "$expected"
++          test "$(git diff --name-status "$parent" "$previous")" = "$expected"
+           probe="$RUNNER_TEMP/ws-probe"
+           mkdir -m 700 "$probe"
+           base_files=(apply_probe.py backend_probe.py publish_receipt.py timeline.cjs)
+           final_files=(apply_precondition.py apply_probe.py backend_probe.py publish_receipt.py quiesce.cjs timeline.cjs)
+           test "$(git diff --name-status "$original" "$parent")" = "$(printf 'M\t%s\nA\t%s\n' "$workflow" "$diag/${base_files[0]}"; for file in "${base_files[@]:1}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
+-          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = "$(printf 'A\t%s\n' "$workflow"; for file in "${final_files[@]}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
++          test "$(git diff --name-status "$CANDIDATE_SHA" "$previous")" = "$(printf 'A\t%s\n' "$workflow"; for file in "${final_files[@]}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
+           for file in "${final_files[@]}"; do
+             git show "HEAD:$diag/$file" > "$probe/$file"
+           done
+-          echo "I9_CHAIN=$GITHUB_SHA $parent $original $initial $CANDIDATE_SHA"
++          echo "I9_CHAIN=$GITHUB_SHA $targeted $diagnostic $previous $parent $original $initial $CANDIDATE_SHA"
+           echo "I9_WORKFLOW=$GITHUB_SHA"
+           git checkout --detach "$CANDIDATE_SHA"
+           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+@@ -127,6 +139,7 @@ jobs:
+           root, case = Path(sys.argv[1]), sys.argv[2]
+           folder = root / case
+           timeout_targets = {
++              'wp_i_card-history': ('wp_i_card', 'history.cjs'),
+               'wp_i_consilium-decisions': ('wp_i_consilium', 'decisions.cjs'),
+               'wp_i_workspace-workflows': ('wp_i_workspace', 'workflows.cjs'),
+           }
+@@ -256,7 +269,33 @@ jobs:
+           case "$SUITE" in
+             history-*)
+               export HISTORY_SCENARIO="${SUITE#history-}"
+-              suites wp_i_card 100 history ;;
++              if [[ "$HISTORY_SCENARIO" == unknownDenial ]]; then
++                patch="$RUNNER_TEMP/unknown-denial-harness.patch"
++                git apply --check "$patch"
++                git apply "$patch"
++                test "$(git diff --name-only)" = "tools/tests/wp_i_card/history.cjs"
++              fi
++              suites wp_i_card 100 history
++              if [[ "$HISTORY_SCENARIO" == unknownDenial ]]; then
++                if [[ "$result" -eq 0 ]]; then
++                  python - "$root/wp_i_card-history/history-results.json" <<'PYHISTORY'
++          import json
++          import sys
++
++          with open(sys.argv[1]) as stream:
++              receipt = json.load(stream)
++          assert receipt["syntheticOnly"] is True and receipt["realBackend"] is True
++          assert receipt["phase"] == "complete" and len(receipt["check"]) == 1
++          assert receipt["check"][0] == (
++              "Unknown entry, stay denied by real 404: only replaceState, card and registry row purged before reload, zero medical writes"
++          )
++          assert receipt["trace"][-1]["screen"] == "patients" and receipt["trace"][-1]["expectedFocus"] is True
++          print("I9_HISTORY=real-404 same-session purge-before-reload focus no-writes 1/1")
++          PYHISTORY
++                fi
++                git restore -- tools/tests/wp_i_card/history.cjs
++              fi
++              ;;
+             wp-h)
+               for suite in browser drafts zoom; do
+                 run_case "wp-h-$suite" python tools/tests/wp_h/run.py "$suite" --out "$root/wp-h-$suite"
+diff --git a/tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py b/tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
+new file mode 100644
+index 0000000..76a7b61
+--- /dev/null
++++ b/tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
+@@ -0,0 +1,71 @@
++"""Add allowlisted observations to the exact synthetic history scenario."""
++from pathlib import Path
++
++target = Path("tools/tests/wp_i_card/history.cjs")
++source = target.read_text()
++start = source.index("async function unknownDenial(")
++stop = source.index("async function holdUnknownStay(", start)
++scenario = source[start:stop]
++
++
++def insert(old, new):
++    global scenario
++    if scenario.count(old) != 1:
++        raise ValueError("unexpected history diagnostic anchor")
++    scenario = scenario.replace(old, new)
++
++
++insert("        const events = monitor(page);", """        const events = monitor(page);
++        const started = performance.now();
++        let sequence = 0;
++        const emit = label => console.log('I9_HD=' + (++sequence) + ' ' +
++            Math.round(performance.now() - started) + ' ' + label);
++        const annotate = request => {
++            const url = new URL(request.url());
++            if (url.origin !== origin || request.method() !== 'GET') return null;
++            if (url.pathname === '/api/patients/' + fixture.large.id) return 'detail';
++            if (url.pathname === '/api/patients' && url.searchParams.get('view') === 'page')
++                return url.searchParams.has('q') ? 'search' : 'registry';
++            if (url.pathname === '/api/auth/me') return 'identity';
++            return null;
++        };
++        page.on('request', request => {
++            const type = annotate(request);
++            if (type) emit('request-' + type);
++        });
++        page.on('response', response => {
++            const type = annotate(response.request());
++            if (type) emit('response-' + type + '-' + response.status());
++        });
++        page.on('requestfailed', request => {
++            const type = annotate(request);
++            if (type) emit('failed-' + type);
++        });
++        const state = async label => {
++            const bits = await page.evaluate(() => [
++                app.currentView === 'patients', Boolean(app.currentPatientId),
++                app.sessionExpired, app.sessionReconciling, Boolean(app.user),
++                document.activeElement?.matches('#view-patients h1') ?? false,
++                document.querySelector('#confirmModal')?.getAttribute('aria-hidden') === 'false',
++            ].map(Number).join(''));
++            emit(label + '-' + bits);
++        };""")
++for old, label in [
++    ("await login(page, fixture.roles.doctor.username);", "logged-in"),
++    ("await openFromRegistry(page, fixture.large.name);", "card-open"),
++    ("await screen(page, 'patient', 'events');", "events-open"),
++    ("const previous = await prepareUnknownForward(page, 'events');", "unknown-dialog"),
++    ("assert(await rowPresent(), 'the pre-revocation registry still contains the fixture row');", "revoked"),
++    ("await page.locator('#confirmCancelBtn').click();", "clicked-stay"),
++    ("await (await denied).finished();", "denied-finished"),
++    ("const registry = await screen(page, 'patients', null, true);", "registry-focused"),
++    ("await reloadStarted.promise;", "held-arrived"),
++    ("await (await reloaded).finished();", "registry-finished"),
++]:
++    insert(old, old + "\n        await state('" + label + "');")
++insert("            const response = await route.fetch();", """            emit('held-start-' + annotate(route.request()));
++            const response = await route.fetch();
++            emit('held-status-' + response.status());""")
++insert("            await route.fulfill({response});", """            await route.fulfill({response});
++            emit('held-fulfilled');""")
++target.write_text(source[:start] + scenario + source[stop:])
+diff --git a/tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch b/tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch
+new file mode 100644
+index 0000000..ba9dc35
+--- /dev/null
++++ b/tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch
+@@ -0,0 +1,66 @@
++diff --git a/tools/tests/wp_i_card/history.cjs b/tools/tests/wp_i_card/history.cjs
++index df25e99..6eba8fa 100644
++--- a/tools/tests/wp_i_card/history.cjs
+++++ b/tools/tests/wp_i_card/history.cjs
++@@ -442,14 +442,16 @@ async function unknownDraft(browser, fixture) {
++ 
++ async function unknownDenial(browser, fixture) {
++     const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
++-    const reloadStarted = deferred();
++     const releaseReload = deferred();
++     try {
++         const page = await context.newPage();
++         const events = monitor(page);
++         await page.goto(origin);
++         await login(page, fixture.roles.doctor.username);
++-        await openFromRegistry(page, fixture.large.name);
+++        // This fixture is already in the doctor's registry. A search here
+++        // schedules a debounced GET that can take the one-shot reload route.
+++        await page.getByRole('button', {name: 'Открыть карточку: ' + fixture.large.name, exact: true}).click();
+++        await screen(page, 'patient', 'overview');
++         await page.locator('#tab-events').click();
++         await screen(page, 'patient', 'events');
++         await page.getByRole('textbox', {name: 'Примечание к этапу', exact: true}).first().fill('Синтетический черновик отзыва');
++@@ -462,25 +464,32 @@ async function unknownDenial(browser, fixture) {
++         assert(await rowPresent(), 'the pre-revocation registry still contains the fixture row');
++         const registryPage = url => url.origin === origin && url.pathname === '/api/patients'
++             && url.searchParams.get('view') === 'page';
+++        const isRegistryRead = request => request.method() === 'GET' && registryPage(new URL(request.url()));
+++        const session = await page.evaluate(() => ({epoch: app.sessionEpoch, actor: app.user?.id}));
++         await page.route(registryPage, async route => {
++-            const response = await route.fetch();
++-            reloadStarted.resolve();
++             await releaseReload.promise;
++-            await route.fulfill({response});
+++            await route.continue();
++         }, {times: 1});
++-        const reloadRequest = page.waitForRequest(request => registryPage(new URL(request.url())));
+++        const reloadRequest = page.waitForRequest(isRegistryRead);
+++        // If the detail assertion fails, the absent reload must not mask it.
+++        void reloadRequest.catch(() => {});
++         const denied = page.waitForResponse(response => response.request().method() === 'GET'
++-            && new URL(response.url()).pathname === '/api/patients/' + fixture.large.id && response.status() === 404);
+++            && response.url() === origin + '/api/patients/' + fixture.large.id);
++         await page.locator('#confirmCancelBtn').click();
++-        await (await denied).finished();
+++        const deniedResponse = await denied;
+++        assert.equal(deniedResponse.status(), 404, 'the live scoped detail must deny the reassigned patient');
+++        await deniedResponse.finished();
++         const registry = await screen(page, 'patients', null, true);
++-        await reloadRequest;
++-        await reloadStarted.promise;
+++        const request = await reloadRequest;
++         assert.equal(registry.length, previous.length);
++         assert(await page.locator('#view-patient').isHidden());
++-        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0));
+++        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0
+++            && app.sessionFieldDrafts.size === 0));
++         assert(!await rowPresent(), 'the revoked row must be purged before the registry response arrives');
++-        const reloaded = page.waitForResponse(response => registryPage(new URL(response.url())));
+++        assert(await page.evaluate(({epoch, actor}) => Boolean(actor)
+++            && app.sessionEpoch === epoch && app.user?.id === actor
+++            && !app.sessionExpired && !app.sessionReconciling, session), 'object denial keeps the same authorized session');
+++        const reloaded = page.waitForResponse(response => response.request() === request);
++         releaseReload.resolve();
++         await (await reloaded).finished();
++         assert.equal(events.medicalWrites, 0);
