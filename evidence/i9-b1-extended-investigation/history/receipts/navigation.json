@@ -1,0 +1,430 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Eight real card tabs traverse Back/Forward without adding entries; authorized GET and medical read audit",
+    "Clinical draft cancel restores index and preserves Forward; explicit discard permits next transition",
+    "Click through calendar and analytics to authorized cards, with Back/Forward and focus",
+    "Create form Back cancellation preserves local input; explicit discard returns to registry",
+    "Chromium both themes, 320/375/768/1440 and WCAG 2.0/2.1 A/AA",
+    "Arrow navigation, reload and old history entries resolve to authorized registry, zero medical writes"
+  ],
+  "trace": [
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 2,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 2,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "notifications",
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "data",
+      "index": 3,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "complaints",
+      "index": 4,
+      "length": 6,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 5,
+      "length": 7,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "checklist",
+      "index": 6,
+      "length": 8,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "notes",
+      "index": 7,
+      "length": 9,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 8,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 8,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 8,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "notes",
+      "index": 7,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "checklist",
+      "index": 6,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 5,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "complaints",
+      "index": 4,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "data",
+      "index": 3,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "notifications",
+      "index": 2,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "notifications",
+      "index": 2,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "data",
+      "index": 3,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "complaints",
+      "index": 4,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 5,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "checklist",
+      "index": 6,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "notes",
+      "index": 7,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 8,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 8,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "notes",
+      "index": 7,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "checklist",
+      "index": 6,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 5,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 5,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "checklist",
+      "index": 6,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "notes",
+      "index": 7,
+      "length": 10,
+      "expectedFocus": true
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 8,
+      "length": 10,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 9,
+      "length": 11,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 8,
+      "length": 11,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 9,
+      "length": 11,
+      "expectedFocus": true
+    },
+    {
+      "screen": "analytics",
+      "tab": null,
+      "index": 10,
+      "length": 12,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 11,
+      "length": 13,
+      "expectedFocus": false
+    },
+    {
+      "screen": "analytics",
+      "tab": null,
+      "index": 10,
+      "length": 13,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 11,
+      "length": 13,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 12,
+      "length": 14,
+      "expectedFocus": false
+    },
+    {
+      "screen": "create",
+      "tab": null,
+      "index": 13,
+      "length": 15,
+      "expectedFocus": false
+    },
+    {
+      "screen": "create",
+      "tab": null,
+      "index": 13,
+      "length": 15,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 12,
+      "length": 15,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 13,
+      "length": 15,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "notifications",
+      "index": 14,
+      "length": 16,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 16,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 16,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 16,
+      "expectedFocus": false
+    }
+  ],
+  "axe": [
+    {
+      "theme": "light",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "scrollWidth": 375,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "scrollWidth": 768,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "scrollWidth": 375,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "scrollWidth": 768,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    }
+  ],
+  "transport": [],
+  "phase": "complete"
+}

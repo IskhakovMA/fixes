@@ -1,0 +1,33 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Real 404 after independently reassigned object; unchanged pre-restore epoch, previous card purged"
+  ],
+  "trace": [
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 3,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 3,
+      "expectedFocus": false
+    }
+  ],
+  "axe": [],
+  "transport": [],
+  "phase": "complete"
+}

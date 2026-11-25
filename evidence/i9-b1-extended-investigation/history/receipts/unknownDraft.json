@@ -1,0 +1,69 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Unknown entry, stay: audited real GET, original DOM/draft/focus, only replaceState, zero medical writes",
+    "Unknown entry, leave: authorized registry, explicit draft discard, only replaceState, zero medical writes"
+  ],
+  "trace": [
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 0,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 0,
+      "length": 6,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 6,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 7,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 8,
+      "expectedFocus": false
+    }
+  ],
+  "axe": [],
+  "transport": [],
+  "phase": "complete"
+}

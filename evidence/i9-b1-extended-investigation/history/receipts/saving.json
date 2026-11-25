@@ -1,0 +1,42 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Pending explicit save blocks Back and never resubmits; real 409 retains manual original-version draft"
+  ],
+  "trace": [
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "data",
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 3,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "history",
+      "index": 3,
+      "length": 5,
+      "expectedFocus": false
+    }
+  ],
+  "axe": [],
+  "transport": [
+    "Actual stale-version 409 withheld until browser Back is rejected during pending write"
+  ],
+  "phase": "complete"
+}

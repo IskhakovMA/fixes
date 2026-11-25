@@ -1,0 +1,76 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Unknown stay race: held audited HTTP 200 cannot override the newer Back/Forward and confirmed exit",
+    "Unknown stay race: held audited HTTP 200 cannot restore card after real 401 and changed session epoch"
+  ],
+  "trace": [
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 5,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "events",
+      "index": 2,
+      "length": 5,
+      "expectedFocus": false
+    }
+  ],
+  "axe": [],
+  "transport": [],
+  "phase": "complete"
+}

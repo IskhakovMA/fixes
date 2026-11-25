@@ -1,0 +1,18 @@
+{
+  "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "python": "3.13.4",
+  "listener": "127.0.0.1:19089",
+  "healthHttp": 200,
+  "healthStatus": "ready",
+  "frontendHtml": true,
+  "syntheticPatients": 240,
+  "sqliteExisted": true,
+  "fixtureMode": "0600",
+  "fixtureOwnedByOperator": true,
+  "isolatedServerConfigCheckedByLauncher": true,
+  "externalSocketsBlockedByPythonAuditHook": true,
+  "manualResultsRecorded": 0,
+  "scratchRemoved": true,
+  "fixtureRemoved": true,
+  "temporarySqliteFamilyRemoved": true
+}

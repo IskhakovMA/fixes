@@ -1,0 +1,38 @@
+{
+  "sha": "b4b1661ec6359800bfd700405b73b03f6c46b30d",
+  "tree": "ce7905ad31a7d3fd1bf6b13755aee925528f7767",
+  "synthetic_only": true,
+  "runtime_overlay": false,
+  "mac_chromium_scenarios": 7,
+  "mac_chromium_groups": 16,
+  "receipts": {
+    "unknownDenial": {
+      "sha256": "6253c37e7e3913132f253fbdfc145d4d1fb639fcc8d797bef8d2adff90090849",
+      "groups": 1
+    },
+    "navigation": {
+      "sha256": "0ed9c3692b868dcc21741d933c17b897cee7d58c6a40e50a3ebed96ed95923a7",
+      "groups": 6
+    },
+    "saving": {
+      "sha256": "cdaeb6e35147d667c216d827a10490e4aad61a7362695d48ecb6ec67b95af854",
+      "groups": 1
+    },
+    "transportAndIdentity": {
+      "sha256": "9cd8f0373010c750809d2562fd7e4ff4fea436d3586361ea61da01dd425559bc",
+      "groups": 3
+    },
+    "objectRevocation": {
+      "sha256": "ed39bd6caa39e6d81179f472a7cd561bed1b440c5aa0b40590926c580c9fb0bc",
+      "groups": 1
+    },
+    "unknownDraft": {
+      "sha256": "a32fe65263f3719c7f6f5dcc290d9b59a913a43018aeb1f80eaf3b97a1009401",
+      "groups": 2
+    },
+    "unknownRace": {
+      "sha256": "42bc78d9ebdc71b36d18f21737fc89adc69e127651ce6e64fb8cf1087f58c1f2",
+      "groups": 2
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "base_commit": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "base_tree": "595b8c35330883c2bd8056c12494bfad1b05111f",
+  "candidate_tree": "ce7905ad31a7d3fd1bf6b13755aee925528f7767",
+  "candidate_commit": null,
+  "patch_sha256": "ddc80e7329578e1b211b6fd15477018bf92f7a3e4e90ab98b5bbfd2bc45afd2e",
+  "changed_files": [
+    "tools/tests/wp_i_card/history.cjs"
+  ],
+  "added_lines": 21,
+  "removed_lines": 12,
+  "only_unknown_denial_changed": true,
+  "runtime_overlay": false,
+  "passed": 7,
+  "groups_passed": 16
+}

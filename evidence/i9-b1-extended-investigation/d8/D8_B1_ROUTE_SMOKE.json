@@ -1,0 +1,85 @@
+{
+  "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "syntheticOnly": true,
+  "fixturePatients": 240,
+  "readinessHttp": 200,
+  "localOnly": true,
+  "cleanStop": true,
+  "routeChecks": [
+    {
+      "check": "app_shell",
+      "status": 200
+    },
+    {
+      "check": "app_script",
+      "status": 200
+    },
+    {
+      "check": "anonymous_registry_denied",
+      "status": 401
+    },
+    {
+      "check": "doctor_login",
+      "status": 200
+    },
+    {
+      "check": "doctor_session",
+      "status": 200
+    },
+    {
+      "check": "visible_registry",
+      "status": 200
+    },
+    {
+      "check": "visible_card",
+      "status": 200
+    },
+    {
+      "check": "out_of_scope_card",
+      "status": 404
+    },
+    {
+      "check": "calendar_workspace",
+      "status": 200
+    },
+    {
+      "check": "checklist_workspace",
+      "status": 200
+    },
+    {
+      "check": "patient_notifications",
+      "status": 200
+    },
+    {
+      "check": "consilium_metadata",
+      "status": 200
+    },
+    {
+      "check": "consilium_schedule",
+      "status": 200
+    },
+    {
+      "check": "developer_login",
+      "status": 200
+    },
+    {
+      "check": "developer_session",
+      "status": 200
+    },
+    {
+      "check": "analytics_summary",
+      "status": 200
+    },
+    {
+      "check": "lab_quality_missing_mode_denied",
+      "status": 422
+    },
+    {
+      "check": "lab_quality_page",
+      "status": 200
+    }
+  ],
+  "medicalWritesIssued": 0,
+  "authLoginsIssued": 2,
+  "manualChecksPerformed": 0
+}

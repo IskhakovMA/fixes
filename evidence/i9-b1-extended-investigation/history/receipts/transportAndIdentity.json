@@ -1,0 +1,88 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "check": [
+    "Opposite browser traversal beats delayed genuine HTTP 200 and retains authorized destination",
+    "Failed detail transport restores current location without revealing cached card",
+    "External document, revoked session (real 401), different login and unchanged RBAC (real audit 403)"
+  ],
+  "trace": [
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 3,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 2,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patient",
+      "tab": "overview",
+      "index": 1,
+      "length": 4,
+      "expectedFocus": true
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 1,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "calendar",
+      "tab": null,
+      "index": 1,
+      "length": 4,
+      "expectedFocus": false
+    },
+    {
+      "screen": "patients",
+      "tab": null,
+      "index": 0,
+      "length": 4,
+      "expectedFocus": true
+    }
+  ],
+  "axe": [],
+  "transport": [
+    "Real 200 withheld by Playwright until newer Forward intent",
+    "Single detail GET transport failure injected; no synthetic HTTP status returned"
+  ],
+  "phase": "complete",
+  "bfcache": true
+}
