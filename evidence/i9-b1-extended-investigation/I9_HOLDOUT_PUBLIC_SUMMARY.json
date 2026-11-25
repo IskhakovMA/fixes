@@ -1,0 +1,407 @@
+{
+  "synthetic_only": true,
+  "patients": 10000,
+  "role": "head",
+  "readers": 4,
+  "seconds_per_arm": 30,
+  "get_hz": 6,
+  "patch_hz": 1,
+  "holdout_excludes_pilot": true,
+  "source_recount_sha256": "56219d6e4808e39dec7417aaf23fb9ad33bb11152671562271e3a11942ee7a0c",
+  "A": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+  "B1": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "arms": [
+    {
+      "pair": 1,
+      "arm": "A",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 103,
+      "get_outcomes": {
+        "inside_200": 17,
+        "inside_409": 82,
+        "after_200": 1,
+        "after_409": 3,
+        "client_busy": 77,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 10.0,
+        "409": 47.2222,
+        "client_busy": 42.7778
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "4355c459732cd0aa44f9166e05b5fe0004959fdb36a331ac240708f4721ad2c8"
+    },
+    {
+      "pair": 1,
+      "arm": "B1",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 109,
+      "get_outcomes": {
+        "inside_200": 43,
+        "inside_409": 65,
+        "after_200": 1,
+        "after_409": 0,
+        "client_busy": 71,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 24.4444,
+        "409": 36.1111,
+        "client_busy": 39.4444
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "8a41e1ca13e664ef8c427aee2fa793727a821ca8a6ce7293c6f3e11ff44d9547"
+    },
+    {
+      "pair": 2,
+      "arm": "B1",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 112,
+      "get_outcomes": {
+        "inside_200": 48,
+        "inside_409": 60,
+        "after_200": 4,
+        "after_409": 0,
+        "client_busy": 68,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 28.8889,
+        "409": 33.3333,
+        "client_busy": 37.7778
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "a2de73d1b2b881b6b5047f5e9c4737841d9a269223bea0742d83c872100b0a26"
+    },
+    {
+      "pair": 2,
+      "arm": "A",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 105,
+      "get_outcomes": {
+        "inside_200": 20,
+        "inside_409": 81,
+        "after_200": 1,
+        "after_409": 3,
+        "client_busy": 75,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 11.6667,
+        "409": 46.6667,
+        "client_busy": 41.6667
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "37ee8d42f37047953427af7756f824041cd40738aaac4a697188bb6c8b5b8c4d"
+    },
+    {
+      "pair": 3,
+      "arm": "A",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 108,
+      "get_outcomes": {
+        "inside_200": 27,
+        "inside_409": 77,
+        "after_200": 2,
+        "after_409": 2,
+        "client_busy": 72,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 16.1111,
+        "409": 43.8889,
+        "client_busy": 40.0
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "18721485044e15a3a975372845a3339a5b364f3d70517209fd1402a20ac864ba"
+    },
+    {
+      "pair": 3,
+      "arm": "B1",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 116,
+      "get_outcomes": {
+        "inside_200": 57,
+        "inside_409": 57,
+        "after_200": 2,
+        "after_409": 0,
+        "client_busy": 64,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 32.7778,
+        "409": 31.6667,
+        "client_busy": 35.5556
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "5821fe27da0102294a46165238a4ecc6ef52bb915f96ae2ee25ac0618ce77cdd"
+    },
+    {
+      "pair": 4,
+      "arm": "B1",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 114,
+      "get_outcomes": {
+        "inside_200": 48,
+        "inside_409": 63,
+        "after_200": 3,
+        "after_409": 0,
+        "client_busy": 66,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 28.3333,
+        "409": 35.0,
+        "client_busy": 36.6667
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "7e87d224eed868c22cd8e60b9e97614c4fa6d0f9434e0716c7afd1d5f774a547"
+    },
+    {
+      "pair": 4,
+      "arm": "A",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 103,
+      "get_outcomes": {
+        "inside_200": 20,
+        "inside_409": 82,
+        "after_200": 1,
+        "after_409": 0,
+        "client_busy": 77,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 11.6667,
+        "409": 45.5556,
+        "client_busy": 42.7778
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "df1909c62791cdf83452b075a80c5a88b006266fe77d3314dbbf6977e8850e82"
+    },
+    {
+      "pair": 5,
+      "arm": "A",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 108,
+      "get_outcomes": {
+        "inside_200": 24,
+        "inside_409": 80,
+        "after_200": 1,
+        "after_409": 3,
+        "client_busy": 72,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 13.8889,
+        "409": 46.1111,
+        "client_busy": 40.0
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "6d3846702375ff87845e5cb115e5e418655b9ba984ffc15560529a6a3aad6eb2"
+    },
+    {
+      "pair": 5,
+      "arm": "B1",
+      "order": "AB",
+      "get_offered": 180,
+      "get_dispatched": 115,
+      "get_outcomes": {
+        "inside_200": 51,
+        "inside_409": 62,
+        "after_200": 2,
+        "after_409": 0,
+        "client_busy": 65,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 29.4444,
+        "409": 34.4444,
+        "client_busy": 36.1111
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "881bbe08b246ec2639e12198c709d8d160dc1020789013db1cbb448d62399dde"
+    },
+    {
+      "pair": 6,
+      "arm": "B1",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 117,
+      "get_outcomes": {
+        "inside_200": 57,
+        "inside_409": 56,
+        "after_200": 4,
+        "after_409": 0,
+        "client_busy": 63,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 33.8889,
+        "409": 31.1111,
+        "client_busy": 35.0
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "005a0339d26eb02c516f357de9d098195ffae7304ed9cbdc75be815f772a3878"
+    },
+    {
+      "pair": 6,
+      "arm": "A",
+      "order": "BA",
+      "get_offered": 180,
+      "get_dispatched": 106,
+      "get_outcomes": {
+        "inside_200": 18,
+        "inside_409": 84,
+        "after_200": 2,
+        "after_409": 2,
+        "client_busy": 74,
+        "other_offered": 0
+      },
+      "percent_of_offered": {
+        "200": 11.1111,
+        "409": 47.7778,
+        "client_busy": 41.1111
+      },
+      "patch_offered": 30,
+      "patch_commits": 30,
+      "relative_commit_count_by_window": {
+        "0_to_10s": 10,
+        "10_to_20s": 10,
+        "20_to_30s": 10,
+        "after_30s": 0
+      },
+      "audit_manifest_and_clinical_integrity_verified": true,
+      "eligible": true,
+      "source_receipt_sha256": "00af21fc8c2bb568bb5ae4686930c263cac778a1983dea7d3e045d671674bd4f"
+    }
+  ],
+  "primary_delta_pp_by_pair": [
+    14.444444,
+    15.555556,
+    16.666667,
+    15.555556,
+    15.0,
+    21.666667
+  ],
+  "paired_in_window_200_estimate": {
+    "mean_paired_pp": 16.48148148148148,
+    "paired_95_percentile_interval_pp": [
+      15.092592592592593,
+      18.425925925925927
+    ],
+    "AB_mean_pp": 15.37037037037037,
+    "BA_mean_pp": 17.59259259259259,
+    "positive_pairs": 6,
+    "bootstrap_combinations": 729
+  },
+  "performance_gate_closed": false
+}
