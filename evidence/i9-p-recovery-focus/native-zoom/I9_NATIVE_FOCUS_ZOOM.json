@@ -1,0 +1,124 @@
+{
+  "syntheticOnly": true,
+  "browser": "151.0.7922.34",
+  "nativeChromeTabZoom": true,
+  "checks": [
+    {
+      "theme": "light",
+      "zoomPercent": 100,
+      "active": true,
+      "width": 1280,
+      "dpr": 1,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    },
+    {
+      "theme": "light",
+      "zoomPercent": 200,
+      "active": true,
+      "width": 640,
+      "dpr": 2,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    },
+    {
+      "theme": "light",
+      "zoomPercent": 400,
+      "active": true,
+      "width": 320,
+      "dpr": 4,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    },
+    {
+      "theme": "dark",
+      "zoomPercent": 100,
+      "active": true,
+      "width": 1280,
+      "dpr": 1,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    },
+    {
+      "theme": "dark",
+      "zoomPercent": 200,
+      "active": true,
+      "width": 640,
+      "dpr": 2,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    },
+    {
+      "theme": "dark",
+      "zoomPercent": 400,
+      "active": true,
+      "width": 320,
+      "dpr": 4,
+      "visualScale": 1,
+      "overflow": false,
+      "inViewport": true,
+      "hiddenOld": true,
+      "described": true,
+      "violations": [],
+      "automaticStatuses": [
+        409,
+        409
+      ],
+      "explicitRetryStatus": 200,
+      "clinicalWrites": 0
+    }
+  ],
+  "frontendSha256": "82932058459a2b2ed880597405aa65510e5383a1c489c64adc83a0db7ff369e3",
+  "candidateCommit": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "productBase": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+}

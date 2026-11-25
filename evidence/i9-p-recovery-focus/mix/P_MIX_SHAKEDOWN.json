@@ -1,0 +1,1287 @@
+{
+  "series": "changed fixture, diagnostic only",
+  "historicalShakedownFirst200": {
+    "4": [
+      50,
+      60
+    ],
+    "8": [
+      49,
+      60
+    ]
+  },
+  "measurementSeconds": 12,
+  "warmupSeconds": 4,
+  "confirmationRun": false,
+  "seededAppointments": 3,
+  "seededRevisionRounds": 4,
+  "seededResubmissionRows": 3,
+  "expectedScopedAndExamCounts": {
+    "doctor": [
+      160,
+      80
+    ],
+    "department_head": [
+      800,
+      400
+    ],
+    "developer": [
+      1000,
+      500
+    ]
+  },
+  "sourceSha256": {
+    "browser_p.cjs": "2d0e4dac1b5d33de508571667f0c84557454f26478f8deb40cc9c856114810c1",
+    "browser_p_audit.cjs": "4733fc9e11a3626ad6c87b8c8af2195cb3b7781bdd428450afd4e4c063e25ccb",
+    "browser_p_schedule.cjs": "9989227231dccb0fd64d841b77f09a74d6f45f05806d44dccede068c78431ac5",
+    "browser_p_self_tests.cjs": "953307dd08f4b598df54577f4c146a67c219ea78eeed97f444b109bd0f366706",
+    "p_run.py": "bb554661387d2759244f9d5cda2ea614e13efab93585747cb141c5bb90e1e42b",
+    "p_server.py": "ddb5d6dd1820ea57945d257d5c3fcd007bda3557f5585561e53117d97207379d",
+    "profile.json": "2ef8b221ca20a26025592c790f216b8b63a410c2f92bf1b2be0105792db62689"
+  },
+  "initialHarnessPreflightFailures": [
+    {
+      "mode": 4,
+      "observed": "HTTP 409 on first preflight read; navigation not yet settled",
+      "privateLogSha256": "4451d92fad3ab77b1e61d29980b129f60bef78e121c6ef26d7148718d2c46b4a"
+    },
+    {
+      "mode": 8,
+      "observed": "wait for ready timed out in preflight after returning to patient list",
+      "privateLogSha256": "11d8d1e12b44e4de12925d6b230d16a97b6500fda86c8ae18a83faaa2a5d9c70"
+    }
+  ],
+  "runs": [
+    {
+      "preflight": {
+        "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "productTree": "595b8c35330883c2bd8056c12494bfad1b05111f",
+        "clean": true,
+        "python": "3.13.4",
+        "sqlite": "3.49.1",
+        "checkedDependencyLocks": {
+          "requirements.txt": {
+            "pins": 25,
+            "sha256": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79"
+          },
+          "requirements-dev.txt": {
+            "pins": 33,
+            "sha256": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          }
+        },
+        "schema": 33,
+        "patients": 1000,
+        "loopbackOnly": true,
+        "processCount": 1,
+        "outboundSocketsBlocked": true,
+        "externalAi": "disabled",
+        "notifications": "mock",
+        "fixturePlanSha256": "bc946c08e9246353dfdd25e00bc7f2a07b2a6626b7511b370a5d84d5bd5bc4d4",
+        "node": "v26.8.1",
+        "browserExplicitExecutable": false
+      },
+      "driverExit": 0,
+      "medical": {
+        "consiliumFixtureRecords": 3,
+        "preservedRevisionRows": 4,
+        "preservedResubmissionRows": 3,
+        "consiliumVersionsAndSignatureUnchanged": true,
+        "noExtraConsiliumAuditWrites": true,
+        "patientStagesUnchanged": true,
+        "versionsMatch": true,
+        "successfulClinicalCommits": 8,
+        "mandatoryWriteAudits": 8,
+        "medicalReadReleaseEvents": 122,
+        "pairedReadManifests": 122,
+        "observedResponseDigestsMatched": 77,
+        "preflightResponseDigestsMatched": 16,
+        "manifestCountsMatch": true,
+        "observedResponsePairing": "actor plus SHA-256 body",
+        "dbQuickCheck": "ok"
+      },
+      "browser": {
+        "exactProductSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "kind": "shakedown",
+        "sessions": 4,
+        "block": 1,
+        "node": "v26.8.1",
+        "syntheticOnly": true,
+        "fastapiThroughHttp": true,
+        "global": {
+          "blockedRequests": 0,
+          "unexpectedMedicalWrites": 0,
+          "pageErrors": 0,
+          "explicitRegistryPreflightRecovery": true,
+          "actualObjectDenial404": true,
+          "allowedCardOpen": true,
+          "expandedFixturePreflight": {
+            "selectiveRegistry": {
+              "doctor": {
+                "authorized": 160,
+                "filtered": 80,
+                "firstRows": 50,
+                "nextRows": 30,
+                "nextOffset": 50,
+                "scopedFacetCount": 2,
+                "cursorAndScopeValid": true
+              },
+              "department_head": {
+                "authorized": 800,
+                "filtered": 400,
+                "firstRows": 50,
+                "nextRows": 50,
+                "nextOffset": 50,
+                "scopedFacetCount": 2,
+                "cursorAndScopeValid": true
+              },
+              "developer": {
+                "authorized": 1000,
+                "filtered": 500,
+                "firstRows": 50,
+                "nextRows": 50,
+                "nextOffset": 50,
+                "scopedFacetCount": 3,
+                "cursorAndScopeValid": true
+              }
+            },
+            "consilium": {
+              "doctor": {
+                "visibleAppointments": 2,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2
+              },
+              "department_head": {
+                "visibleAppointments": 2,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2
+              },
+              "developer": {
+                "visibleAppointments": 1,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2,
+                "renderedAndReadHistoryRounds": 2
+              }
+            }
+          }
+        },
+        "chromium": "151.0.7922.34",
+        "sessionRoles": [
+          "doctor",
+          "doctor",
+          "department_head",
+          "developer"
+        ],
+        "authenticatedWriterTabSharesReaderSession": true,
+        "finalVersion": 9,
+        "instrumentationStatus": "PASS",
+        "browserClosed": true,
+        "warmup": {
+          "seconds": 4,
+          "warmup": true,
+          "scheduleSeed": 915033,
+          "scheduling": {
+            "n": 18,
+            "p50": 0.4897003467071954,
+            "p95": 1.7800209249742238,
+            "maxLagMs": 1.7800209249742238,
+            "complete": true,
+            "drained": true,
+            "missingDispatch": 0,
+            "falseTimeout": 0,
+            "successfulWithoutDigest": 0,
+            "generatorTimingAcceptable": true
+          },
+          "summary": {
+            "registry": {
+              "offered": 12,
+              "dispatchedActions": 12,
+              "actualMatchingRequests": 13,
+              "validFilteredUiCount": 3,
+              "additionalHttpRequests": 15,
+              "outcomes": {
+                "timely_200": 11,
+                "http_409:PATIENT_QUERY_CHANGED": 1
+              },
+              "firstHttp": {
+                "200": 11,
+                "409:PATIENT_QUERY_CHANGED": 1
+              },
+              "httpMs": {
+                "n": 13,
+                "p50": 34.47199999999975,
+                "p95": 51.998083999999835
+              },
+              "httpBodyMs": {
+                "n": 13,
+                "p50": 35.73962499999925,
+                "p95": 53.373333999999886
+              },
+              "chromiumBodyMs": {
+                "n": 13,
+                "p50": 34.351,
+                "p95": 52.194
+              },
+              "validUiMsFromOffered": {
+                "n": 12,
+                "p50": 49.54613136297712,
+                "p95": 78.5258119249745
+              },
+              "validUiMsFromAction": {
+                "n": 12,
+                "p50": 48.52154100000007,
+                "p95": 77.17675000000008
+              }
+            },
+            "patch": {
+              "offered": 2,
+              "dispatchedActions": 2,
+              "actualMatchingRequests": 2,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 2
+              },
+              "firstHttp": {
+                "200": 2
+              },
+              "httpMs": {
+                "n": 2,
+                "p50": 5.992083000000093,
+                "p95": 14.515790999999808
+              },
+              "httpBodyMs": {
+                "n": 2,
+                "p50": 6.4854159999999865,
+                "p95": 15.116500000000087
+              },
+              "chromiumBodyMs": {
+                "n": 2,
+                "p50": 5.904,
+                "p95": 14.557
+              },
+              "validUiMsFromOffered": {
+                "n": 2,
+                "p50": 12.252875000000131,
+                "p95": 21.754125000000386
+              },
+              "validUiMsFromAction": {
+                "n": 2,
+                "p50": 11.713083000000097,
+                "p95": 22.482250000000022
+              }
+            },
+            "card": {
+              "offered": 2,
+              "dispatchedActions": 2,
+              "actualMatchingRequests": 2,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 2
+              },
+              "firstHttp": {
+                "200": 2
+              },
+              "httpMs": {
+                "n": 2,
+                "p50": 15.68933300000026,
+                "p95": 16.44762499999979
+              },
+              "httpBodyMs": {
+                "n": 2,
+                "p50": 16.211583000000246,
+                "p95": 16.90670799999998
+              },
+              "chromiumBodyMs": {
+                "n": 2,
+                "p50": 15.651,
+                "p95": 16.315
+              },
+              "validUiMsFromOffered": {
+                "n": 2,
+                "p50": 24.90420899999981,
+                "p95": 26.076334000000315
+              },
+              "validUiMsFromAction": {
+                "n": 2,
+                "p50": 24.90637499999957,
+                "p95": 25.88495899999998
+              }
+            },
+            "workspace": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 16.380999999999858,
+                "p95": 16.380999999999858
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 17.485791999999947,
+                "p95": 17.485791999999947
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 18.637,
+                "p95": 18.637
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 50.36004200000025,
+                "p95": 50.36004200000025
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 49.873833000000104,
+                "p95": 49.873833000000104
+              }
+            },
+            "consilium": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "visibleAppointmentsPerValidAction": [
+                1
+              ],
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 16.926166000000194,
+                "p95": 16.926166000000194
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 17.450541000000158,
+                "p95": 17.450541000000158
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 19.131,
+                "p95": 19.131
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 80.63575000000037,
+                "p95": 80.63575000000037
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 80.41008300000067,
+                "p95": 80.41008300000067
+              }
+            }
+          },
+          "naturalRecovery": {
+            "total": 1,
+            "valid": 1,
+            "ms": {
+              "n": 1,
+              "p50": 50.688208999999915,
+              "p95": 50.688208999999915
+            }
+          },
+          "perfectReadWriteAttribution": true,
+          "allPatchVersionsConfirmed": true
+        },
+        "measurement": {
+          "seconds": 12,
+          "warmup": false,
+          "scheduleSeed": 915033,
+          "scheduling": {
+            "n": 52,
+            "p50": 0.3640830000003916,
+            "p95": 1.4024507354661182,
+            "maxLagMs": 1.9719945399492644,
+            "complete": true,
+            "drained": true,
+            "missingDispatch": 0,
+            "falseTimeout": 0,
+            "successfulWithoutDigest": 0,
+            "generatorTimingAcceptable": true
+          },
+          "summary": {
+            "registry": {
+              "offered": 36,
+              "dispatchedActions": 35,
+              "actualMatchingRequests": 40,
+              "validFilteredUiCount": 15,
+              "additionalHttpRequests": 46,
+              "outcomes": {
+                "timely_200": 30,
+                "http_409:PATIENT_QUERY_CHANGED": 5,
+                "client_busy": 1
+              },
+              "firstHttp": {
+                "200": 30,
+                "409:PATIENT_QUERY_CHANGED": 5
+              },
+              "httpMs": {
+                "n": 40,
+                "p50": 36.4692500000001,
+                "p95": 58.25920899999983
+              },
+              "httpBodyMs": {
+                "n": 40,
+                "p50": 37.85058300000128,
+                "p95": 59.66887499999939
+              },
+              "chromiumBodyMs": {
+                "n": 40,
+                "p50": 37.864,
+                "p95": 58.82
+              },
+              "validUiMsFromOffered": {
+                "n": 35,
+                "p50": 62.08308122100334,
+                "p95": 86.43382573546478
+              },
+              "validUiMsFromAction": {
+                "n": 35,
+                "p50": 61.84058300000106,
+                "p95": 85.01358299999993
+              }
+            },
+            "patch": {
+              "offered": 6,
+              "dispatchedActions": 6,
+              "actualMatchingRequests": 6,
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 6
+              },
+              "firstHttp": {
+                "200": 6
+              },
+              "httpMs": {
+                "n": 6,
+                "p50": 6.119040999999925,
+                "p95": 12.98383400000057
+              },
+              "httpBodyMs": {
+                "n": 6,
+                "p50": 6.870832999999038,
+                "p95": 13.554334000000381
+              },
+              "chromiumBodyMs": {
+                "n": 6,
+                "p50": 5.886,
+                "p95": 12.872
+              },
+              "validUiMsFromOffered": {
+                "n": 6,
+                "p50": 12.678124999999454,
+                "p95": 20.269917000000532
+              },
+              "validUiMsFromAction": {
+                "n": 6,
+                "p50": 12.905000000000655,
+                "p95": 20.524499999999534
+              }
+            },
+            "card": {
+              "offered": 6,
+              "dispatchedActions": 6,
+              "actualMatchingRequests": 6,
+              "additionalHttpRequests": 18,
+              "outcomes": {
+                "timely_200": 6
+              },
+              "firstHttp": {
+                "200": 6
+              },
+              "httpMs": {
+                "n": 6,
+                "p50": 20.035917000001064,
+                "p95": 45.784584000000905
+              },
+              "httpBodyMs": {
+                "n": 6,
+                "p50": 20.468667000001005,
+                "p95": 46.37987500000054
+              },
+              "chromiumBodyMs": {
+                "n": 6,
+                "p50": 19.938,
+                "p95": 46.125
+              },
+              "validUiMsFromOffered": {
+                "n": 6,
+                "p50": 31.53399999999965,
+                "p95": 63.34325000000081
+              },
+              "validUiMsFromAction": {
+                "n": 6,
+                "p50": 30.18879200000083,
+                "p95": 64.56329200000073
+              }
+            },
+            "workspace": {
+              "offered": 3,
+              "dispatchedActions": 3,
+              "actualMatchingRequests": 3,
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 3
+              },
+              "firstHttp": {
+                "200": 3
+              },
+              "httpMs": {
+                "n": 3,
+                "p50": 18.681415999999444,
+                "p95": 20.3002919999999
+              },
+              "httpBodyMs": {
+                "n": 3,
+                "p50": 19.629957999999533,
+                "p95": 21.264917000000423
+              },
+              "chromiumBodyMs": {
+                "n": 3,
+                "p50": 21.048,
+                "p95": 23.358
+              },
+              "validUiMsFromOffered": {
+                "n": 3,
+                "p50": 47.82574999999997,
+                "p95": 48.05645800000002
+              },
+              "validUiMsFromAction": {
+                "n": 3,
+                "p50": 48.14112499999828,
+                "p95": 48.22241600000052
+              }
+            },
+            "consilium": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "visibleAppointmentsPerValidAction": [
+                1
+              ],
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 20.219959000000017,
+                "p95": 20.219959000000017
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 20.72125000000051,
+                "p95": 20.72125000000051
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 23.097,
+                "p95": 23.097
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 78.72137500000008,
+                "p95": 78.72137500000008
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 78.20495800000026,
+                "p95": 78.20495800000026
+              }
+            }
+          },
+          "naturalRecovery": {
+            "total": 5,
+            "valid": 5,
+            "ms": {
+              "n": 5,
+              "p50": 52.435207999998966,
+              "p95": 63.201874999998836
+            }
+          },
+          "perfectReadWriteAttribution": true,
+          "allPatchVersionsConfirmed": true
+        }
+      },
+      "cleanup": {
+        "cleanServerExit": true,
+        "listenerClosed": true,
+        "syntheticFilesRemoved": true
+      },
+      "roleMetrics": {
+        "doctor": {
+          "offered": 15,
+          "firstReadTimely200": 13,
+          "pattern409": 1,
+          "busy": 1,
+          "completedUserAction": 14,
+          "selectiveRecoveredUI": 0
+        },
+        "department_head": {
+          "offered": 14,
+          "firstReadTimely200": 12,
+          "pattern409": 2,
+          "busy": 0,
+          "completedUserAction": 14,
+          "selectiveRecoveredUI": 0
+        },
+        "developer": {
+          "offered": 7,
+          "firstReadTimely200": 5,
+          "pattern409": 2,
+          "busy": 0,
+          "completedUserAction": 7,
+          "selectiveRecoveredUI": 2
+        }
+      },
+      "independentRecount": {
+        "sessions": 4,
+        "reconciledOffered": 70,
+        "observedReleaseDigests": 61,
+        "status": "PASS",
+        "concerns": []
+      },
+      "privateArtifactsSha256": {
+        "driver.json": "ca86082f6e7e31da4d86cb20617385a3008de84d6608f3f1c3a9055397ba9ed1",
+        "browser.log": "2bf00e6bedb4f7a3ab22422656f6ebf0eda7aadcffeaec19fe8cb55d5f3606e2",
+        "server.log": "9848b1faabbe2d31a7f1163779c8da8a7dbc0e977f752fd959017127c2e6f68f"
+      }
+    },
+    {
+      "preflight": {
+        "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "productTree": "595b8c35330883c2bd8056c12494bfad1b05111f",
+        "clean": true,
+        "python": "3.13.4",
+        "sqlite": "3.49.1",
+        "checkedDependencyLocks": {
+          "requirements.txt": {
+            "pins": 25,
+            "sha256": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79"
+          },
+          "requirements-dev.txt": {
+            "pins": 33,
+            "sha256": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          }
+        },
+        "schema": 33,
+        "patients": 1000,
+        "loopbackOnly": true,
+        "processCount": 1,
+        "outboundSocketsBlocked": true,
+        "externalAi": "disabled",
+        "notifications": "mock",
+        "fixturePlanSha256": "bc946c08e9246353dfdd25e00bc7f2a07b2a6626b7511b370a5d84d5bd5bc4d4",
+        "node": "v26.8.1",
+        "browserExplicitExecutable": false
+      },
+      "driverExit": 0,
+      "medical": {
+        "consiliumFixtureRecords": 3,
+        "preservedRevisionRows": 4,
+        "preservedResubmissionRows": 3,
+        "consiliumVersionsAndSignatureUnchanged": true,
+        "noExtraConsiliumAuditWrites": true,
+        "patientStagesUnchanged": true,
+        "versionsMatch": true,
+        "successfulClinicalCommits": 8,
+        "mandatoryWriteAudits": 8,
+        "medicalReadReleaseEvents": 136,
+        "pairedReadManifests": 136,
+        "observedResponseDigestsMatched": 80,
+        "preflightResponseDigestsMatched": 19,
+        "manifestCountsMatch": true,
+        "observedResponsePairing": "actor plus SHA-256 body",
+        "dbQuickCheck": "ok"
+      },
+      "browser": {
+        "exactProductSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "kind": "shakedown",
+        "sessions": 8,
+        "block": 1,
+        "node": "v26.8.1",
+        "syntheticOnly": true,
+        "fastapiThroughHttp": true,
+        "global": {
+          "blockedRequests": 0,
+          "unexpectedMedicalWrites": 0,
+          "pageErrors": 0,
+          "explicitRegistryPreflightRecovery": true,
+          "actualObjectDenial404": true,
+          "allowedCardOpen": true,
+          "expandedFixturePreflight": {
+            "selectiveRegistry": {
+              "doctor": {
+                "authorized": 160,
+                "filtered": 80,
+                "firstRows": 50,
+                "nextRows": 30,
+                "nextOffset": 50,
+                "scopedFacetCount": 2,
+                "cursorAndScopeValid": true
+              },
+              "department_head": {
+                "authorized": 800,
+                "filtered": 400,
+                "firstRows": 50,
+                "nextRows": 50,
+                "nextOffset": 50,
+                "scopedFacetCount": 2,
+                "cursorAndScopeValid": true
+              },
+              "developer": {
+                "authorized": 1000,
+                "filtered": 500,
+                "firstRows": 50,
+                "nextRows": 50,
+                "nextOffset": 50,
+                "scopedFacetCount": 3,
+                "cursorAndScopeValid": true
+              }
+            },
+            "consilium": {
+              "doctor": {
+                "visibleAppointments": 2,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2
+              },
+              "department_head": {
+                "visibleAppointments": 2,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2
+              },
+              "developer": {
+                "visibleAppointments": 1,
+                "outsideRevisionRoute404": true,
+                "consecutiveRevisionRounds": 2,
+                "renderedAndReadHistoryRounds": 2
+              },
+              "consilium_chair": {
+                "visibleAppointments": 3,
+                "consecutiveRevisionRounds": 2,
+                "renderedAndReadHistoryRounds": 2
+              }
+            }
+          }
+        },
+        "chromium": "151.0.7922.34",
+        "sessionRoles": [
+          "doctor",
+          "doctor",
+          "doctor",
+          "doctor",
+          "doctor",
+          "department_head",
+          "developer",
+          "consilium_chair"
+        ],
+        "authenticatedWriterTabSharesReaderSession": true,
+        "finalVersion": 9,
+        "instrumentationStatus": "PASS",
+        "browserClosed": true,
+        "warmup": {
+          "seconds": 4,
+          "warmup": true,
+          "scheduleSeed": 915033,
+          "scheduling": {
+            "n": 18,
+            "p50": 0.7604728559886098,
+            "p95": 1.3977499999996326,
+            "maxLagMs": 1.3977499999996326,
+            "complete": true,
+            "drained": true,
+            "missingDispatch": 0,
+            "falseTimeout": 0,
+            "successfulWithoutDigest": 0,
+            "generatorTimingAcceptable": true
+          },
+          "summary": {
+            "registry": {
+              "offered": 12,
+              "dispatchedActions": 12,
+              "actualMatchingRequests": 14,
+              "validFilteredUiCount": 2,
+              "additionalHttpRequests": 13,
+              "outcomes": {
+                "timely_200": 10,
+                "http_409:PATIENT_QUERY_CHANGED": 2
+              },
+              "firstHttp": {
+                "200": 10,
+                "409:PATIENT_QUERY_CHANGED": 2
+              },
+              "httpMs": {
+                "n": 14,
+                "p50": 28.344167000000198,
+                "p95": 61.50762500000019
+              },
+              "httpBodyMs": {
+                "n": 14,
+                "p50": 30.065333999999893,
+                "p95": 62.96008400000028
+              },
+              "chromiumBodyMs": {
+                "n": 14,
+                "p50": 29.598,
+                "p95": 62.436
+              },
+              "validUiMsFromOffered": {
+                "n": 12,
+                "p50": 54.22554736297661,
+                "p95": 84.49041221826246
+              },
+              "validUiMsFromAction": {
+                "n": 12,
+                "p50": 53.305624999999964,
+                "p95": 83.2831669999996
+              }
+            },
+            "patch": {
+              "offered": 2,
+              "dispatchedActions": 2,
+              "actualMatchingRequests": 2,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 2
+              },
+              "firstHttp": {
+                "200": 2
+              },
+              "httpMs": {
+                "n": 2,
+                "p50": 8.076000000000022,
+                "p95": 13.533916000000318
+              },
+              "httpBodyMs": {
+                "n": 2,
+                "p50": 8.765124999999898,
+                "p95": 13.954791000000114
+              },
+              "chromiumBodyMs": {
+                "n": 2,
+                "p50": 7.844,
+                "p95": 13.436
+              },
+              "validUiMsFromOffered": {
+                "n": 2,
+                "p50": 14.752250000000004,
+                "p95": 20.078874999999698
+              },
+              "validUiMsFromAction": {
+                "n": 2,
+                "p50": 14.577124999999796,
+                "p95": 20.28966700000001
+              }
+            },
+            "card": {
+              "offered": 2,
+              "dispatchedActions": 2,
+              "actualMatchingRequests": 2,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 2
+              },
+              "firstHttp": {
+                "200": 2
+              },
+              "httpMs": {
+                "n": 2,
+                "p50": 16.256999999999607,
+                "p95": 17.952666000000136
+              },
+              "httpBodyMs": {
+                "n": 2,
+                "p50": 16.964500000000044,
+                "p95": 18.479832999999417
+              },
+              "chromiumBodyMs": {
+                "n": 2,
+                "p50": 16.063,
+                "p95": 17.853
+              },
+              "validUiMsFromOffered": {
+                "n": 2,
+                "p50": 28.349249999999756,
+                "p95": 28.75350000000026
+              },
+              "validUiMsFromAction": {
+                "n": 2,
+                "p50": 27.344167000000198,
+                "p95": 27.561791999999514
+              }
+            },
+            "workspace": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "additionalHttpRequests": 2,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 20.549957999999606,
+                "p95": 20.549957999999606
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 21.434040999999525,
+                "p95": 21.434040999999525
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 22.239,
+                "p95": 22.239
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 40.92800000000034,
+                "p95": 40.92800000000034
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 41.235625000000255,
+                "p95": 41.235625000000255
+              }
+            },
+            "consilium": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "visibleAppointmentsPerValidAction": [
+                3
+              ],
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 18.14220800000021,
+                "p95": 18.14220800000021
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 18.724874999999884,
+                "p95": 18.724874999999884
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 20.485,
+                "p95": 20.485
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 87.89125000000013,
+                "p95": 87.89125000000013
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 86.70829200000026,
+                "p95": 86.70829200000026
+              }
+            }
+          },
+          "naturalRecovery": {
+            "total": 2,
+            "valid": 2,
+            "ms": {
+              "n": 2,
+              "p50": 51.2410830000008,
+              "p95": 52.82916699999987
+            }
+          },
+          "perfectReadWriteAttribution": true,
+          "allPatchVersionsConfirmed": true
+        },
+        "measurement": {
+          "seconds": 12,
+          "warmup": false,
+          "scheduleSeed": 915033,
+          "scheduling": {
+            "n": 52,
+            "p50": 0.41191600000001927,
+            "p95": 1.250849779413329,
+            "maxLagMs": 1.8151250000009895,
+            "complete": true,
+            "drained": true,
+            "missingDispatch": 0,
+            "falseTimeout": 0,
+            "successfulWithoutDigest": 0,
+            "generatorTimingAcceptable": true
+          },
+          "summary": {
+            "registry": {
+              "offered": 36,
+              "dispatchedActions": 36,
+              "actualMatchingRequests": 43,
+              "validFilteredUiCount": 13,
+              "additionalHttpRequests": 46,
+              "outcomes": {
+                "timely_200": 29,
+                "http_409:PATIENT_QUERY_CHANGED": 7
+              },
+              "firstHttp": {
+                "200": 29,
+                "409:PATIENT_QUERY_CHANGED": 7
+              },
+              "httpMs": {
+                "n": 43,
+                "p50": 33.78033299999879,
+                "p95": 54.73358399999961
+              },
+              "httpBodyMs": {
+                "n": 43,
+                "p50": 34.997041999999055,
+                "p95": 56.56975000000057
+              },
+              "chromiumBodyMs": {
+                "n": 43,
+                "p50": 33.539,
+                "p95": 54.833
+              },
+              "validUiMsFromOffered": {
+                "n": 36,
+                "p50": 55.325599779413096,
+                "p95": 103.23785958330973
+              },
+              "validUiMsFromAction": {
+                "n": 36,
+                "p50": 54.07208299999911,
+                "p95": 103.74891600000046
+              }
+            },
+            "patch": {
+              "offered": 6,
+              "dispatchedActions": 6,
+              "actualMatchingRequests": 6,
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 6
+              },
+              "firstHttp": {
+                "200": 6
+              },
+              "httpMs": {
+                "n": 6,
+                "p50": 6.381416999998692,
+                "p95": 16.309500000001208
+              },
+              "httpBodyMs": {
+                "n": 6,
+                "p50": 6.901207999999315,
+                "p95": 17.29908400000022
+              },
+              "chromiumBodyMs": {
+                "n": 6,
+                "p50": 6.128,
+                "p95": 16.706
+              },
+              "validUiMsFromOffered": {
+                "n": 6,
+                "p50": 12.547707999999147,
+                "p95": 27.267041000000063
+              },
+              "validUiMsFromAction": {
+                "n": 6,
+                "p50": 12.134249999999156,
+                "p95": 26.905166000000463
+              }
+            },
+            "card": {
+              "offered": 6,
+              "dispatchedActions": 5,
+              "actualMatchingRequests": 5,
+              "additionalHttpRequests": 11,
+              "outcomes": {
+                "timely_200": 5,
+                "client_busy": 1
+              },
+              "firstHttp": {
+                "200": 5
+              },
+              "httpMs": {
+                "n": 5,
+                "p50": 26.86883300000045,
+                "p95": 47.17100000000028
+              },
+              "httpBodyMs": {
+                "n": 5,
+                "p50": 27.459125000001222,
+                "p95": 47.892916999999215
+              },
+              "chromiumBodyMs": {
+                "n": 5,
+                "p50": 26.949,
+                "p95": 47.069
+              },
+              "validUiMsFromOffered": {
+                "n": 5,
+                "p50": 38.423249999999825,
+                "p95": 65.61991600000056
+              },
+              "validUiMsFromAction": {
+                "n": 5,
+                "p50": 38.24516699999731,
+                "p95": 65.34416600000077
+              }
+            },
+            "workspace": {
+              "offered": 3,
+              "dispatchedActions": 3,
+              "actualMatchingRequests": 3,
+              "additionalHttpRequests": 6,
+              "outcomes": {
+                "timely_200": 3
+              },
+              "firstHttp": {
+                "200": 3
+              },
+              "httpMs": {
+                "n": 3,
+                "p50": 15.630750000000262,
+                "p95": 20.539833000000726
+              },
+              "httpBodyMs": {
+                "n": 3,
+                "p50": 16.524457999999868,
+                "p95": 21.576167000001078
+              },
+              "chromiumBodyMs": {
+                "n": 3,
+                "p50": 17.184,
+                "p95": 22.788
+              },
+              "validUiMsFromOffered": {
+                "n": 3,
+                "p50": 38.916707999999744,
+                "p95": 56.60779099999945
+              },
+              "validUiMsFromAction": {
+                "n": 3,
+                "p50": 38.285250000000815,
+                "p95": 56.28387499999917
+              }
+            },
+            "consilium": {
+              "offered": 1,
+              "dispatchedActions": 1,
+              "actualMatchingRequests": 1,
+              "visibleAppointmentsPerValidAction": [
+                3
+              ],
+              "additionalHttpRequests": 5,
+              "outcomes": {
+                "timely_200": 1
+              },
+              "firstHttp": {
+                "200": 1
+              },
+              "httpMs": {
+                "n": 1,
+                "p50": 18.540624999999636,
+                "p95": 18.540624999999636
+              },
+              "httpBodyMs": {
+                "n": 1,
+                "p50": 19.19945800000096,
+                "p95": 19.19945800000096
+              },
+              "chromiumBodyMs": {
+                "n": 1,
+                "p50": 21.303,
+                "p95": 21.303
+              },
+              "validUiMsFromOffered": {
+                "n": 1,
+                "p50": 77.0756250000004,
+                "p95": 77.0756250000004
+              },
+              "validUiMsFromAction": {
+                "n": 1,
+                "p50": 76.75537500000064,
+                "p95": 76.75537500000064
+              }
+            }
+          },
+          "naturalRecovery": {
+            "total": 7,
+            "valid": 7,
+            "ms": {
+              "n": 7,
+              "p50": 58.23275000000285,
+              "p95": 80.95399999999972
+            }
+          },
+          "perfectReadWriteAttribution": true,
+          "allPatchVersionsConfirmed": true
+        }
+      },
+      "cleanup": {
+        "cleanServerExit": true,
+        "listenerClosed": true,
+        "syntheticFilesRemoved": true
+      },
+      "roleMetrics": {
+        "doctor": {
+          "offered": 15,
+          "firstReadTimely200": 13,
+          "pattern409": 2,
+          "busy": 0,
+          "completedUserAction": 15,
+          "selectiveRecoveredUI": 0
+        },
+        "department_head": {
+          "offered": 14,
+          "firstReadTimely200": 12,
+          "pattern409": 2,
+          "busy": 0,
+          "completedUserAction": 14,
+          "selectiveRecoveredUI": 0
+        },
+        "developer": {
+          "offered": 7,
+          "firstReadTimely200": 4,
+          "pattern409": 3,
+          "busy": 0,
+          "completedUserAction": 7,
+          "selectiveRecoveredUI": 2
+        }
+      },
+      "independentRecount": {
+        "sessions": 8,
+        "reconciledOffered": 70,
+        "observedReleaseDigests": 61,
+        "status": "PASS",
+        "concerns": []
+      },
+      "privateArtifactsSha256": {
+        "driver.json": "0c39fbfbdfa7cf1cd951dc83ec7366b83632f001ea4a5b80b7d7dc371e1ffb1b",
+        "browser.log": "d02d312853597e7eee93ede711b91678b7b555f8bf501ee0aa46ec240ed20f51",
+        "server.log": "830d287d896df29dd5d34dce85d2909583e4915f08f53effa3e1e0c62a56d077"
+      }
+    }
+  ]
+}

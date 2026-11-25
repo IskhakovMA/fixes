@@ -1,0 +1,59 @@
+diff --git a/static/app.js b/static/app.js
+index 362b707..f6ab581 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -2093,15 +2093,48 @@ const app = {
+         let index = this.pageIndex + direction;
+         if (index < 0 || (direction > 0 && !this.patientPage.page.hasNext)) return;
+         if (direction > 0) this.pageTrail[index] = this.patientPage.page.nextCursor;
+-        this.pageLoading = true;
++        const epoch = this.sessionEpoch;
++        const navigation = browserNavigation.generation;
++        const paging = {};
++        this.pageLoading = paging;
++        // The loading state makes the pager inert. Move focus out before that,
++        // and only complete the handoff if the user stays on the anchor.
++        const anchor = $('patientRegistryTitle');
++        let ownsPagerFocus = document.hasFocus() && !ui.topModal() &&
++            $('patientPagination')?.contains(document.activeElement);
++        const releaseFocus = () => { ownsPagerFocus = false; };
++        if (ownsPagerFocus) {
++            anchor.tabIndex = -1;
++            anchor.focus({preventScroll: true});
++            ownsPagerFocus = document.activeElement === anchor;
++            if (ownsPagerFocus) anchor.addEventListener('focusout', releaseFocus, {once: true});
++        }
++
++        const request = this.loadPatients(this.pageTrail[index]);
++        const read = this.readVersions.patients;
++        const current = () => epoch === this.sessionEpoch && navigation === browserNavigation.generation &&
++            this.currentView === 'patients' && !this.sessionReconciling && this.isCurrentRead('patients', read);
++        const ownsFocus = () => ownsPagerFocus && document.hasFocus() && document.activeElement === anchor && !ui.topModal();
+         try {
+-            const cursor = this.pageTrail[index];
+-            await this.loadPatients(cursor);
++            await request;
++            if (!current() || this.patientListState !== 'ready') return;
+             if (this.patientPage?.page.offset === index * 50) this.pageIndex = index;
+             this.renderPatients(); this.renderPatientPagination();
+-            $('patientPageStatus')?.focus();
+-        } catch (error) { ui.toast(error.message, 'danger'); }
+-        finally { this.pageLoading = false; }
++            if (ownsFocus()) $('patientPageStatus')?.focus();
++        } catch (error) {
++            if (!current() || error.obsolete) return;
++            ui.toast(error.message, 'danger');
++            const retry = $('retryPatientListBtn');
++            if (error.status === 409 && error.data?.code === 'PATIENT_QUERY_CHANGED' &&
++                this.patientListState === 'error' && ownsFocus() && retry && !retry.disabled &&
++                !retry.closest('[hidden], [inert], .is-hidden') && retry.getClientRects().length) {
++                retry.setAttribute('aria-describedby', 'patientListErrorText');
++                retry.focus();
++            }
++        } finally {
++            anchor.removeEventListener('focusout', releaseFocus);
++            if (this.pageLoading === paging) this.pageLoading = false;
++        }
+     },
+ 
+     renderPatientPagination() {

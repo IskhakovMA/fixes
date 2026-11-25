@@ -1,0 +1,26 @@
+{
+  "tree": "cd00d4d55140d377038783234cc204c602741869",
+  "focusCommit": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "historySource": "b4b1661ec6359800bfd700405b73b03f6c46b30d",
+  "localHistoryStatus": "PASS",
+  "checks": [
+    "Eight real card tabs traverse Back/Forward without adding entries; authorized GET and medical read audit",
+    "Clinical draft cancel restores index and preserves Forward; explicit discard permits next transition",
+    "Click through calendar and analytics to authorized cards, with Back/Forward and focus",
+    "Create form Back cancellation preserves local input; explicit discard returns to registry",
+    "Chromium both themes, 320/375/768/1440 and WCAG 2.0/2.1 A/AA",
+    "Arrow navigation, reload and old history entries resolve to authorized registry, zero medical writes",
+    "Pending explicit save blocks Back and never resubmits; real 409 retains manual original-version draft",
+    "Opposite browser traversal beats delayed genuine HTTP 200 and retains authorized destination",
+    "Failed detail transport restores current location without revealing cached card",
+    "External document, revoked session (real 401), different login and unchanged RBAC (real audit 403)",
+    "Real 404 after independently reassigned object; unchanged pre-restore epoch, previous card purged",
+    "Unknown entry, stay: audited real GET, original DOM/draft/focus, only replaceState, zero medical writes",
+    "Unknown entry, leave: authorized registry, explicit draft discard, only replaceState, zero medical writes",
+    "Unknown entry, stay denied by real 404: only replaceState, card and registry row purged before reload, zero medical writes",
+    "Unknown stay race: held audited HTTP 200 cannot override the newer Back/Forward and confirmed exit",
+    "Unknown stay race: held audited HTTP 200 cannot restore card after real 401 and changed session epoch"
+  ],
+  "axeStates": 8,
+  "rawReceiptSha256": "657fc1b98cf5537c83826af8c7ba50b9d253102609919a78940eff6dd560f096"
+}

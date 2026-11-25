@@ -1,0 +1,31 @@
+{
+  "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "patients": 1000,
+  "sqliteSchema": 33,
+  "fastapiProcesses": 1,
+  "sessions": [4, 8],
+  "seed": 915033,
+  "registryRate": 3,
+  "registryRoleCycle": ["doctor", "department_head", "doctor", "department_head", "developer"],
+  "registryJitterMs": 50,
+  "patchRate": 0.5,
+  "cardRate": 0.5,
+  "workspaceRate": 0.2,
+  "consiliumRate": 0.05,
+  "confirmationBlocksPerMode": 12,
+  "confirmationBlockSeconds": 300,
+  "confirmationWarmupSeconds": 60,
+  "drainSeconds": 10,
+  "timelyDeadlineMs": 2000,
+  "proposedLimits": {
+    "timely200": 0.98,
+    "ordinary409": 0.01,
+    "clientBusy": 0.01,
+    "registryP50Ms": 700,
+    "registryP95Ms": 1800,
+    "cardP50Ms": 650,
+    "cardP95Ms": 1500,
+    "patchP50Ms": 250,
+    "patchP95Ms": 650
+  }
+}

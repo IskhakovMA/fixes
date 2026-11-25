@@ -1,0 +1,26 @@
+{
+  "productSha": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "frontendSha256": "82932058459a2b2ed880597405aa65510e5383a1c489c64adc83a0db7ff369e3",
+  "quality": {
+    "status": "PASS",
+    "browser": "151.0.7922.34",
+    "roleCount": 7,
+    "faultChecks": [
+      "late real 200 cannot replace newer 200 or synthetic terminal 503",
+      "injected 409 PATIENT_QUERY_CHANGED: one restart and terminal repeated failure",
+      "injected 410 CURSOR_EXPIRED: one restart and terminal repeated failure",
+      "injected 403 and neutral 404 do not render actionable member rows or retry",
+      "actual pending clinical write blocks navigation; cancel retains draft; only explicit save",
+      "real two-tab identity change rejects held old actor body",
+      "delayed failure of an old identity check cannot lock a freshly authenticated epoch",
+      "real 401 and real access-context 409 lock, re-auth and clear old rows without restart",
+      "real same-session owner 404 clears opened card, derived rows and existing draft without reauth"
+    ],
+    "sourceSha256": "f7fe241905880e87dc0c693ed8ab086150a3aef8010ab835eebde8adcdbde21a"
+  },
+  "drafts": {
+    "status": "PASS",
+    "fixturePatients": 100,
+    "sourceSha256": "e021dbd3ace9d91aa7afe3f5d346253af251f07ea7806ea0424e8f1f9a17a611"
+  }
+}
