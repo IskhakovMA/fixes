@@ -13,7 +13,6 @@ concurrency:
 
 env:
   CANDIDATE_SHA: 3a0cb5db434032b3f7b6370c305c558a4b5d331c
-  ACCEPTED_SHA: f849b2909c2d23923e0ce996f0aca4b670ca9c18
 
 jobs:
   synthetic-browser:
@@ -23,7 +22,24 @@ jobs:
       fail-fast: false
       matrix:
         suite:
+          - history-navigation
+          - history-saving
+          - history-transportAndIdentity
+          - history-objectRevocation
+          - history-unknownDraft
+          - history-unknownDenial
+          - history-unknownRace
+          - wp-h
+          - registry-card
+          - create
+          - consilium-schedule
+          - consilium-records
+          - notifications
+          - ai
+          - management-audit
           - workspace
+          - quality-owner
+          - quality-native-zoom
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -35,23 +51,28 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          parent=9ac9a2b2d5b93c76910cefb3c9ec27b4bc85f94c
-          ancestor=9472103cd17ba857ab54c35a5d84d7b01d052c9d
+          parent=8149e69504fb372a9e9037f35fe09ae2a0e6bfb6
+          original=9ac9a2b2d5b93c76910cefb3c9ec27b4bc85f94c
+          initial=9472103cd17ba857ab54c35a5d84d7b01d052c9d
           workflow=.github/workflows/i9-v33-linux-browser.yml
-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $parent"
-          test "$(git rev-list --parents -n1 "$parent")" = "$parent $ancestor"
-          test "$(git rev-list --parents -n1 "$ancestor")" = "$ancestor $CANDIDATE_SHA"
-          test "$(git diff --name-status "$CANDIDATE_SHA" "$parent")" = "$(printf 'A\t%s' "$workflow")"
           diag=tools/tests/wp_i_workspace/diagnostic
-          expected=$(printf 'M\t%s\nA\t%s/apply_probe.py\nA\t%s/backend_probe.py\nA\t%s/publish_receipt.py\nA\t%s/timeline.cjs' "$workflow" "$diag" "$diag" "$diag" "$diag")
+          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $parent"
+          test "$(git rev-list --parents -n1 "$parent")" = "$parent $original"
+          test "$(git rev-list --parents -n1 "$original")" = "$original $initial"
+          test "$(git rev-list --parents -n1 "$initial")" = "$initial $CANDIDATE_SHA"
+          test "$(git diff --name-status "$CANDIDATE_SHA" "$original")" = "$(printf 'A\t%s' "$workflow")"
+          expected=$(printf 'M\t%s\nA\t%s/apply_precondition.py\nA\t%s/quiesce.cjs' "$workflow" "$diag" "$diag")
           test "$(git diff --name-status "$parent" HEAD)" = "$expected"
-          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = "$(printf 'A%s' "${expected:1}")"
           probe="$RUNNER_TEMP/ws-probe"
           mkdir -m 700 "$probe"
-          for file in apply_probe.py backend_probe.py publish_receipt.py timeline.cjs; do
+          base_files=(apply_probe.py backend_probe.py publish_receipt.py timeline.cjs)
+          final_files=(apply_precondition.py apply_probe.py backend_probe.py publish_receipt.py quiesce.cjs timeline.cjs)
+          test "$(git diff --name-status "$original" "$parent")" = "$(printf 'M\t%s\nA\t%s\n' "$workflow" "$diag/${base_files[0]}"; for file in "${base_files[@]:1}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
+          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = "$(printf 'A\t%s\n' "$workflow"; for file in "${final_files[@]}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
+          for file in "${final_files[@]}"; do
             git show "HEAD:$diag/$file" > "$probe/$file"
           done
-          echo "I9_CHAIN=$GITHUB_SHA $parent $ancestor $CANDIDATE_SHA"
+          echo "I9_CHAIN=$GITHUB_SHA $parent $original $initial $CANDIDATE_SHA"
           echo "I9_WORKFLOW=$GITHUB_SHA"
           git checkout --detach "$CANDIDATE_SHA"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
@@ -256,28 +277,20 @@ jobs:
               suites wp_i_management 1000 browser workflows zoom
               suites wp_i_audit_chair 1000 browser workflows zoom ;;
             workspace)
+              suites wp_i_workspace 1000 browser
               probe="$RUNNER_TEMP/ws-probe"
-              git merge-base --is-ancestor "$ACCEPTED_SHA" "$CANDIDATE_SHA"
-              git diff --exit-code "$ACCEPTED_SHA" "$CANDIDATE_SHA" -- \
-                static/app.js tools/tests/wp_i_workspace tools/tests/wp_h \
-                backend/requirements.txt backend/requirements-dev.txt >/dev/null
-              for mode in B1 A; do
-                source="$CANDIDATE_SHA"
-                if [[ "$mode" == A ]]; then source="$ACCEPTED_SHA"; fi
-                git checkout --quiet --detach "$source"
-                test "$(git rev-parse HEAD)" = "$source"
-                echo "I9_WS_CASE=$mode $source"
-                export WS_BACKEND_TIMELINE="$root/server-$mode.jsonl" WS_BACKEND_ARM="$root/armed-$mode"
-                python -B "$probe/apply_probe.py" "$probe"
-                test "$(git diff --name-only)" = "$(printf '%s\n' tools/tests/wp_i_workspace/server.py tools/tests/wp_i_workspace/workflows.cjs)"
-                case_name="wp_i_workspace-workflows-$mode"
-                run_case "$case_name" python tools/tests/wp_i_workspace/run.py --suite workflows --count 1000 --out "$root/$case_name"
-                if [[ -f "$root/$case_name/results.json" ]]; then
-                  python -B -c 'import json,sys; n=len(json.load(open(sys.argv[1]))["checks"]); assert n==13; print("I9_WS_CHECKS=13/13")' "$root/$case_name/results.json"
-                fi
-                python -B "$probe/publish_receipt.py" "$root/$case_name/browser-timeline.jsonl" "$WS_BACKEND_TIMELINE"
-                git restore -- tools/tests/wp_i_workspace/server.py tools/tests/wp_i_workspace/workflows.cjs
-              done
+              echo "I9_WS_CASE=B1 $CANDIDATE_SHA"
+              export WS_BACKEND_TIMELINE="$root/server-timeline.jsonl" WS_BACKEND_ARM="$root/armed"
+              python -B "$probe/apply_probe.py" "$probe"
+              python -B "$probe/apply_precondition.py" "$probe"
+              test "$(git diff --name-only)" = "$(printf '%s\n' tools/tests/wp_i_workspace/server.py tools/tests/wp_i_workspace/workflows.cjs)"
+              suites wp_i_workspace 1000 workflows
+              if [[ -f "$root/wp_i_workspace-workflows/results.json" ]]; then
+                python -B -c 'import json,sys; n=len(json.load(open(sys.argv[1]))["checks"]); assert n==13; print("I9_WS_CHECKS=13/13")' "$root/wp_i_workspace-workflows/results.json"
+              fi
+              python -B "$probe/publish_receipt.py" "$root/wp_i_workspace-workflows/browser-timeline.jsonl" "$WS_BACKEND_TIMELINE"
+              git restore -- tools/tests/wp_i_workspace/server.py tools/tests/wp_i_workspace/workflows.cjs
+              suites wp_i_workspace 1000 zoom
               ;;
             quality-owner)
               run_case quality-browser python tools/tests/wp_i_quality/run_browser.py --suite browser --count 240 --out "$root/quality-browser" ;;
