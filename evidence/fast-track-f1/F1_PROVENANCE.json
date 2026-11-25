@@ -1,0 +1,10 @@
+{
+  "repository": "IskhakovMA/fixes",
+  "branch": "feature/fast-track-f1-management-doctor",
+  "featureSha": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+  "gitTree": "f680c574d3c4ab389a098a6bed75e09da542ef58",
+  "directParent": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "acceptedIntegrationAncestor": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+  "backendProductionDelta": ["explicit static file allowlist for F1 scripts"],
+  "fullCiRun": 45693197345
+}

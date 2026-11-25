@@ -1,0 +1,34 @@
+{
+  "syntheticOnly": true,
+  "chromium": "151.0.7922.34",
+  "checks": [
+    {
+      "kind": "pulse-503",
+      "source": "transport",
+      "removesOldMetrics": true,
+      "explicitRefreshHttp": 200
+    },
+    {
+      "kind": "my-day-terminal-409",
+      "source": "transport",
+      "automaticGets": 2,
+      "staleRowsHidden": true,
+      "keyboardExplicitHttp": 200
+    },
+    {
+      "kind": "my-day-late-prior-identity",
+      "originalHttp": 200,
+      "realPeerLogoutAndLogin": true,
+      "stalePayloadAbsent": true,
+      "oldResponseDisposition": "delivered"
+    }
+  ],
+  "unexpectedMedicalWrites": 0,
+  "pageErrors": 0,
+  "candidateSha": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+  "clinicalFixturesUnchanged": true,
+  "cleanup": {
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}

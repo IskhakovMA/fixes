@@ -1,0 +1,25 @@
+{
+  "scope": "local integrated F1 working tree during development",
+  "syntheticOnly": true,
+  "browser": {
+    "status": "PASS",
+    "roles": 6,
+    "a11yLayoutSamples": 70,
+    "axeViolations": 0,
+    "fixturePatients": 1000,
+    "rawReceiptSha256": "e0277c4c17c90a846ba8ffa787df23787c2379ee10194f7fe912a60f465d2d23"
+  },
+  "workflows": {
+    "status": "PASS",
+    "groups": 8,
+    "transportGroups": 2,
+    "assertedStatuses": 4,
+    "fixturePatients": 1000,
+    "rawReceiptSha256": "c5297766c241d61c2db5e7797a02539953d5d658340f64189c99cc4289c0b2d6"
+  },
+  "backendAnalyticsContract": {
+    "passed": 28,
+    "warnings": 1,
+    "rawLogSha256": "cf1a0e71862e7c9fb05ae80fcce00e96129559be091ac0877d62771ca508ecd1"
+  }
+}

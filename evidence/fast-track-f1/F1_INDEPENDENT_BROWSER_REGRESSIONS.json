@@ -1,0 +1,61 @@
+{
+  "featureSha": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+  "workspaceBaselineSha": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "workspaceWorkflows": {
+    "status": "PASS",
+    "tests": 13,
+    "baselineTests": 13,
+    "syntheticPatientSeed": 1000,
+    "realFastApi": true,
+    "browser": "Chromium 151.0.7922.34",
+    "testOnlyWorkspaceProbeSource": "1cf6e74ad4fd5bfcdb93b21385a0bd3a9a4c08fc",
+    "checks": [
+      "server search finds planned event outside first50; completed and undated events excluded; no local filtering",
+      "ordinary cursor navigation reaches correct second page and back,50 rows at a time",
+      "real409 performs exactly one first-page restart, no stale second-page publication",
+      "409/410 restart once only; second refusal stops with empty actionable state and explicit refresh",
+      "loading removes old actions and fences detached handlers; older real200 cannot revive newer real503; explicit refresh recovers",
+      "completed checklist remains in server registry; optional items and repeated stage history display read-only with no clinical changes",
+      "mouse/keyboard navigation reuses clinical discard guard; cancel keeps input; confirm does one object GET and focuses exact event of earlier repeated occurrence",
+      "actual clinical commit with held acknowledgment blocks workspace navigation and object GET; no transition replay after write completes",
+      "old workspace200 after switching screens cannot restore previous actionable rows",
+      "no queued navigation after401; explicit fresh workspace read and object GET work after reauth",
+      "revoked object access blocks navigation and clears denied medical data; no stale released response is claimed revoked",
+      "two-tab shared-cookie identity switch clears old workspace; late prior-user200 cannot republish rows",
+      "ACCESS_CONTEXT_CHANGED locks the session, never harmless list retry"
+    ],
+    "rawReceiptSha256": "98a9d1a8e650745c1938408bf1a65cc5660c0b1eb8a94742ba7d7b9c97387384",
+    "initialDiagnostics": [
+      "Uninstrumented initial run timed out after nine groups.",
+      "Partial product snapshot omitted the F1 asset MIME allowlist and the modules were unavailable on session expiry.",
+      "Exact Git archive includes the allowlist; accepted synthetic Workspace probe applied only in isolated copy."
+    ]
+  },
+  "wphDrafts": {
+    "status": "PASS",
+    "syntheticPatientSeed": 100,
+    "realBackend": true,
+    "draftAcross401AndPage409": true,
+    "selectedPatientRetained": true,
+    "originalVersionRetained": true,
+    "noAutomaticWrite": true,
+    "manualStaleSave409": true,
+    "serverNotOverwritten": true
+  },
+  "myDaySmoke": {
+    "status": "PASS",
+    "syntheticPatientSeed": 150,
+    "theme": "dark",
+    "narrow375": true,
+    "doctorPatientPages": [
+      20,
+      10
+    ],
+    "ownPatientCount": 30,
+    "emptyFilter": true,
+    "keyboardEventCard": true,
+    "backRestoredMode": true,
+    "noMedicalWrites": true,
+    "noJsErrors": true
+  }
+}

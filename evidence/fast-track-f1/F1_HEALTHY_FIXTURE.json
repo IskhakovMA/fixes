@@ -1,0 +1,10 @@
+{
+  "candidateSha": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+  "syntheticOnly": true,
+  "sqliteSchema": 33,
+  "coverage": "server quality evaluator against hydrated synthetic fixture",
+  "requiredChecklistItemsCompleted": 18,
+  "healthyPatientIssues": 0,
+  "overdueFindingsInDoctorScope": 2,
+  "temporaryDatabaseRemoved": true
+}
