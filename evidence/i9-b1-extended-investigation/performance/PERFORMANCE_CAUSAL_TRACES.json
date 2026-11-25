@@ -1,0 +1,117 @@
+{
+  "technical_read_audit": {
+    "receipt_sha256": "5db72e13e8a1b097c59a896800498cdb33611dc9977c70d58585cc7c49bc21f6",
+    "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+    "count": 10000,
+    "role": "developer",
+    "request_ordinal": 1,
+    "http": 409,
+    "code": "PATIENT_QUERY_CHANGED",
+    "cause": "technical_read_audit",
+    "cause_point": "data_version",
+    "same_connection_samples": [
+      {
+        "start_ms": 1039.783,
+        "end_ms": 1039.826,
+        "under_writer": false,
+        "connection_ordinal": 0,
+        "value": 2
+      },
+      {
+        "start_ms": 1953.265,
+        "end_ms": 1953.289,
+        "under_writer": true,
+        "connection_ordinal": 0,
+        "value": 3
+      }
+    ],
+    "snapshots": [
+      {
+        "phase": "original",
+        "enter_ms": 193.768,
+        "first_read_start_ms": 193.78,
+        "first_read_execute_done_ms": 194.01,
+        "end_ms": 864.003
+      },
+      {
+        "phase": "validation",
+        "enter_ms": 1040.133,
+        "first_read_start_ms": 1040.17,
+        "first_read_execute_done_ms": 1042.026,
+        "end_ms": 1948.281
+      }
+    ],
+    "potential_commits": [
+      {
+        "event": 0,
+        "kind": "technical_read_audit",
+        "start_ms": 1263.771,
+        "end_ms": 1263.951
+      }
+    ],
+    "fingerprint_check": "matched",
+    "read_release": [
+      {
+        "waiting_started_ms": 1952.483,
+        "finished_ms": 1953.393,
+        "end": "ROLLBACK"
+      }
+    ],
+    "read_release_emitted_payload_or_committed_manifest": false,
+    "clinical_writer_target_off_page": null
+  },
+  "medical": {
+    "receipt_sha256": "be42c52b4200cb9ab48a2ff9e789ba186c05b3f9b916d3626468dd23b275adc9",
+    "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+    "count": 10000,
+    "role": "developer",
+    "request_ordinal": 0,
+    "http": 409,
+    "code": "PATIENT_QUERY_CHANGED",
+    "cause": "medical",
+    "cause_point": "full_fingerprint",
+    "same_connection_samples": [
+      {
+        "start_ms": 212.833,
+        "end_ms": 212.855,
+        "under_writer": false,
+        "connection_ordinal": 0,
+        "value": 2
+      }
+    ],
+    "snapshots": [
+      {
+        "phase": "original",
+        "enter_ms": 6.359,
+        "first_read_start_ms": 6.373,
+        "first_read_execute_done_ms": 6.508,
+        "end_ms": 203.901
+      },
+      {
+        "phase": "validation",
+        "enter_ms": 213.009,
+        "first_read_start_ms": 213.018,
+        "first_read_execute_done_ms": 213.113,
+        "end_ms": 535.379
+      }
+    ],
+    "potential_commits": [
+      {
+        "event": 1,
+        "kind": "medical",
+        "start_ms": 44.848,
+        "end_ms": 45.176
+      }
+    ],
+    "fingerprint_check": "changed",
+    "read_release": [
+      {
+        "waiting_started_ms": 539.479,
+        "finished_ms": 548.919,
+        "end": "ROLLBACK"
+      }
+    ],
+    "read_release_emitted_payload_or_committed_manifest": false,
+    "clinical_writer_target_off_page": true
+  }
+}

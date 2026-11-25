@@ -1,0 +1,80 @@
+{
+  "explanation": "Only execute.py paths were relocated. Worktree identities and measurement code are unchanged. Registered historical plans retain original file hashes. Source tracing script reconstructs two safe traces from locally retained original receipts.",
+  "file_sha256": {
+    "exploratory-harness/execute.py": {
+      "local_experiment_source_sha256": "88676d4252736a776517016afb358e0dd48289efac7baf6bd73c0726d7dcaadf",
+      "relocatable_copy_sha256": "28b9c44078dc58523cbc13ba29cd8df91212ce8a9669fdc69e913de81b22187a",
+      "identical": false
+    },
+    "exploratory-harness/harness/instrumented_worker.py": {
+      "local_experiment_source_sha256": "4418581d3e22587af9c271018ff54555f68ed2b11848a6d23bd274c5f0dc4e94",
+      "relocatable_copy_sha256": "4418581d3e22587af9c271018ff54555f68ed2b11848a6d23bd274c5f0dc4e94",
+      "identical": true
+    },
+    "exploratory-harness/harness/probes.py": {
+      "local_experiment_source_sha256": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+      "relocatable_copy_sha256": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+      "identical": true
+    },
+    "exploratory-harness/harness/request_diagnostics.py": {
+      "local_experiment_source_sha256": "f0a1e78a6963d92a5b71e3df803dd3fcf2b4c334e24973978cd4c515bc0aa73b",
+      "relocatable_copy_sha256": "f0a1e78a6963d92a5b71e3df803dd3fcf2b4c334e24973978cd4c515bc0aa73b",
+      "identical": true
+    },
+    "exploratory-harness/harness/schedule_open.py": {
+      "local_experiment_source_sha256": "f1473830d83dfb0e416f1a5bfb680f6be9cba30997cf69906ac80f12ade8b840",
+      "relocatable_copy_sha256": "f1473830d83dfb0e416f1a5bfb680f6be9cba30997cf69906ac80f12ade8b840",
+      "identical": true
+    },
+    "dual-harness/execute.py": {
+      "local_experiment_source_sha256": "4ff0eb5832dfa9ed2787c695e399cf21dbed3dea7e7e2c326bcb88526f8cf3d0",
+      "relocatable_copy_sha256": "c2178ce4c49ada5531dd7e13f749b2674ee69bbf4a834a6db231d53f5a9b1c3c",
+      "identical": false
+    },
+    "dual-harness/harness/instrumented_worker.py": {
+      "local_experiment_source_sha256": "b3ac7ff603b66688461eb8a629da4bc3312199cb5dfa0ffa5945d60dda4f316c",
+      "relocatable_copy_sha256": "b3ac7ff603b66688461eb8a629da4bc3312199cb5dfa0ffa5945d60dda4f316c",
+      "identical": true
+    },
+    "dual-harness/harness/probes.py": {
+      "local_experiment_source_sha256": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+      "relocatable_copy_sha256": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+      "identical": true
+    },
+    "dual-harness/harness/request_diagnostics.py": {
+      "local_experiment_source_sha256": "f0a1e78a6963d92a5b71e3df803dd3fcf2b4c334e24973978cd4c515bc0aa73b",
+      "relocatable_copy_sha256": "f0a1e78a6963d92a5b71e3df803dd3fcf2b4c334e24973978cd4c515bc0aa73b",
+      "identical": true
+    },
+    "dual-harness/harness/schedule_open.py": {
+      "local_experiment_source_sha256": "b6b77b5ea08a7ea670668e0b0a397f94967a8c88c17bd3c255b3ce0290309019",
+      "relocatable_copy_sha256": "b6b77b5ea08a7ea670668e0b0a397f94967a8c88c17bd3c255b3ce0290309019",
+      "identical": true
+    },
+    "collect_v2.py": {
+      "local_experiment_source_sha256": "aef5295d38144439e6cd7d971fd7011b7fa532056d1285b66177c42f9eacb0b1",
+      "relocatable_copy_sha256": "aef5295d38144439e6cd7d971fd7011b7fa532056d1285b66177c42f9eacb0b1",
+      "identical": true
+    },
+    "confirm_stats.py": {
+      "local_experiment_source_sha256": "cdb4547271681aa5d62ea93e87c82d4babdce969f5ff87f59d262a89e22fe197",
+      "relocatable_copy_sha256": "cdb4547271681aa5d62ea93e87c82d4babdce969f5ff87f59d262a89e22fe197",
+      "identical": true
+    },
+    "trace_reconcile.py": {
+      "local_experiment_source_sha256": "02ab767d54e837fbaf90b14afb64aceb6af8643c6526e7a50682d51ac6ad5105",
+      "relocatable_copy_sha256": "02ab767d54e837fbaf90b14afb64aceb6af8643c6526e7a50682d51ac6ad5105",
+      "identical": true
+    },
+    "CONFIRM_SELECTION.json": {
+      "local_experiment_source_sha256": "5597d260c7c826fc84e3e34725ebce19e9f27f49eea29eb99341287091903f96",
+      "relocatable_copy_sha256": "5597d260c7c826fc84e3e34725ebce19e9f27f49eea29eb99341287091903f96",
+      "identical": true
+    },
+    "window_diagnostics.py": {
+      "local_experiment_source_sha256": "457e8d59ccd5a41adbb6fe6a3de044ae78f728150814ab07dcff04686d4cf8c4",
+      "relocatable_copy_sha256": "457e8d59ccd5a41adbb6fe6a3de044ae78f728150814ab07dcff04686d4cf8c4",
+      "identical": true
+    }
+  }
+}

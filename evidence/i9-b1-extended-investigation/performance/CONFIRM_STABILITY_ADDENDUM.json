@@ -1,0 +1,8 @@
+{
+  "selection_sha256": "5597d260c7c826fc84e3e34725ebce19e9f27f49eea29eb99341287091903f96",
+  "frozen_before_first_holdout_arm": true,
+  "primary_success": "HTTP 200 delivered inside 30s window, exact authorized scope and unique committed audit event plus body-SHA manifest, divided by all offered GET slots",
+  "stability_reporting": "Report pair signs, both order-stratum means and percentile paired interval. Treat an uncertain interval crossing zero or sign reversal by order as unresolved direction. Even consistent signs do not approve an operator budget.",
+  "temporal_diagnostics": "Show exploratory first/middle/last 10s offered-slot outcome cohorts separately from the single primary 30s window. Record delayed responses relative to the final cutoff as a separate drained cohort. Never use subwindows as additional independent observations or replace the primary result.",
+  "validity_checks": "Both complete matched arms exact source+plan/schedule hashes, same fixture/lock, all offered slots classified, yes read and write audits/integrity and no unresolved clinical commit. Any provenance, runner interruption, or integrity fault invalidates the entire affected pair; preserve evidence and stop. Outcomes under normal run timing are recorded even if adverse."
+}

@@ -1,0 +1,46 @@
+{
+  "purpose": "exploratory experimental-summary paired comparison",
+  "git_shas": {
+    "B1": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+    "E1": "8ed79d7d2b9c342796c3f778c0a8ab92919ecdd9"
+  },
+  "count": 10000,
+  "role": "developer",
+  "sessions": 4,
+  "get_per_session_hz": "1.5",
+  "patch_hz": "1",
+  "seconds": 8,
+  "order_by_pair": [
+    [
+      "B1",
+      "E1"
+    ],
+    [
+      "E1",
+      "B1"
+    ],
+    [
+      "B1",
+      "E1"
+    ],
+    [
+      "E1",
+      "B1"
+    ]
+  ],
+  "offered_outcomes": "all planned slots; post-window HTTP reported separately",
+  "invalid_arm": "nonzero worker exit, receipt/method slots mismatch or invariant failure; stop and preserve",
+  "success": "GET 200 with committed exact release audit/manifest; no changed protocol",
+  "harness_sha256": {
+    "experiment_benchmark.py": "a616f5369ea965369fcf5994ec7e065214018a89c5a5eb8e704e2b21992cbcbb",
+    "server.py": "e156bf74af956bd47e87250876d6826669e99388ae4a822e569893c282a4f976",
+    "calibration_readback.py": "e1f33f51c0fb18a995b58a7d894c65218e162cb5fbe0978530bd21ace5b266a6",
+    "extended_driver.py": "585708946bca165290b92b14d108598f20a24b46675a24e3c984583a2d47ab27",
+    "instrumented_worker.py": "55e82f0976e86464533317bd729aa4aa7b1ef8e45674f3b6a971b63ba1abf3b0",
+    "probes.py": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+    "read_only_worker.py": "c30b01731f4bcf1e17fcfb82ece4209eaec041628e5e98f2cb038771cec567bc",
+    "receipt_summary.py": "30c19050f0fa562a4fda12d151f64177f85436213b0ad359307af950d8f1e0e3",
+    "request_diagnostics.py": "a38b614ae3cfceaf2ccc0b84bd4bf5b7d373fe805c530d2ea3ec33c4261aaa3a",
+    "schedule_open.py": "6470ba0545b5fe4ec4a706c9e6e6479a9747665248f1691d20173c06cada887b"
+  }
+}

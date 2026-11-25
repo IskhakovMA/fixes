@@ -1,0 +1,34 @@
+[
+  {
+    "arms": {
+      "B1": {
+        "GET/409": 64,
+        "PATCH/200": 32,
+        "GET/client_busy": 102,
+        "GET/200": 26,
+        "GET/200_after_window": 15
+      },
+      "E1": {
+        "GET/409": 75,
+        "PATCH/200": 32,
+        "GET/client_busy": 99,
+        "GET/200": 18,
+        "GET/200_after_window": 7
+      }
+    },
+    "targeted_backend": {
+      "passed": 81,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": 1,
+      "warning_class": "StarletteDeprecationWarning"
+    },
+    "initial_attempt": {
+      "attempted_arms": 2,
+      "timed_arms": 1,
+      "excluded_pairs": 1,
+      "reason": "E1 preflight rejected ignored pytest cache in runtime tree before timing",
+      "retry": "fresh clean worktree at same E1 SHA, new plan and all four pairs"
+    }
+  }
+]

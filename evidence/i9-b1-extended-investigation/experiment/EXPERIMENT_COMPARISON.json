@@ -1,0 +1,309 @@
+{
+  "plan_sha256": "9258f03495bdd966bd12382c727ea41691e46a2ba071c15f463fe2df3a30b588",
+  "arms": [
+    {
+      "pair": 1,
+      "arm": "B1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 16,
+            "client_busy": 25,
+            "200": 7
+          },
+          "http_after_window": 4,
+          "http_p50_p95_ms": [
+            1282.097,
+            1518.952
+          ],
+          "ok_p50_p95_ms": [
+            1141.807,
+            1302.215
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            64.614,
+            298.534
+          ],
+          "ok_p50_p95_ms": [
+            64.614,
+            298.534
+          ]
+        }
+      },
+      "raw_sha256": "2fdbd0b03686801217c2f3a344a88c95e93bd528fc9dc754ec0321fd5c9390cd",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 1,
+      "arm": "E1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 20,
+            "client_busy": 26,
+            "200": 2
+          },
+          "http_after_window": 3,
+          "http_p50_p95_ms": [
+            1201.168,
+            1561.293
+          ],
+          "ok_p50_p95_ms": [
+            819.828,
+            840.072
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            17.212,
+            105.282
+          ],
+          "ok_p50_p95_ms": [
+            17.212,
+            105.282
+          ]
+        }
+      },
+      "raw_sha256": "5b52fc951abcfd708583a96a28adc23006caaab39e8de7b8e64be4e3fd16cf88",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 2,
+      "arm": "E1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 20,
+            "client_busy": 24,
+            "200": 4
+          },
+          "http_after_window": 3,
+          "http_p50_p95_ms": [
+            1040.26,
+            1574.521
+          ],
+          "ok_p50_p95_ms": [
+            897.715,
+            1042.458
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            36.568,
+            153.549
+          ],
+          "ok_p50_p95_ms": [
+            36.568,
+            153.549
+          ]
+        }
+      },
+      "raw_sha256": "79fcc40e6fab6839ca5b687128aa1b97938916cbf8b7479a69e466113e264fc7",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 2,
+      "arm": "B1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 17,
+            "client_busy": 25,
+            "200": 6
+          },
+          "http_after_window": 4,
+          "http_p50_p95_ms": [
+            1188.63,
+            1532.07
+          ],
+          "ok_p50_p95_ms": [
+            1150.624,
+            1468.491
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            54.446,
+            194.075
+          ],
+          "ok_p50_p95_ms": [
+            54.446,
+            194.075
+          ]
+        }
+      },
+      "raw_sha256": "5d51893ba8dee90cb8fd2be7a36566086f939599f8f6f94d52227b141022094a",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 3,
+      "arm": "B1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 16,
+            "client_busy": 25,
+            "200": 7
+          },
+          "http_after_window": 4,
+          "http_p50_p95_ms": [
+            1196.669,
+            1510.385
+          ],
+          "ok_p50_p95_ms": [
+            1086.685,
+            1377.167
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            19.29,
+            190.053
+          ],
+          "ok_p50_p95_ms": [
+            19.29,
+            190.053
+          ]
+        }
+      },
+      "raw_sha256": "4ab32ba281786c0d30e2075dd9ebd3eb3c52291955eaf9615877b87176e2812b",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 3,
+      "arm": "E1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 18,
+            "client_busy": 24,
+            "200": 6
+          },
+          "http_after_window": 3,
+          "http_p50_p95_ms": [
+            1035.92,
+            1544.059
+          ],
+          "ok_p50_p95_ms": [
+            848.585,
+            988.884
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            32.361,
+            181.656
+          ],
+          "ok_p50_p95_ms": [
+            32.361,
+            181.656
+          ]
+        }
+      },
+      "raw_sha256": "8746628b2a875af85169b6fa6f7df485ddffbf2de521525f8e63fdf8b8d0b671",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 4,
+      "arm": "E1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 17,
+            "200": 6,
+            "client_busy": 25
+          },
+          "http_after_window": 2,
+          "http_p50_p95_ms": [
+            1036.681,
+            1551.346
+          ],
+          "ok_p50_p95_ms": [
+            679.207,
+            1036.681
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            31.124,
+            147.252
+          ],
+          "ok_p50_p95_ms": [
+            31.124,
+            147.252
+          ]
+        }
+      },
+      "raw_sha256": "f1f5b352f712a200f6f167f769aa523eacdaec0341e03e0f034981ba160d5232",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    },
+    {
+      "pair": 4,
+      "arm": "B1",
+      "metrics": {
+        "GET": {
+          "outcomes": {
+            "409": 15,
+            "200": 6,
+            "client_busy": 27
+          },
+          "http_after_window": 3,
+          "http_p50_p95_ms": [
+            1151.572,
+            1609.963
+          ],
+          "ok_p50_p95_ms": [
+            1069.529,
+            1151.572
+          ]
+        },
+        "PATCH": {
+          "outcomes": {
+            "200": 8
+          },
+          "http_after_window": 0,
+          "http_p50_p95_ms": [
+            14.092,
+            364.739
+          ],
+          "ok_p50_p95_ms": [
+            14.092,
+            364.739
+          ]
+        }
+      },
+      "raw_sha256": "572007d24c9fd34f6029d2f37600062a737371799e643bcea3cf105f7d1cc3d5",
+      "slots_sha256": "694cfda627a4c58d8e6e04363a0b46f4360a18ccbdc1220fa401a5b75ea24ad5"
+    }
+  ]
+}

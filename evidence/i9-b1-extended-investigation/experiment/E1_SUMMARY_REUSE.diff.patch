@@ -1,0 +1,59 @@
+diff --git a/backend/app/patient_pages.py b/backend/app/patient_pages.py
+index 925c709..61293df 100644
+--- a/backend/app/patient_pages.py
++++ b/backend/app/patient_pages.py
+@@ -164,20 +164,24 @@ def _remember(kind, params, fingerprint):
+ 
+ 
+ def _summary(rows):
+-    week=clock.current_moscow()-timedelta(days=7)
+-    def is_new(row):
+-        try:return datetime.fromisoformat(row['arrival']).astimezone(clock.institution_tz())>=week
+-        except (ValueError,TypeError):return False
+-    return {'total':len(rows),'fresh':sum(is_new(r) for r in rows),
+-            'inTreatment':sum(r['stage'] in {'treatment','treatment-prep'} for r in rows),
+-            'done':sum(r['stage']=='completed' for r in rows),
+-            'unresolved':sum(not r['treatingDoctorUserId'] for r in rows)}
+-
+-
+-def _page_fingerprint(rows, selected):
++    week = clock.current_moscow() - timedelta(days=7)
++    tz = clock.institution_tz()
++    stats = {'total': len(rows), 'fresh': 0, 'inTreatment': 0, 'done': 0, 'unresolved': 0}
++    for row in rows:
++        try:
++            stats['fresh'] += datetime.fromisoformat(row['arrival']).astimezone(tz) >= week
++        except (ValueError, TypeError):
++            pass
++        stats['inTreatment'] += row['stage'] in {'treatment', 'treatment-prep'}
++        stats['done'] += row['stage'] == 'completed'
++        stats['unresolved'] += not row['treatingDoctorUserId']
++    return stats
++
++
++def _page_fingerprint(rows, selected, summary):
+     # Includes the WHOLE scope: filtered revision alone omits summary/facets.
+     return digest({'day': clock.today_moscow().isoformat(), 'scope': rows,
+-                   'selected': [r['id'] for r in selected], 'summary': _summary(rows)})
++                   'selected': [r['id'] for r in selected], 'summary': summary})
+ 
+ 
+ def _workspace_fingerprint(conn, user, rows):
+@@ -194,7 +198,7 @@ def validate_release(conn, user, check):
+         if check.kind == 'page':
+             rows = projection(conn, user)
+             selected = filtered(rows, normalized(check.params), conn)
+-            actual = _page_fingerprint(rows, selected)
++            actual = _page_fingerprint(rows, selected, _summary(rows))
+         else:
+             rows = _workspace_rows(conn, user, check.params, check.kind)
+             actual = _workspace_fingerprint(conn, user, rows)
+@@ -227,7 +231,7 @@ def page(conn,user,params,binding):
+         next_offset=offset+limit
+         token=_encode({'v':1,'query':query,'revision':revision,'binding':binding,'offset':next_offset,'limit':limit}) if next_offset<len(selected) else None
+         stats=_summary(rows)
+-        _remember('page', params, _page_fingerprint(rows, selected))
++        _remember('page', params, _page_fingerprint(rows, selected, stats))
+         return {'patients':[public(r) for r in selected[offset:next_offset]],'page':{'limit':limit,'offset':offset,'total':len(selected),'hasNext':token is not None,'nextCursor':token,'revision':revision},
+             'summary':stats,'heads':sorted({r['head'] for r in rows if r['head']},key=russian_key)}
+ 
