@@ -22,24 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         suite:
-          - history-navigation
-          - history-saving
-          - history-transportAndIdentity
-          - history-objectRevocation
-          - history-unknownDraft
           - history-unknownDenial
-          - history-unknownRace
-          - wp-h
-          - registry-card
-          - create
-          - consilium-schedule
-          - consilium-records
-          - notifications
-          - ai
-          - management-audit
-          - workspace
-          - quality-owner
-          - quality-native-zoom
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -51,28 +34,33 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          previous=8d0c28fcf49edb27eca13272e38942b378ff1d67
           parent=8149e69504fb372a9e9037f35fe09ae2a0e6bfb6
           original=9ac9a2b2d5b93c76910cefb3c9ec27b4bc85f94c
           initial=9472103cd17ba857ab54c35a5d84d7b01d052c9d
           workflow=.github/workflows/i9-v33-linux-browser.yml
           diag=tools/tests/wp_i_workspace/diagnostic
-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $parent"
+          history_probe=tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
+          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $previous"
+          test "$(git rev-list --parents -n1 "$previous")" = "$previous $parent"
+          test "$(git diff --name-status "$previous" HEAD)" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_probe")"
+          git show "HEAD:$history_probe" > "$RUNNER_TEMP/trace_unknown_denial.py"
           test "$(git rev-list --parents -n1 "$parent")" = "$parent $original"
           test "$(git rev-list --parents -n1 "$original")" = "$original $initial"
           test "$(git rev-list --parents -n1 "$initial")" = "$initial $CANDIDATE_SHA"
           test "$(git diff --name-status "$CANDIDATE_SHA" "$original")" = "$(printf 'A\t%s' "$workflow")"
           expected=$(printf 'M\t%s\nA\t%s/apply_precondition.py\nA\t%s/quiesce.cjs' "$workflow" "$diag" "$diag")
-          test "$(git diff --name-status "$parent" HEAD)" = "$expected"
+          test "$(git diff --name-status "$parent" "$previous")" = "$expected"
           probe="$RUNNER_TEMP/ws-probe"
           mkdir -m 700 "$probe"
           base_files=(apply_probe.py backend_probe.py publish_receipt.py timeline.cjs)
           final_files=(apply_precondition.py apply_probe.py backend_probe.py publish_receipt.py quiesce.cjs timeline.cjs)
           test "$(git diff --name-status "$original" "$parent")" = "$(printf 'M\t%s\nA\t%s\n' "$workflow" "$diag/${base_files[0]}"; for file in "${base_files[@]:1}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
-          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = "$(printf 'A\t%s\n' "$workflow"; for file in "${final_files[@]}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
+          test "$(git diff --name-status "$CANDIDATE_SHA" "$previous")" = "$(printf 'A\t%s\n' "$workflow"; for file in "${final_files[@]}"; do printf 'A\t%s/%s\n' "$diag" "$file"; done)"
           for file in "${final_files[@]}"; do
             git show "HEAD:$diag/$file" > "$probe/$file"
           done
-          echo "I9_CHAIN=$GITHUB_SHA $parent $original $initial $CANDIDATE_SHA"
+          echo "I9_CHAIN=$GITHUB_SHA $previous $parent $original $initial $CANDIDATE_SHA"
           echo "I9_WORKFLOW=$GITHUB_SHA"
           git checkout --detach "$CANDIDATE_SHA"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
@@ -127,6 +115,7 @@ jobs:
           root, case = Path(sys.argv[1]), sys.argv[2]
           folder = root / case
           timeout_targets = {
+              'wp_i_card-history': ('wp_i_card', 'history.cjs'),
               'wp_i_consilium-decisions': ('wp_i_consilium', 'decisions.cjs'),
               'wp_i_workspace-workflows': ('wp_i_workspace', 'workflows.cjs'),
           }
@@ -256,7 +245,30 @@ jobs:
           case "$SUITE" in
             history-*)
               export HISTORY_SCENARIO="${SUITE#history-}"
-              suites wp_i_card 100 history ;;
+              python -B "$RUNNER_TEMP/trace_unknown_denial.py"
+              test "$(git diff --name-only)" = "tools/tests/wp_i_card/history.cjs"
+              suites wp_i_card 100 history
+              python - "$root/wp_i_card-history/card.log" <<'PYTRACE'
+          from pathlib import Path
+          import re
+          import sys
+
+          labels = (
+              r"(?:request|failed)-(?:detail|search|registry|identity)"
+              r"|response-(?:detail|search|registry|identity)-(?:[1-5][0-9]{2})"
+              r"|(?:logged-in|card-open|events-open|unknown-dialog|revoked|clicked-stay|"
+              r"denied-finished|registry-focused|held-arrived|registry-finished)-[01]{7}"
+              r"|held-start-(?:search|registry)|held-status-[1-5][0-9]{2}|held-fulfilled"
+          )
+          path = Path(sys.argv[1])
+          if path.is_symlink() or not path.is_file():
+              raise SystemExit("history diagnostic log unavailable")
+          for line in path.read_text().splitlines()[:512]:
+              if re.fullmatch(r"I9_HD=[1-9][0-9]{0,3} [0-9]{1,8} (?:" + labels + r")", line):
+                  print(line)
+          PYTRACE
+              git restore -- tools/tests/wp_i_card/history.cjs
+              ;;
             wp-h)
               for suite in browser drafts zoom; do
                 run_case "wp-h-$suite" python tools/tests/wp_h/run.py "$suite" --out "$root/wp-h-$suite"
