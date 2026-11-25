@@ -34,6 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          diagnostic=225b41c90ec2808e2211c501c49fad516628df7f
           previous=8d0c28fcf49edb27eca13272e38942b378ff1d67
           parent=8149e69504fb372a9e9037f35fe09ae2a0e6bfb6
           original=9ac9a2b2d5b93c76910cefb3c9ec27b4bc85f94c
@@ -41,10 +42,13 @@ jobs:
           workflow=.github/workflows/i9-v33-linux-browser.yml
           diag=tools/tests/wp_i_workspace/diagnostic
           history_probe=tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $previous"
+          history_fix=tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch
+          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $diagnostic"
+          test "$(git rev-list --parents -n1 "$diagnostic")" = "$diagnostic $previous"
+          test "$(git diff --name-status "$diagnostic" HEAD)" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_fix")"
+          git show "HEAD:$history_fix" > "$RUNNER_TEMP/unknown-denial-harness.patch"
           test "$(git rev-list --parents -n1 "$previous")" = "$previous $parent"
-          test "$(git diff --name-status "$previous" HEAD)" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_probe")"
-          git show "HEAD:$history_probe" > "$RUNNER_TEMP/trace_unknown_denial.py"
+          test "$(git diff --name-status "$previous" "$diagnostic")" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_probe")"
           test "$(git rev-list --parents -n1 "$parent")" = "$parent $original"
           test "$(git rev-list --parents -n1 "$original")" = "$original $initial"
           test "$(git rev-list --parents -n1 "$initial")" = "$initial $CANDIDATE_SHA"
@@ -60,7 +64,7 @@ jobs:
           for file in "${final_files[@]}"; do
             git show "HEAD:$diag/$file" > "$probe/$file"
           done
-          echo "I9_CHAIN=$GITHUB_SHA $previous $parent $original $initial $CANDIDATE_SHA"
+          echo "I9_CHAIN=$GITHUB_SHA $diagnostic $previous $parent $original $initial $CANDIDATE_SHA"
           echo "I9_WORKFLOW=$GITHUB_SHA"
           git checkout --detach "$CANDIDATE_SHA"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
@@ -245,29 +249,32 @@ jobs:
           case "$SUITE" in
             history-*)
               export HISTORY_SCENARIO="${SUITE#history-}"
-              python -B "$RUNNER_TEMP/trace_unknown_denial.py"
-              test "$(git diff --name-only)" = "tools/tests/wp_i_card/history.cjs"
+              if [[ "$HISTORY_SCENARIO" == unknownDenial ]]; then
+                patch="$RUNNER_TEMP/unknown-denial-harness.patch"
+                git apply --check "$patch"
+                git apply "$patch"
+                test "$(git diff --name-only)" = "tools/tests/wp_i_card/history.cjs"
+              fi
               suites wp_i_card 100 history
-              python - "$root/wp_i_card-history/card.log" <<'PYTRACE'
-          from pathlib import Path
-          import re
+              if [[ "$HISTORY_SCENARIO" == unknownDenial ]]; then
+                if [[ "$result" -eq 0 ]]; then
+                  python - "$root/wp_i_card-history/history-results.json" <<'PYHISTORY'
+          import json
           import sys
 
-          labels = (
-              r"(?:request|failed)-(?:detail|search|registry|identity)"
-              r"|response-(?:detail|search|registry|identity)-(?:[1-5][0-9]{2})"
-              r"|(?:logged-in|card-open|events-open|unknown-dialog|revoked|clicked-stay|"
-              r"denied-finished|registry-focused|held-arrived|registry-finished)-[01]{7}"
-              r"|held-start-(?:search|registry)|held-status-[1-5][0-9]{2}|held-fulfilled"
+          with open(sys.argv[1]) as stream:
+              receipt = json.load(stream)
+          assert receipt["syntheticOnly"] is True and receipt["realBackend"] is True
+          assert receipt["phase"] == "complete" and len(receipt["check"]) == 1
+          assert receipt["check"][0] == (
+              "Unknown entry, stay denied by real 404: only replaceState, card and registry row purged before reload, zero medical writes"
           )
-          path = Path(sys.argv[1])
-          if path.is_symlink() or not path.is_file():
-              raise SystemExit("history diagnostic log unavailable")
-          for line in path.read_text().splitlines()[:512]:
-              if re.fullmatch(r"I9_HD=[1-9][0-9]{0,3} [0-9]{1,8} (?:" + labels + r")", line):
-                  print(line)
-          PYTRACE
-              git restore -- tools/tests/wp_i_card/history.cjs
+          assert receipt["trace"][-1]["screen"] == "patients" and receipt["trace"][-1]["expectedFocus"] is True
+          print("I9_HISTORY=real-404 same-session purge-before-reload focus no-writes 1/1")
+          PYHISTORY
+                fi
+                git restore -- tools/tests/wp_i_card/history.cjs
+              fi
               ;;
             wp-h)
               for suite in browser drafts zoom; do
