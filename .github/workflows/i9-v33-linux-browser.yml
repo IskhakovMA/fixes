@@ -22,7 +22,24 @@ jobs:
       fail-fast: false
       matrix:
         suite:
+          - history-navigation
+          - history-saving
+          - history-transportAndIdentity
+          - history-objectRevocation
+          - history-unknownDraft
           - history-unknownDenial
+          - history-unknownRace
+          - wp-h
+          - registry-card
+          - create
+          - consilium-schedule
+          - consilium-records
+          - notifications
+          - ai
+          - management-audit
+          - workspace
+          - quality-owner
+          - quality-native-zoom
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -34,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          targeted=4fff9faff8044005b50086a23e25934aefc67079
           diagnostic=225b41c90ec2808e2211c501c49fad516628df7f
           previous=8d0c28fcf49edb27eca13272e38942b378ff1d67
           parent=8149e69504fb372a9e9037f35fe09ae2a0e6bfb6
@@ -43,9 +61,11 @@ jobs:
           diag=tools/tests/wp_i_workspace/diagnostic
           history_probe=tools/tests/wp_i_card/diagnostic/trace_unknown_denial.py
           history_fix=tools/tests/wp_i_card/diagnostic/unknown-denial-harness.patch
-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $diagnostic"
+          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $targeted"
+          test "$(git rev-list --parents -n1 "$targeted")" = "$targeted $diagnostic"
+          test "$(git diff --name-status "$targeted" HEAD)" = "$(printf 'M\t%s' "$workflow")"
           test "$(git rev-list --parents -n1 "$diagnostic")" = "$diagnostic $previous"
-          test "$(git diff --name-status "$diagnostic" HEAD)" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_fix")"
+          test "$(git diff --name-status "$diagnostic" "$targeted")" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_fix")"
           git show "HEAD:$history_fix" > "$RUNNER_TEMP/unknown-denial-harness.patch"
           test "$(git rev-list --parents -n1 "$previous")" = "$previous $parent"
           test "$(git diff --name-status "$previous" "$diagnostic")" = "$(printf 'M\t%s\nA\t%s' "$workflow" "$history_probe")"
@@ -64,7 +84,7 @@ jobs:
           for file in "${final_files[@]}"; do
             git show "HEAD:$diag/$file" > "$probe/$file"
           done
-          echo "I9_CHAIN=$GITHUB_SHA $diagnostic $previous $parent $original $initial $CANDIDATE_SHA"
+          echo "I9_CHAIN=$GITHUB_SHA $targeted $diagnostic $previous $parent $original $initial $CANDIDATE_SHA"
           echo "I9_WORKFLOW=$GITHUB_SHA"
           git checkout --detach "$CANDIDATE_SHA"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
