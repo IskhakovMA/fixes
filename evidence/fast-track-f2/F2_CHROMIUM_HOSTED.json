@@ -1,0 +1,285 @@
+{
+  "checks": [
+    "management: real server scope, 20-row pagination, event tab without false exact match, retained page/stage on Back/Forward",
+    "management: correct Quality data section; checklist summary counts items, detail counts patients; out-of-scope real 404",
+    "doctor: actual own rows, explicit missing deadline, real 403, exact matching event in an earlier recurrence of the current stage",
+    "doctor: one versioned UI event write; return and Back revalidate, completed event stays absent with no repeat write",
+    "doctor: existing checklist checkbox sends one conditional PATCH and reflects server completion on return",
+    "doctor: another real authorized session completes a visible task; the stale button triggers fresh validation and disappears",
+    "management: return from card after confirmed updates elsewhere refetches summary and prior details; KPI matches fresh backend",
+    "management: global read-only role reaches the correct card section without writable controls",
+    "doctor: a real other-session reassignment before object navigation yields neutral 404 and removes the old action",
+    "doctor: tab change and return protect a dirty card field; confirmed return preserves the local draft until explicit discard, with no writes",
+    "doctor: bounded ordinary 409 restart, terminal double 409 with keyboard recovery, access change goes to login without ordinary retry",
+    "doctor: real revoked session receives 401; locked screen has no former route data; fresh same-user login works",
+    "doctor: late actual HTTP 200 after real peer-tab identity change never adds old scoped cards or drafts",
+    "layout: two themes at 320/375/768/1440px and native Chromium 100/200/400%; no clipping, overflow or axe A/AA findings"
+  ],
+  "axe": [
+    {
+      "view": "myDay",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    }
+  ],
+  "nativeZoom": [
+    {
+      "view": "pulse",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "pulse",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    },
+    {
+      "view": "myDay",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320,
+      "violations": 0,
+      "headingClearOfTopbar": true
+    }
+  ],
+  "injectedTransportFaults": [
+    {
+      "code": "PATIENT_QUERY_CHANGED",
+      "automaticGets": 2,
+      "successfulRetry": true
+    },
+    {
+      "code": "PATIENT_QUERY_CHANGED",
+      "automaticGets": 2,
+      "explicitKeyboardRecovery": true
+    },
+    {
+      "code": "ACCESS_CONTEXT_CHANGED",
+      "automaticGets": 1,
+      "locksSession": true
+    }
+  ],
+  "pageErrors": 0,
+  "chromium": "151.0.7922.34",
+  "kpis": {
+    "countsBefore": {
+      "overdueEvents": 25,
+      "incompleteItems": 109
+    },
+    "countsAfter": {
+      "overdueEvents": 23,
+      "incompleteItems": 108
+    },
+    "stagePreserved": true,
+    "offsetPreserved": 20
+  },
+  "oldResponseDisposition": "delivered",
+  "explicitBrowserClinicalWrites": 2,
+  "noAutomaticClinicalWrites": true,
+  "audit": {
+    "matchedExactResponseDigests": 28,
+    "authorizedReads": 103,
+    "authorizedReadManifests": 103,
+    "explicitBrowserClinicalWrites": 2,
+    "authorizedControlMutations": 2,
+    "recordedFacts": 2,
+    "matchedWriteAudits": 4,
+    "allOtherClinicalRowsUnchanged": true
+  },
+  "candidateSha": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+  "candidateTree": "b150cdeb41d0c104436e621a8234bb7af9d0bcc8",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "syntheticPatients": 9,
+  "schemaVersion": 33,
+  "cleanup": {
+    "cleanExit": true,
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}

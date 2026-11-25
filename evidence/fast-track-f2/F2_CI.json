@@ -1,0 +1,669 @@
+{
+  "conclusion": "success",
+  "headSha": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "databaseId": 139503030154,
+      "name": "backend-test-plan",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify locked dependency declarations",
+          "conclusion": "success"
+        },
+        {
+          "name": "Collect every backend test and plan the shards",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030305,
+      "name": "backend-smoke",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check temporary database",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile Python sources",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030429,
+      "name": "frontend-security",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check JavaScript syntax",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Staff-UX prototype tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run frontend security tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030463,
+      "name": "dependency-audit",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pip-audit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit backend dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030519,
+      "name": "secret-scan",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Gitleaks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify that planted secrets are detected",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan working tree for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan Git history for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan changes made inside merge commits for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030530,
+      "name": "sast-bandit",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Bandit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Self-test the Bandit gate",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Bandit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503030533,
+      "name": "workflow-policy",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install policy test dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow policy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215836,
+      "name": "backend-tests (5/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215865,
+      "name": "backend-tests (6/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215886,
+      "name": "backend-tests (3/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215900,
+      "name": "backend-tests (4/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215937,
+      "name": "backend-tests (1/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139503215952,
+      "name": "backend-tests (2/6)",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139510217522,
+      "name": "backend-tests-verify",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Require the plan and every shard to have succeeded",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139510256284,
+      "name": "release-gate",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Require every gate to succeed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/IskhakovMA/fixes/actions/runs/45698767301",
+  "proof": {
+    "baselineRun": 45693197345,
+    "baselineCandidate": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+    "collectionDigest": "9beb662926e4644205a2fc6cf6cb44a483cfec90add0e602c3f375538597e920",
+    "collectionMatchesBaseline": true,
+    "files": 122,
+    "collected": 2842,
+    "passed": 2842,
+    "failed": 0,
+    "skipped": 0,
+    "exactOnce": true,
+    "shards": {
+      "1": 474,
+      "2": 474,
+      "3": 474,
+      "4": 474,
+      "5": 473,
+      "6": 473
+    },
+    "rawLogSha256": "3462c260098a60cf5f0ad7ba8414a5595092f48eeecaa2adf1119f200a9b3717"
+  }
+}

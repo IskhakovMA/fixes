@@ -1,0 +1,2046 @@
+diff --git a/.github/workflows/fast-track-f2-browser.yml b/.github/workflows/fast-track-f2-browser.yml
+new file mode 100644
+index 0000000000000000000000000000000000000000..da4d97d5301cf998c976dca9d1629c675dbec5ca
+--- /dev/null
++++ b/.github/workflows/fast-track-f2-browser.yml
+@@ -0,0 +1,105 @@
++name: Fast Track F2 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f2-actionable-routes]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f2-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F1_SHA: 0fae327791b8f9379d8870f5afe76c5dbaa44338
++  F1_TREE: f680c574d3c4ab389a098a6bed75e09da542ef58
++
++jobs:
++  f2-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 20
++    steps:
++      - name: Checkout exact F2 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F1_SHA^{tree}")" = "$F1_TREE"
++          git merge-base --is-ancestor "$F1_SHA" HEAD
++          git diff --exit-code "$F1_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f2-browser.yml|backend/tests/test_frontend_csp.py|index.html|static/app.js|static/f1-doctor.js|static/f1-management.js|static/styles.css|tools/tests/fast_track_f2/*) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F1_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F2_CANDIDATE=$GITHUB_SHA"
++          echo "F2_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F2 workflows and F1 browser regression
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          export F2_SCREENSHOTS=1
++          mkdir -m 700 "$RUNNER_TEMP/f2-public"
++          for suite in fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F2_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[12]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] == "fast_track_f2":
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f2-public/$suite.json"
++          done
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f2-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f2-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index 71c91ce069136bdc4ff820b8dad90d0d74cad813..b70e98f8c3d47470164285eb81044e3f9744e37d 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,11 +138,11 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f1"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f2"></script>' in body
+     for path in F1_SCRIPTS:
+-        source = f'<script src="/static/{path.name}?v=fast-track-f1"></script>'
++        source = f'<script src="/static/{path.name}?v=fast-track-f2"></script>'
+         assert source in body
+         assert body.index(source) < body.index('<script src="/static/app.js')
+     # ни одного <style> и ни одного inline-скрипта в документе
+diff --git a/index.html b/index.html
+index eda65048dc4804ed06a1723bff99dbeffb3b7a8a..d28d1f006b6c56c8cb99ef4299ad32b2c7fccfbd 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2">
+ </head>
+ <body>
+ 
+@@ -1905,8 +1905,8 @@
+ <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+ 
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+-<script src="/static/f1-management.js?v=fast-track-f1"></script>
+-<script src="/static/f1-doctor.js?v=fast-track-f1"></script>
+-<script src="/static/app.js?v=fast-track-f1"></script>
++<script src="/static/f1-management.js?v=fast-track-f2"></script>
++<script src="/static/f1-doctor.js?v=fast-track-f2"></script>
++<script src="/static/app.js?v=fast-track-f2"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index a7fc8240f741dd9df1eec8d797b679717ef6e18a..9ee74820484f61451ed7e221fbc686b29a68ba2a 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -2219,7 +2219,7 @@ const app = {
+         };
+     },
+ 
+-    showView(view) {
++    showView(view, {cardOrigin} = {}) {
+         if (view==='create' && !this.can('createPatients')) view='patients';
+         if (this.currentView === 'create' && view !== 'create' && this.addFormActive && !this.sessionExpired) {
+             void this.requestCloseAddModal(view);
+@@ -2232,6 +2232,7 @@ const app = {
+         const previousView = this.currentView;
+         this.currentView = view;
+         if (view !== 'patient') this.f1CardOrigin = null;
++        else if (cardOrigin !== undefined) this.f1CardOrigin = cardOrigin;
+         else if (previousView !== 'patient') {
+             this.f1CardOrigin = previousView === 'pulse' || previousView === 'myDay' ? previousView : null;
+         }
+@@ -7221,6 +7222,11 @@ const app = {
+         this.patientRows = this.patientRows.filter(patient => patient.id !== patientId);
+         this.patientListDirty = true;
+         this.renderSessionFieldDrafts();
++        // A row can be denied after returning from its previous card. Clear the
++        // hidden card, then let the active workspace refresh its own selection.
++        if (this.currentPatientId === patientId && ['myDay', 'pulse'].includes(this.currentView)) {
++            this.clearPatientNavigationView();
++        }
+         if (this.currentPatientId !== patientId) {
+             this.renderPatients();
+             return;
+@@ -12430,7 +12436,7 @@ const browserNavigation = {
+             .map(node => [node, JSON.stringify(app.patientDraftControls.get(node).readValue())]);
+     },
+ 
+-    async navigate(route, {entry, replace = false, allowed, prepare, focus, objectId, denied, registryOnDenial} = {}) {
++    async navigate(route, {entry, replace = false, allowed, prepare, focus, objectId, denied, registryOnDenial, historyAction, readFailed} = {}) {
+         if (!app.user || app.sessionExpired || app.sessionReconciling || !this.nonce) return false;
+         if (this.correction && !replace) return false;
+         this.closeNavigationDialog();
+@@ -12440,12 +12446,18 @@ const browserNavigation = {
+         const access = app.accessSignature(app.user);
+         const positionKey = history.state?.route;
+         const sourceView = app.currentView, sourcePatient = app.currentPatientId, sourceTab = app.currentTab;
++        if (!entry && route.screen === 'patient') {
++            const origin = sourceView === 'patient' && sourcePatient === route.patientId ? app.f1CardOrigin : sourceView;
++            if (origin === 'pulse' || origin === 'myDay') route = {...route, f1Source: origin};
++            if (origin === 'myDay' && historyAction?.kind === 'day-event') route = {...route, historyAction};
++        }
+         const sameIntent = () => generation === this.generation && epoch === (app.sessionEpoch || 0)
+             && user === app.user?.id && app.accessSignature(app.user) === access
+             && !app.sessionExpired && !app.sessionReconciling && positionKey === history.state?.route;
+         const current = () => sameIntent() && sourceView === app.currentView &&
+             sourcePatient === app.currentPatientId && sourceTab === app.currentTab;
+         let finished = false;
++        let reading = false;
+         const id = objectId || route.patientId;
+         this.intentPatient = id;
+         try {
+@@ -12459,7 +12471,9 @@ const browserNavigation = {
+                 app.currentView === route.screen && (route.screen !== 'patient' || app.currentTab === route.tab)) return true;
+             const consent = await this.confirmExit(current, route);
+             if (!consent || !current() || (allowed && !allowed())) return false;
++            reading = Boolean(id);
+             const patient = id ? await apiGetJson('/api/patients/' + encodeURIComponent(id)) : null;
++            reading = false;
+             if (!id && !await app.checkSessionIdentity(epoch)) return false;
+             if (!current() || !this.canNavigate(route) || (allowed && !allowed())) return false;
+             if (id && patient?.id !== id) throw new Error('Карточка недоступна.');
+@@ -12476,6 +12490,15 @@ const browserNavigation = {
+                 if (!this.restorePosition()) await this.recoverUnknown({keep: true});
+                 return false;
+             }
++            if (entry && route.historyAction?.kind === 'day-event') {
++                const unavailable = f1Doctor.replayAction(app, patient, route.historyAction);
++                if (unavailable) {
++                    ui.toast(unavailable, 'warning');
++                    f1Doctor.render(app, unavailable);
++                    return false;
++                }
++                focus = () => f1Doctor.focusAction(route.historyAction);
++            }
+             this.render(route, patient, focus, replace);
+             if (entry) this.committed = entry;
+             else if (replace) this.reset(route);
+@@ -12492,7 +12515,7 @@ const browserNavigation = {
+                     finished = true;
+                 }
+                 if (denied) denied(error);
+-            }
++            } else if (reading && readFailed && current()) readFailed(error);
+             ui.toast(id ? 'Карточка недоступна.' : error.message, 'warning');
+             return false;
+         } finally {
+@@ -12513,7 +12536,7 @@ const browserNavigation = {
+             if (patient) app.patientDetails = new Map([[patient.id, patient]]);
+             app.currentPatientId = route.patientId;
+             app.currentTab = route.tab;
+-            app.showView('patient');
++            app.showView('patient', {cardOrigin: route.f1Source ?? null});
+             app.renderPatientView();
+         } else if (route.screen === 'create') {
+             app.openAddModal();
+diff --git a/static/f1-doctor.js b/static/f1-doctor.js
+index e5db56b100f2c4e51cc3690dd813499ba7749e0c..5ec1e5857f47d5dd30769f023c945fd2527e814c 100644
+--- a/static/f1-doctor.js
++++ b/static/f1-doctor.js
+@@ -10,12 +10,12 @@ const f1Doctor = (() => {
+         },
+         events: {
+             label: 'Плановые события',
+-            detail: 'Плановые даты без отмеченного факта, начиная с самых ранних.',
++            detail: 'Подтвержденные плановые даты без отмеченного факта. Сначала самые ранние.',
+             empty: 'Плановых событий без отмеченного факта нет.',
+         },
+         checklists: {
+             label: 'Обязательные пункты',
+-            detail: 'Состояние обязательных пунктов текущего этапа.',
++            detail: 'Обязательные пункты текущего этапа и их выполнение.',
+             empty: 'Пациентов с обязательными пунктами нет.',
+         },
+     };
+@@ -26,6 +26,7 @@ const f1Doctor = (() => {
+         ['no-date', 'Плановый срок не указан'],
+     ];
+     const freshPage = () => ({ index: 0, cursors: [null] });
++    const clinicDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow', dateStyle: 'short' });
+ 
+     function permitted(app) {
+         return app.user?.roleId === 'doctor' && !app.sessionExpired &&
+@@ -104,12 +105,20 @@ const f1Doctor = (() => {
+         return app.stageNames[stage] || 'Этап не указан';
+     }
+ 
+-    function deadlineText(row) {
+-        if (!Number.isInteger(row.deadlineDays)) return 'Плановый срок не указан';
+-        if (row.currentFact) return 'Факт последнего события отмечен';
+-        if (row.deadlineDays < 0) return `Просрочка — ${Math.abs(row.deadlineDays)} дн.`;
+-        if (!row.deadlineDays) return 'Плановый срок сегодня';
+-        return `До планового срока — ${row.deadlineDays} дн.`;
++    function deadlineStatus(row) {
++        if (row.currentFact) return ['neutral', 'Факт последнего события отмечен'];
++        const days = row.deadlineDays;
++        if (!Number.isInteger(days)) return ['neutral', 'Плановый срок не указан'];
++        if (days < 0) return ['danger', `Просрочка — ${Math.abs(days)} дн.`];
++        if (!days) return ['accent', 'Плановый срок сегодня'];
++        return ['neutral', `До планового срока — ${days} дн.`];
++    }
++
++    function eventStatus(row, today) {
++        if (!row.date) return ['neutral', 'Плановый срок не указан'];
++        if (row.date < today) return ['danger', 'Просрочено'];
++        if (row.date === today) return ['accent', 'Сегодня'];
++        return ['neutral', 'Запланировано'];
+     }
+ 
+     function dateText(row) {
+@@ -117,66 +126,101 @@ const f1Doctor = (() => {
+         return row.time ? `${date} · ${row.time}` : date;
+     }
+ 
+-    function patientAction(app, row, mode, live, refresh) {
++    function replayAction(app, patient, action) {
++        const index = (patient.history || []).findIndex(occurrence =>
++            occurrence.id === action.occurrenceId && occurrence.stage === action.stage);
++        const event = patient.history?.[index]?.events?.find(item => item.id === action.eventId);
++        if (event?.actualDate) return 'Факт события уже отмечен.';
++        if (!event?.date) return 'Плановое событие больше недоступно.';
++        if (event.date !== action.date || (event.time || '') !== action.time) return 'Плановый срок изменился.';
++        app.selectedTimelineNodes[patient.id] = 'occ:' + index;
++        return null;
++    }
++
++    function focusSection(selector) {
++        const target = document.querySelector(selector);
++        target?.scrollIntoView({ block: 'nearest' });
++        return target;
++    }
++
++    function focusAction(action) {
++        const target = document.getElementById('patient-event-' + action.eventId);
++        if (!target) return focusSection('#patientPanels .section-title');
++        target.scrollIntoView({ block: 'nearest' });
++        return target;
++    }
++
++    function checklistChanged(app, patient, row) {
++        const current = patient.history?.at(-1);
++        const nosology = app.nosologyData[patient.nosology];
++        if (!current || current.stage !== row.stage || !nosology) return true;
++        const required = (current.stage === 'exam' ? nosology.checklistRequired : nosology.checklistRequiredStage2) || [];
++        const incomplete = required.filter(item => current.checklist?.[item] !== true).length;
++        return required.length !== row.total_required || incomplete !== row.incomplete_required;
++    }
++
++    function patientAction(app, row, mode, live, refresh, readFailed) {
+         const id = mode === 'patients' ? row.id : row.patientId || row.patient_id;
+         const name = row.name || row.patientName || row.patient_name;
+-        const label = mode === 'events' ? 'К событию' : mode === 'checklists' ? 'К чек-листу' : 'Открыть карточку';
++        let label = 'Открыть карточку';
++        if (mode === 'events') label = row.stage === 'primary-appointment' ? 'К разделу приёма' : 'К событию';
++        if (mode === 'checklists') {
++            label = row.incomplete_required && app.can('editPatients') ? 'К чек-листу' : 'Посмотреть чек-лист';
++        }
+         const tab = mode === 'events' ? 'events' : mode === 'checklists' ? 'checklist' : 'overview';
++        const action = mode === 'events' ? {
++            kind: 'day-event', eventId: row.id, occurrenceId: row.historyEntryId, stage: row.stage,
++            date: row.date, time: row.time || '',
++        } : null;
+         return button(label, () => {
+             if (!live()) return;
+             void app.openPatient(id, tab, {
+                 allowed: live,
+-                denied: () => { if (live()) clearUnavailable(); },
++                denied: () => refresh('Запись больше недоступна.'),
++                readFailed,
+                 prepare: patient => {
+-                    if (mode !== 'events') return true;
+-                    const index = (patient.history || []).findIndex(occurrence =>
+-                        occurrence.id === row.historyEntryId &&
+-                        occurrence.events.some(event => event.id === row.id && !event.actualDate));
+-                    if (index < 0) {
+-                        clearUnavailable();
+-                        return false;
+-                    }
+-                    app.selectedTimelineNodes[id] = 'occ:' + index;
+-                    return true;
++                    let reason = action ? replayAction(app, patient, action) : null;
++                    if (mode === 'checklists' && checklistChanged(app, patient, row)) reason = 'Текущий чек-лист изменился.';
++                    if (reason) refresh(reason);
++                    return !reason;
+                 },
+-                focus: mode === 'events' ? () => {
+-                    const target = document.getElementById('patient-event-' + row.id);
+-                    target?.scrollIntoView({ block: 'nearest' });
+-                    return target;
+-                } : undefined,
++                focus: action ? () => focusAction(action) : mode === 'checklists'
++                    ? () => focusSection('#patientPanels .checkline .section-title') : undefined,
++                historyAction: action,
+             });
+-        }, { 'aria-label': `${label} — ${name}` });
+-
+-        function clearUnavailable() {
+-            refresh('Запись больше недоступна. Список обновлён.');
+-        }
++        }, { class: 'btn btn--ghost btn--sm f1-item__action', 'data-f1-doctor-action': '', 'aria-label': `${label} — ${name}` });
+     }
+ 
+-    function item(app, mode, row, live, refresh) {
++    function item(app, mode, row, today, live, refresh, readFailed) {
+         const name = row.name || row.patientName || row.patient_name;
+-        let notes;
++        let detail, secondary, status, owner;
+         if (mode === 'patients') {
+-            notes = [
+-                deadlineText(row),
+-                row.treatingDoctorName ? `Лечащий врач — ${row.treatingDoctorName}` : 'Лечащий врач не указан',
+-                row.attention?.active && row.attention.primaryReasonLabel ? `Требует внимания — ${row.attention.primaryReasonLabel}` : null,
+-            ];
++            detail = row.attention?.active && row.attention.primaryReasonLabel
++                ? `Требует внимания — ${row.attention.primaryReasonLabel}` : null;
++            status = deadlineStatus(row);
++            owner = row.treatingDoctorName || 'Не указан';
+         } else if (mode === 'events') {
+-            notes = [dateText(row), row.head ? `Заведующий — ${row.head}` : null];
++            detail = dateText(row);
++            secondary = row.head ? `Заведующий — ${row.head}` : null;
++            status = eventStatus(row, today);
++            owner = app.user.fullName;
+         } else {
+-            notes = [
+-                `Выполнено ${row.completed_required} из ${row.total_required}`,
+-                row.incomplete_required ? `Осталось обязательных пунктов — ${row.incomplete_required}` : 'Обязательные пункты выполнены',
+-                row.treating_doctor_name ? `Лечащий врач — ${row.treating_doctor_name}` : null,
+-            ];
++            detail = `Обязательные пункты: ${row.completed_required} из ${row.total_required}`;
++            status = row.incomplete_required ? ['warning', `Осталось — ${row.incomplete_required}`] : ['good', 'Обязательные пункты выполнены'];
++            owner = row.treating_doctor_name || 'Не указан';
+         }
+-        return el('li', { class: 'f1-item', 'data-f1-doctor-row': mode }, [
+-            el('div', {}, [
++        return el('li', { class: 'f1-item f1-item--doctor', 'data-f1-doctor-row': mode }, [
++            el('div', { class: 'f1-item__identity' }, [
+                 el('h3', { class: 'f1-item__title', text: name }),
+                 el('p', { class: 'f1-kicker', text: mode === 'events' ? 'Этап события — ' + stageText(app, row.stage) : row.stage_label || stageText(app, row.stage) }),
+-                ...notes.filter(Boolean).map(text => el('p', { class: 'f1-description', text })),
++                owner ? el('p', { class: 'f1-description', text: `Лечащий врач — ${owner}` }) : null,
++            ]),
++            el('div', { class: 'f1-item__context' }, [
++                detail ? el('p', { class: 'f1-item__detail', text: detail }) : null,
++                secondary ? el('p', { class: 'f1-description', text: secondary }) : null,
++                el('span', { class: `chip chip--${status[0]}`, text: status[1] }),
+             ]),
+-            patientAction(app, row, mode, live, refresh),
++            patientAction(app, row, mode, live, refresh, readFailed),
+         ]);
+     }
+ 
+@@ -202,12 +246,13 @@ const f1Doctor = (() => {
+                 if (!live() || !retryable(error)) throw error;
+                 cursors = [null];
+                 index = 0;
+-                notice = 'Список изменился. Показана первая страница.';
++                notice = [notice, 'Список изменился. Показана первая страница.'].filter(Boolean).join(' ');
+                 data = await apiGetJson(pathFor(mode, state.deadline, null));
+             }
+             if (!live()) return;
+ 
+             const rows = data[mode];
++            const today = clinicDay.format(new Date());
+             const displayPage = state.pages[mode] = { index, cursors };
+             const status = el('p', {
+                 class: 'f1-description', role: 'status', tabindex: '-1',
+@@ -217,11 +262,16 @@ const f1Doctor = (() => {
+                 if (live()) void load(app, state, anchor, body, nextIndex, nextCursors);
+             };
+             const refresh = message => {
+-                if (live()) void load(app, state, anchor, body, 0, [null], message);
++                if (live()) void load(app, state, anchor, body, index, cursors, message);
++            };
++            const readFailed = () => {
++                if (!live()) return;
++                delete state.ticket;
++                showError('Не удалось проверить карточку. Обновите список перед переходом.');
+             };
+             body.replaceChildren(status, ...[
+                 rows.length
+-                    ? el('ul', { class: 'f1-list' }, rows.map(row => item(app, mode, row, live, refresh)))
++                    ? el('ul', { class: 'f1-list f1-list--doctor' }, rows.map(row => item(app, mode, row, today, live, refresh, readFailed)))
+                     : el('p', { class: 'f1-empty', text: modes[mode].empty }),
+                 pager(data.page, displayPage, nextPage),
+             ].filter(Boolean));
+@@ -231,18 +281,25 @@ const f1Doctor = (() => {
+             const message = retryable(error)
+                 ? 'Список снова изменился. Обновите его вручную.'
+                 : apiErrorMessage(error.status);
+-            const status = el('p', { class: 'alert alert--warning', role: 'alert', tabindex: '-1', text: message });
+-            body.replaceChildren(status, button('Обновить список', () => {
+-                if (live()) void load(app, state, anchor, body, 0, [null]);
+-            }));
+-            focus.moveTo(status);
++            showError(message, focus);
+         } finally {
+             if (live()) body.removeAttribute('aria-busy');
+             focus.stop();
+         }
++
++        function showError(message, loadingFocus) {
++            const returnFocus = !loadingFocus && body.contains(document.activeElement) && !ui.topModal();
++            const status = el('p', { class: 'alert alert--warning', role: 'alert', tabindex: '-1', text: message });
++            const retry = button('Обновить список', () => {
++                if (retry.isConnected && permitted(app)) void load(app, state, anchor, body, 0, [null]);
++            });
++            body.replaceChildren(status, retry);
++            if (returnFocus) status.focus({ preventScroll: true });
++            loadingFocus?.moveTo(status);
++        }
+     }
+ 
+-    function render(app) {
++    function render(app, notice = '') {
+         const host = document.getElementById('f1MyDay');
+         if (!host || !permitted(app)) return;
+         const state = stateFor(app);
+@@ -268,7 +325,7 @@ const f1Doctor = (() => {
+             heading, detail, select, body,
+         );
+ 
+-        function show() {
++        function show(message = '') {
+             for (const control of controls) {
+                 const selected = control.dataset.f1DoctorMode === state.mode;
+                 control.setAttribute('aria-pressed', String(selected));
+@@ -279,10 +336,10 @@ const f1Doctor = (() => {
+             detail.textContent = modes[state.mode].detail;
+             select.hidden = state.mode !== 'patients';
+             const page = state.pages[state.mode];
+-            void load(app, state, heading, body, page.index, page.cursors);
++            void load(app, state, heading, body, page.index, page.cursors, message);
+         }
+-        show();
++        show(notice);
+     }
+ 
+-    return { render, clear };
++    return { render, clear, replayAction, focusAction };
+ })();
+diff --git a/static/f1-management.js b/static/f1-management.js
+index b782d43cfe06bb1bd2f0fe60f8107826ca4b88da..1d755a0e9b4767c0f099d8fb902df2b4ae18929c 100644
+--- a/static/f1-management.js
++++ b/static/f1-management.js
+@@ -4,17 +4,37 @@ const f1Management = (() => {
+     const sessions = new WeakMap();
+     const pageSize = 20;
+     const number = new Intl.NumberFormat('ru-RU');
++    const plurals = new Intl.PluralRules('ru-RU');
++    const units = {
++        'пациенты': ['пациент', 'пациента', 'пациентов'],
++        'события': ['событие', 'события', 'событий'],
++        'замечания': ['замечание', 'замечания', 'замечаний'],
++        'обязательные пункты': ['обязательный пункт', 'обязательных пункта', 'обязательных пунктов'],
++        'уведомления': ['уведомление', 'уведомления', 'уведомлений'],
++    };
+     const metrics = new Map([
+         ['total_patients', {type: 'patients', unit: 'пациенты', tab: 'overview'}],
+         ['overdue_events', {type: 'overdue_events', unit: 'события', tab: 'events'}],
+-        ['data_quality_issues', {type: 'quality_actionable', unit: 'критические замечания и предупреждения', tab: 'data'}],
++        ['data_quality_issues', {type: 'quality_actionable', unit: 'замечания', tab: 'overview'}],
+         ['incomplete_required_checklists', {
+-            type: 'incomplete_checklists', unit: 'пациенты', tab: 'checklist',
++            type: 'incomplete_checklists', unit: 'обязательные пункты', detailUnit: 'пациенты', tab: 'checklist',
+             label: 'Невыполненные обязательные пункты', heading: 'Пациенты с невыполненными обязательными пунктами',
+         }],
+-        ['pending_notifications', {type: 'notifications_pending', unit: 'уведомления в очереди', tab: 'notifications'}],
+-        ['patients_need_attention', {type: 'attention_patients', unit: 'пациенты с активной отметкой', tab: 'overview'}],
++        ['pending_notifications', {type: 'notifications_pending', unit: 'уведомления', tab: 'notifications'}],
++        ['patients_need_attention', {type: 'attention_patients', unit: 'пациенты', tab: 'overview'}],
++    ]);
++    // Analytics exposes the rule code, but not the patient detail's suggested action or its authority.
++    const qualityTabs = new Map([
++        ['missing_required_field', 'data'], ['missing_diagnosis', 'data'], ['invalid_phone', 'data'],
++        ['missing_policy_number', 'data'], ['missing_treating_doctor', 'data'],
++        ['missing_stage', 'events'], ['stage_sequence_violation', 'events'],
++        ['actual_date_in_future', 'events'], ['overdue_event', 'events'],
++        ['incomplete_required_checklist', 'checklist'],
+     ]);
++    const actions = {
++        overview: 'Открыть обзор', events: 'К событиям и датам', data: 'Открыть данные',
++        checklist: 'К чек-листу', notifications: 'К уведомлениям',
++    };
+     const scopes = {
+         global: 'Все доступные пациенты',
+         global_readonly: 'Все доступные пациенты · чтение',
+@@ -47,6 +67,7 @@ const f1Management = (() => {
+     }
+ 
+     function serverTime(meta) {
++        if (typeof meta?.computed_at !== 'string') return '';
+         const timestamp = new Date(meta.computed_at);
+         if (Number.isNaN(timestamp.valueOf())) return '';
+         try {
+@@ -105,18 +126,19 @@ const f1Management = (() => {
+             type: 'button', class: 'btn btn--ghost', id: 'f1PulseRefresh', text: 'Обновить показатели',
+             on: {click: () => { if (current(app, state)) void loadSummary(app, state); }},
+         });
+-        const summary = el('div', {class: 'f1-grid', id: 'f1PulseSummary'});
++        const summary = el('div', {class: 'f1-grid f1-pulse-kpis', id: 'f1PulseSummary'});
+         const meta = el('p', {class: 'muted', id: 'f1PulseScope', role: 'status'});
+         const detailTitle = el('h2', {class: 'panel__title', id: 'f1PulseDetailsTitle', tabindex: '-1'});
++        const definition = el('p', {class: 'f1-description', id: 'f1PulseDefinition'});
+         const details = el('div', {id: 'f1PulseDetails'});
+         const detailPanel = el('section', {
+             class: 'panel panel--pad', 'aria-labelledby': 'f1PulseDetailsTitle', hidden: true,
+-        }, [detailTitle, details]);
++        }, [detailTitle, definition, details]);
+         host.replaceChildren(
+             el('div', {class: 'f1-actions'}, [el('label', {for: stage.id, text: 'Этап маршрута'}), stage, refresh]),
+             meta, summary, detailPanel,
+         );
+-        state.nodes = {summary, meta, details, detailTitle, detailPanel};
++        state.nodes = {summary, meta, details, detailTitle, definition, detailPanel, refresh};
+         void loadSummary(app, state);
+     }
+ 
+@@ -158,12 +180,14 @@ const f1Management = (() => {
+ 
+     function metricButton(app, state, card) {
+         const descriptionId = 'f1PulseMetricDescription-' + card.code;
+-        const label = metrics.get(card.code).label || card.label;
++        const metric = metrics.get(card.code);
++        const label = metric.label || card.label;
+         const value = number.format(card.value);
++        const unit = units[metric.unit][{one: 0, few: 1}[plurals.select(card.value)] ?? 2];
+         return el('button', {
+             type: 'button', class: 'stat stat--button f1-item', dataset: {f1Metric: card.code},
+             'aria-pressed': String(state.selected === card.code), 'aria-describedby': descriptionId,
+-            'aria-label': label + ': ' + value,
++            'aria-label': label + ': ' + value + ' ' + unit,
+             on: {click: () => {
+                 if (!current(app, state) || state.cards.get(card.code) !== card) return;
+                 state.selected = card.code;
+@@ -172,18 +196,21 @@ const f1Management = (() => {
+             }},
+         }, [
+             el('span', {class: 'f1-item__title', text: label}),
+-            el('span', {class: 'f1-value', text: value}),
+-            el('span', {class: 'f1-description', id: descriptionId, text: card.definition}),
++            el('span', {class: 'f1-metric-reading'}, [
++                el('span', {class: 'f1-value', text: value}),
++                el('span', {class: 'f1-metric-unit', text: unit}),
++            ]),
++            el('span', {class: 'visually-hidden', id: descriptionId, text: card.definition}),
+         ]);
+     }
+ 
+-    async function loadDetails(app, state, moveFocus = false) {
++    async function loadDetails(app, state, moveFocus = false, adjustPage = true) {
+         if (!current(app, state)) return;
+         const code = state.selected;
+         const card = state.cards.get(code);
+         const metric = metrics.get(code);
+         if (!card || !metric) return;
+-        const {summary, details, detailTitle, detailPanel} = state.nodes;
++        const {summary, details, detailTitle, definition, detailPanel} = state.nodes;
+         const offset = state.offset;
+         const query = params(state);
+         query.set('type', metric.type);
+@@ -193,6 +220,7 @@ const f1Management = (() => {
+         state.detailRead = token;
+         const detailCurrent = () => current(app, state) && state.detailRead === token;
+         detailTitle.textContent = metric.heading || card.label;
++        definition.textContent = card.definition;
+         detailPanel.hidden = false;
+         if (moveFocus) detailTitle.focus();
+         for (const btn of summary.querySelectorAll('[data-f1-metric]')) {
+@@ -206,48 +234,114 @@ const f1Management = (() => {
+             if (data.detail_type !== metric.type || data.offset !== offset || data.limit !== pageSize ||
+                 !Number.isSafeInteger(data.total) || data.total < 0 || !Array.isArray(data.items) ||
+                 data.items.length > pageSize) throw new Error('Список недоступен');
++            if (adjustPage && offset > 0 && data.total <= offset) {
++                state.offset = Math.floor(Math.max(0, data.total - 1) / pageSize) * pageSize;
++                return await loadDetails(app, state, false, false);
++            }
+             drawDetails(app, state, data, metric, detailCurrent);
+         } catch (error) {
+             if (!detailCurrent() || error.obsolete) return;
+-            details.replaceChildren(message(errorMessage(error), true),
+-                el('button', {type: 'button', class: 'btn btn--ghost', text: 'Обновить список',
+-                    on: {click: () => { if (detailCurrent()) void loadDetails(app, state, true); }}}));
++            showDetailsFailure(app, state, errorMessage(error));
+         } finally {
+             if (detailCurrent()) details.setAttribute('aria-busy', 'false');
+         }
+     }
+ 
+-    function drawDetails(app, state, data, metric, detailCurrent) {
+-        const content = data.items.map(item => {
+-            const plan = item.planned_date || item.context?.planned_date;
+-            const dateParts = typeof plan === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(plan);
+-            const scheduled = item.scheduled_at && serverTime({computed_at: item.scheduled_at, timezone: data.meta.timezone});
+-            const info = [item.title, item.stage_label, item.treating_doctor_name,
+-                dateParts ? 'По плану: ' + dateParts.slice(1).reverse().join('.') : null,
+-                Number.isSafeInteger(item.incomplete_required) ? 'Невыполненных пунктов: ' + item.incomplete_required : null,
+-                item.days_overdue ? 'Просрочка: ' + item.days_overdue + ' дн.' : null,
+-                scheduled ? 'Запланировано: ' + scheduled : null].filter(Boolean);
+-            const name = item.patient_name;
+-            const id = item.patient_id;
+-            return el('li', {class: 'f1-item'}, [
++    function showDetailsFailure(app, state, text) {
++        const token = {};
++        state.detailRead = token;
++        const {details} = state.nodes;
++        const restoreFocus = details.contains(document.activeElement);
++        const retry = el('button', {
++            type: 'button', class: 'btn btn--ghost', text: 'Обновить список',
++            on: {click: () => {
++                if (current(app, state) && state.detailRead === token) void loadDetails(app, state, true);
++            }},
++        });
++        details.setAttribute('aria-busy', 'false');
++        details.replaceChildren(message(text, true), retry);
++        if (restoreFocus) retry.focus();
++    }
++
++    function rowContext(data, metric, item) {
++        const plan = item.planned_date || item.context?.planned_date;
++        const dateParts = typeof plan === 'string' && /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(plan);
++        const scheduled = item.scheduled_at && serverTime({computed_at: item.scheduled_at, timezone: data.meta.timezone});
++        const isQuality = metric.type === 'quality_actionable';
++        const reason = item.title || item.event_type || {
++            incomplete_checklists: 'Не выполнены обязательные пункты',
++            notifications_pending: 'Уведомление в очереди',
++            attention_patients: 'Активная отметка внимания',
++        }[metric.type];
++        const severity = isQuality && {critical: 'Критическое замечание', warning: 'Предупреждение'}[item.severity];
++        const overdue = Number.isSafeInteger(item.days_overdue) && item.days_overdue > 0;
++        const details = [
++            isQuality ? ['Качество данных', severity, item.code_label !== reason ? item.code_label : ''].filter(Boolean).join(' · ') : null,
++            dateParts ? 'По плану: ' + dateParts.slice(1).reverse().join('.') :
++                metric.type === 'overdue_events' ? 'Плановый срок не указан' : null,
++            overdue ? 'Просрочка: ' + item.days_overdue + ' дн.' : null,
++            Number.isSafeInteger(item.incomplete_required) ? 'Не выполнено: ' + item.incomplete_required +
++                (Number.isSafeInteger(item.total_required) ? ' из ' + item.total_required : '') : null,
++            scheduled ? 'Запланировано: ' + scheduled : null,
++        ].filter(Boolean);
++        return {reason, details, tab: isQuality ? qualityTabs.get(item.code) || metric.tab : metric.tab};
++    }
++
++    function detailRow(app, state, data, item, metric, detailCurrent) {
++        const {reason, details, tab} = rowContext(data, metric, item);
++        const {patient_name: name, patient_id: id} = item;
++        const patientContext = [item.stage_label, item.treating_doctor_name].filter(Boolean);
++        const attention = metric.type === 'attention_patients';
++        const action = attention ? 'К отметкам внимания' : actions[tab];
++        return el('li', {class: 'f1-item f1-detail-row'}, [
++            el('div', {class: 'f1-detail-cell'}, [
+                 el('p', {class: 'f1-item__title', text: name || 'Запись'}),
+-                info.length ? el('p', {class: 'f1-description', text: info.join(' · ')}) : null,
+-                id && name ? el('button', {
+-                    type: 'button', class: 'btn btn--ghost btn--sm', text: 'Открыть карточку',
+-                    dataset: {f1OpenPatient: 'true'}, 'aria-label': 'Открыть карточку: ' + name,
+-                    on: {click: () => {
+-                        if (!detailCurrent()) return;
+-                        void app.openPatient(id, metric.tab, {
+-                            allowed: detailCurrent,
+-                            denied: () => {
+-                                if (!detailCurrent()) return;
++                patientContext.length ? el('p', {class: 'f1-description', text: patientContext.join(' · ')}) : null,
++            ]),
++            reason || details.length ? el('div', {class: 'f1-detail-cell'}, [
++                reason ? el('p', {class: 'f1-detail-reason', text: reason}) : null,
++                details.length ? el('p', {class: 'f1-description', text: details.join(' · ')}) : null,
++            ]) : null,
++            id && name ? el('button', {
++                type: 'button', class: 'btn btn--ghost btn--sm f1-detail-action', text: action,
++                dataset: {f1OpenPatient: 'true'}, 'aria-label': action + ': ' + name,
++                on: {click: () => {
++                    if (!detailCurrent()) return;
++                    void app.openPatient(id, tab, {
++                        allowed: detailCurrent,
++                        prepare: patient => {
++                            if (state.stage && patient.stage !== state.stage) {
++                                ui.toast('Этап изменился. Обновляем выборку.', 'warning');
++                                state.nodes.refresh.focus();
+                                 void loadSummary(app, state);
+-                            },
+-                        });
+-                    }},
+-                }) : null,
+-            ]);
+-        });
++                                return false;
++                            }
++                            // Analytics gives a plan date, not stable event or occurrence IDs.
++                            if (tab === 'events') delete app.selectedTimelineNodes[id];
++                            return true;
++                        },
++                        focus: attention ? () => {
++                            const block = document.getElementById('patientAttentionBlock');
++                            block?.scrollIntoView({block: 'center'});
++                            return block;
++                        } : undefined,
++                        denied: () => {
++                            if (!detailCurrent()) return;
++                            state.nodes.refresh.focus();
++                            void loadSummary(app, state);
++                        },
++                        readFailed: () => {
++                            if (!detailCurrent()) return;
++                            showDetailsFailure(app, state, 'Не удалось проверить карточку. Обновите список перед переходом.');
++                        },
++                    });
++                }},
++            }) : null,
++        ]);
++    }
++
++    function drawDetails(app, state, data, metric, detailCurrent) {
++        const content = data.items.map(item => detailRow(app, state, data, item, metric, detailCurrent));
+         const start = data.offset + 1;
+         const end = data.offset + content.length;
+         const summary = content.length ? String(start) + '–' + end + ' из ' + number.format(data.total) : '';
+@@ -259,13 +353,13 @@ const f1Management = (() => {
+             }},
+         });
+         state.nodes.details.replaceChildren(
+-            content.length ? el('p', {class: 'muted', role: 'status', text: summary + ' · ' + metric.unit}) :
++            content.length ? el('p', {class: 'muted f1-pulse-result', role: 'status', text: summary + ' · ' + (metric.detailUnit || metric.unit)}) :
+                 message(data.total ? 'На этой странице записей нет.' : 'По выбранным условиям нет доступных записей.'),
+-            content.length ? el('ul', {class: 'f1-list'}, content) : null,
+-            el('div', {class: 'f1-actions'}, [
++            content.length ? el('ul', {class: 'f1-list f1-pulse-list'}, content) : null,
++            data.offset > 0 || end < data.total ? el('div', {class: 'f1-actions'}, [
+                 data.offset > 0 ? action('Предыдущая страница', Math.max(0, data.offset - pageSize)) : null,
+                 end < data.total ? action('Следующая страница', data.offset + pageSize) : null,
+-            ]),
++            ]) : null,
+         );
+     }
+ 
+diff --git a/static/styles.css b/static/styles.css
+index bd862754292c382f9ad43a6d2e6397b96730dde4..1e26763912489a44d48761eddd45a3b3bbc6724f 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -3067,7 +3067,7 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .patient-workspace .alert--info { color:var(--accent-text); }
+ .patient-workspace .chip--danger { color:#fca5a5; }
+ 
+-html[data-theme="light"] .patient-workspace .chip--danger { color:#b91c1c; }
++html[data-theme="light"] :is(.patient-workspace, .f1-workspace) .chip--danger { color:#b91c1c; }
+ 
+ /* WP-I I-4: Staff-UX full creation page; original medical controls and IDs. */
+ .create-patient { min-width:0; }
+@@ -3325,69 +3325,108 @@ html[data-theme="light"] #consiliumForm .alert--danger { color:#b91c1c; }
+     outline-offset: 0.2rem;
+ }
+ 
+-/* Fast Track F1 workspaces */
++/* Staff-UX analytics strip and agenda rows in the scoped workspaces. */
+ .f1-workspace .f1-grid {
+     display: grid;
+-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+-    gap: 12px;
+-    margin-block: 12px 20px;
++    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
++    gap: 1px;
++    margin-block: var(--sp-3) var(--sp-4);
++    background: var(--border);
++    border: 1px solid var(--border);
++    border-radius: var(--r-lg);
++    overflow: hidden;
+ }
+-.f1-workspace .f1-list {
++.f1-workspace .f1-grid > .f1-item {
+     display: grid;
+-    gap: 10px;
+-    margin-block: 12px;
++    align-content: start;
++    justify-items: start;
++    border: 0;
++    border-radius: 0;
++}
++.f1-workspace .f1-grid button:focus-visible { outline-offset: -3px; }
++.f1-workspace .f1-grid button:hover { background: var(--surface-2); }
++.f1-workspace .f1-grid > .f1-empty { grid-column: 1 / -1; }
++.f1-workspace .f1-list {
++    margin-block: var(--sp-3);
+     padding-inline: 0;
+     list-style: none;
++    background: var(--surface);
++    border: 1px solid var(--border);
++    border-radius: var(--r-lg);
+ }
++.f1-workspace .f1-list > li + li { border-top: 1px solid var(--border); }
+ .f1-workspace .f1-actions {
+     display: flex;
+     flex-wrap: wrap;
+     align-items: center;
+-    gap: 8px 12px;
+-    margin-block: 12px;
++    gap: var(--sp-2) var(--sp-3);
++    margin-block: var(--sp-3);
+ }
+ .f1-workspace .f1-item {
+-    display: flex;
+-    flex-direction: column;
+-    align-items: flex-start;
+-    gap: 8px;
++    display: grid;
++    gap: var(--sp-1);
+     min-width: 0;
+-    padding: 16px;
++    padding: var(--sp-2) var(--sp-4);
+     background: var(--surface);
+-    border: 1px solid var(--border);
+-    border-radius: 12px;
+     overflow-wrap: anywhere;
+ }
++.f1-workspace :is(.f1-item--doctor, .f1-detail-row) {
++    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
++    align-items: center;
++    gap: var(--sp-3);
++}
++.f1-workspace :is(.f1-detail-cell, .f1-item__identity, .f1-item__context) { min-width: 0; }
++.f1-workspace :is(.f1-item__action, .f1-detail-action) { justify-self: start; }
+ .f1-workspace .f1-item__title {
+     margin: 0;
+-    font-size: var(--text-lg);
+-    font-weight: 650;
++    font-size: var(--text-base);
++    font-weight: 600;
+ }
+-.f1-workspace .f1-kicker,
+-.f1-workspace .f1-description {
++.f1-workspace :is(.f1-kicker, .f1-description, .f1-metric-unit) {
+     margin: 0;
++    font-size: var(--text-md);
+     color: var(--text-2);
+ }
++.f1-workspace .f1-metric-reading {
++    display: flex;
++    flex-wrap: wrap;
++    align-items: baseline;
++    gap: var(--sp-1) var(--sp-2);
++}
++.f1-workspace :is(.f1-item__detail, .f1-detail-reason) { margin: 0; }
+ .f1-workspace .f1-value {
+     font-size: var(--text-2xl);
+     line-height: 1.15;
+-    font-weight: 650;
++    font-weight: 600;
+     font-variant-numeric: tabular-nums;
+ }
+ .f1-workspace .f1-empty {
+-    padding: 16px;
++    margin: 0;
++    padding: var(--sp-3) var(--sp-4);
+     color: var(--text-2);
++    background: var(--surface);
+     border: 1px solid var(--border);
+-    border-radius: 12px;
++    border-radius: var(--r-lg);
+ }
+ .f1-workspace [aria-pressed="true"] {
+     background: var(--accent-soft);
+     border-color: var(--accent);
+     color: var(--accent-text);
+ }
+-@media (max-width: 560px) {
+-    .f1-workspace .f1-actions > .input {
+-        max-width: 100%;
++.f1-workspace :is(.f1-pulse-result, h2[tabindex="-1"]) {
++    scroll-margin-top: calc(var(--topbar-h) + var(--sp-3));
++}
++.f1-workspace .f1-actions > .select,
++#f1MyDay > .input {
++    width: auto;
++    max-width: 100%;
++    min-width: 0;
++}
++@media (max-width: 767px) {
++    .f1-workspace .f1-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
++    .f1-workspace :is(.f1-item--doctor, .f1-detail-row) {
++        grid-template-columns: minmax(0, 1fr);
++        gap: var(--sp-2);
+     }
+ }
+ #backToF1[hidden] {
+diff --git a/tools/tests/fast_track_f2/browser.cjs b/tools/tests/fast_track_f2/browser.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..8bbe17cb5a1aa0fcadcdb598e2072de4e0aa02a0
+--- /dev/null
++++ b/tools/tests/fast_track_f2/browser.cjs
+@@ -0,0 +1,724 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const {createHash} = require('node:crypto');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
++
++const fixture = JSON.parse(fs.readFileSync(process.env.F2_FIXTURE, 'utf8'));
++const {origin, patients, users} = fixture;
++assert.equal(fixture.syntheticOnly, true);
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++assert(process.env.AXE_SOURCE, 'The pinned axe browser source is required');
++const axeSource = fs.readFileSync(process.env.AXE_SOURCE, 'utf8');
++const checkTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
++const output = path.dirname(process.env.F2_RECEIPT);
++const receipt = {checks: [], axe: [], nativeZoom: [], responseProofs: [], injectedTransportFaults: [], pageErrors: 0};
++const uiWrites = [];
++let activeCheck = 'initialization';
++
++function check(label) {
++    receipt.checks.push(label);
++}
++
++function response(page, pathname, {method = 'GET', params = {}} = {}) {
++    return page.waitForResponse(reply => {
++        const url = new URL(reply.url());
++        return reply.request().method() === method && url.pathname === pathname &&
++            Object.entries(params).every(([key, value]) => url.searchParams.get(key) === value);
++    });
++}
++
++async function auditedRead(reply, kind) {
++    assert.equal(reply.status(), 200, kind);
++    const raw = await reply.body();
++    receipt.responseProofs.push({kind, sha256: createHash('sha256').update(raw).digest('hex')});
++    return JSON.parse(raw.toString('utf8'));
++}
++
++async function setupContext(context) {
++    await context.route('**/*', route => {
++        if (new URL(route.request().url()).origin === origin) return route.continue();
++        return route.abort('blockedbyclient');
++    });
++    context.on('request', request => {
++        const pathname = new URL(request.url()).pathname;
++        if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/') &&
++            !['GET', 'HEAD', 'OPTIONS'].includes(request.method())) {
++            uiWrites.push({path: pathname, method: request.method(), body: request.postDataJSON()});
++        }
++    });
++}
++
++async function setupPage(context) {
++    const page = await context.newPage();
++    page.on('pageerror', () => { receipt.pageErrors++; });
++    page.setDefaultTimeout(12000);
++    return page;
++}
++
++async function sessionReady(page, role) {
++    await page.waitForFunction(username => app.appReady && !app.sessionExpired && !app.sessionReconciling &&
++        app.user?.username === username && app.patientListState === 'ready', users[role]);
++}
++
++async function login(page, role, reload = true) {
++    if (reload) await page.goto(origin);
++    await page.locator('#username').fill(users[role]);
++    await page.locator('#password').fill(fixture.password);
++    await page.locator('#loginSubmit').click();
++    await sessionReady(page, role);
++}
++
++async function actor(browser, role) {
++    const context = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce',
++        serviceWorkers: 'block'});
++    await setupContext(context);
++    const page = await setupPage(context);
++    await login(page, role);
++    return {context, page};
++}
++
++async function controlRequest(context, method, pathname, data) {
++    const csrf = (await context.cookies()).find(item => item.name === 'clinic_csrf');
++    return context.request.fetch(origin + pathname, {method, data, headers: csrf ? {'X-CSRF-Token': csrf.value} : {}});
++}
++
++async function activate(locator, viaKeyboard = false) {
++    if (!viaKeyboard) return locator.click();
++    await locator.focus();
++    assert(await locator.evaluate(node => node === document.activeElement && !node.disabled));
++    await locator.press('Enter');
++}
++
++async function navigate(page, view, viaKeyboard = false) {
++    await activate(page.locator(`[data-view="${view}"]`), viaKeyboard);
++    await page.locator(`#view-${view}`).waitFor();
++}
++
++function listed(page, groupSelector, patient) {
++    return page.locator(groupSelector).filter({hasText: patient.name});
++}
++
++async function absent(container, patient) {
++    assert(!(await container.textContent()).includes(patient.name));
++}
++
++async function card(page, target, patient, tab, byKeyboard = false) {
++    const read = response(page, '/api/patients/' + patient.id);
++    await activate(target, byKeyboard);
++    const payload = await auditedRead(await read, 'fresh object');
++    assert.equal(payload.id, patient.id);
++    await page.waitForFunction(({id, tab}) => app.currentView === 'patient' && app.currentPatientId === id &&
++        app.currentTab === tab, {id: patient.id, tab});
++    await page.locator('#view-patient').getByText(patient.name, {exact: true}).first().waitFor();
++    return payload;
++}
++
++function cards(summary) {
++    return Object.fromEntries(summary.cards.map(item => [item.code, item.value]));
++}
++
++function metric(panel, key) {
++    return panel.locator(`[data-f1-metric="${key}"]`);
++}
++
++async function detail(page, metricLabel, type, {offset = 0, stage = 'exam', keyboard = false} = {}) {
++    const read = response(page, '/api/analytics/details', {params: {stage, type, offset: String(offset), limit: '20'}});
++    await activate(metricLabel, keyboard);
++    return auditedRead(await read, 'scoped management details');
++}
++
++async function managerScenario(manager) {
++    const {page, context} = manager;
++    const pulse = page.locator('#f1Pulse');
++    const details = pulse.locator('#f1PulseDetails');
++    const first = response(page, '/api/analytics/summary');
++    await navigate(page, 'pulse', true);
++    const initial = cards(await auditedRead(await first, 'management summary'));
++    assert.equal(initial.total_patients, 8);
++    assert(initial.overdue_events > 20);
++    await metric(pulse, 'overdue_events').waitFor();
++    const filtered = response(page, '/api/analytics/summary', {params: {stage: 'exam'}});
++    await pulse.locator('#f1PulseStage').selectOption('exam');
++    const filteredCounts = cards(await auditedRead(await filtered, 'filtered management summary'));
++    await absent(pulse, patients.foreign);
++
++    const firstPage = await detail(page, metric(pulse, 'overdue_events'), 'overdue_events', {keyboard: true});
++    assert.equal(firstPage.total, filteredCounts.overdue_events);
++    assert.equal(firstPage.items.length, 20);
++    const secondPage = await detail(page, details.getByRole('button', {name: 'Следующая страница'}),
++        'overdue_events', {offset: 20});
++    assert.equal(secondPage.offset, 20);
++    assert(secondPage.items.some(row => row.patient_id === patients.overdue.id && row.planned_date));
++    assert(!('event_id' in secondPage.items[0]));
++    const target = listed(page, '#f1PulseDetails li', patients.overdue).first();
++    await target.waitFor();
++    const action = target.locator('[data-f1-open-patient]');
++    await card(page, action, patients.overdue, 'events', true);
++    await page.goBack();
++    await target.waitFor();
++    assert.equal(await pulse.locator('#f1PulseStage').inputValue(), 'exam');
++    assert.match(await details.getByRole('status').textContent(), /21–/);
++    await page.goForward();
++    await page.waitForFunction(id => app.currentPatientId === id && app.currentView === 'patient', patients.overdue.id);
++    await page.goBack();
++    await target.waitFor();
++    check('management: real server scope, 20-row pagination, event tab without false exact match, retained page/stage on Back/Forward');
++
++    const quality = await detail(page, metric(pulse, 'data_quality_issues'), 'quality_actionable');
++    assert(quality.items.some(row => row.patient_id === patients.quality.id && row.code === 'missing_required_field'));
++    const qualityAction = listed(page, '#f1PulseDetails li', patients.quality)
++        .filter({hasText: 'Не заполнен телефон'}).locator('[data-f1-open-patient]');
++    await card(page, qualityAction, patients.quality, 'data');
++    await page.locator('#backToF1').click();
++    await metric(pulse, 'data_quality_issues').waitFor();
++
++    const checklist = await detail(page, metric(pulse, 'incomplete_required_checklists'), 'incomplete_checklists');
++    assert(checklist.total > 0 && checklist.total < filteredCounts.incomplete_required_checklists);
++    assert.equal(checklist.items.find(row => row.patient_id === patients.checklist.id).incomplete_required, 1);
++    const checkRow = listed(page, '#f1PulseDetails li', patients.checklist).first();
++    await card(page, checkRow.locator('[data-f1-open-patient]'), patients.checklist, 'checklist');
++    assert.equal(await page.locator('#patientPanels').getByRole('checkbox', {name: fixture.item, exact: false}).isChecked(), false);
++    await page.locator('#backToF1').click();
++    await checkRow.waitFor();
++    assert.match(await details.getByRole('status').textContent(), /пациент/i);
++    const outside = await context.request.get(origin + '/api/patients/' + patients.foreign.id);
++    assert.equal(outside.status(), 404);
++    assert(!(await outside.text()).includes(patients.foreign.name));
++    check('management: correct Quality data section; checklist summary counts items, detail counts patients; out-of-scope real 404');
++
++    await detail(page, metric(pulse, 'overdue_events'), 'overdue_events');
++    await detail(page, details.getByRole('button', {name: 'Следующая страница'}), 'overdue_events', {offset: 20});
++    await card(page, action, patients.overdue, 'events');
++    return filteredCounts;
++}
++
++async function exactEvent(page, action, patient, event) {
++    const payload = await card(page, action, patient, 'events', true);
++    const eventCard = page.locator('#patient-event-' + event);
++    await eventCard.waitFor();
++    await page.waitForFunction(id => document.activeElement?.id === 'patient-event-' + id, event);
++    assert(payload.history.some(occurrence => occurrence.events.some(current => current.id === event)));
++    return {payload, eventCard};
++}
++
++async function doctorScenario(doctor, admin) {
++    const {page, context} = doctor;
++    const day = page.locator('#f1MyDay');
++    const registry = response(page, '/api/patients', {params: {view: 'page', limit: '20'}});
++    await navigate(page, 'myDay', true);
++    const patientsPage = await auditedRead(await registry, 'doctor list');
++    assert.equal(patientsPage.page.total, 6);
++    const noPlan = listed(page, '[data-f1-doctor-row=patients]', patients.noDue);
++    await noPlan.getByText('Плановый срок не указан', {exact: true}).waitFor();
++    await absent(day, patients.foreign);
++    const forbidden = await context.request.get(origin + '/api/audit');
++    assert.equal(forbidden.status(), 403);
++    const eventsRead = response(page, '/api/patients/workspace/events');
++    await day.locator('[data-f1-doctor-mode=events]').click();
++    const initialEvents = await auditedRead(await eventsRead, 'doctor events');
++    const repeated = initialEvents.events.find(item => item.id === patients.repeated.eventIds[0]);
++    assert(repeated && repeated.stage === 'exam');
++    const historicalRow = listed(page, '[data-f1-doctor-row=events]', patients.repeated);
++    const historical = await exactEvent(page, historicalRow.getByRole('button', {name: /^К событию/}),
++        patients.repeated, repeated.id);
++    assert.equal(historical.payload.history[0].id, repeated.historyEntryId);
++    assert.equal(historical.payload.history.at(-1).stage, 'exam');
++    assert.notEqual(historical.payload.history.at(-1).id, repeated.historyEntryId);
++    await page.goBack();
++    await historicalRow.waitFor();
++    await page.goForward();
++    await page.waitForFunction(id => app.currentPatientId === id && app.currentView === 'patient', patients.repeated.id);
++    await page.locator('#backToF1').click();
++    await historicalRow.waitFor();
++    check('doctor: actual own rows, explicit missing deadline, real 403, exact matching event in an earlier recurrence of the current stage');
++
++    const overdue = listed(page, '[data-f1-doctor-row=events]', patients.overdue);
++    const firstId = patients.overdue.eventIds[0];
++    const {payload, eventCard} = await exactEvent(page, overdue.first().getByRole('button', {name: /^К событию/}),
++        patients.overdue, firstId);
++    const event = payload.history[0].events.find(item => item.id === firstId);
++    const eventPath = '/api/patients/' + patients.overdue.id + '/events/' + firstId;
++    // Edit the existing input without firing change. The visible button is the sole write trigger.
++    await eventCard.getByRole('textbox', {name: 'Фактическая дата', exact: true}).evaluate((node, value) => {
++        node.value = value;
++        node.dispatchEvent(new Event('input', {bubbles: true}));
++    }, fixture.today);
++    assert.equal(uiWrites.length, 0);
++    const save = response(page, eventPath, {method: 'PATCH'});
++    await eventCard.getByRole('button', {name: 'Сохранить: Фактическая дата', exact: true}).click();
++    const saved = await save;
++    assert.equal(saved.status(), 200);
++    assert.equal((await saved.json()).history[0].events.find(item => item.id === firstId).actualDate, fixture.today);
++    assert.deepEqual(uiWrites[0], {path: eventPath, method: 'PATCH', body: {field: 'actualDate', value: fixture.today, version: event.version}});
++    await page.waitForFunction(({id, eventId, date}) => !app.clinicalWriteInFlight &&
++        app.getPatient(id).history[0].events.find(event => event.id === eventId).actualDate === date,
++    {id: patients.overdue.id, eventId: firstId, date: fixture.today});
++    const refreshed = response(page, '/api/patients/workspace/events');
++    await page.locator('#backToF1').click();
++    const nextEvents = await auditedRead(await refreshed, 'events after authorized write');
++    assert(!nextEvents.events.some(item => item.id === firstId));
++    assert(nextEvents.events.some(item => item.id === patients.overdue.eventIds[1]));
++    await overdue.waitFor();
++    assert.equal(await overdue.count(), 1);
++    const previousCard = response(page, '/api/patients/' + patients.overdue.id);
++    const previousList = response(page, '/api/patients/workspace/events');
++    await page.goBack();
++    const settledCard = await auditedRead(await previousCard, 'event history replay after completion');
++    assert.equal(settledCard.history[0].events.find(item => item.id === firstId).actualDate, fixture.today);
++    const settledList = await auditedRead(await previousList, 'events after rejecting stale history');
++    assert(!settledList.events.some(item => item.id === firstId));
++    await page.waitForFunction(() => app.currentView === 'myDay' && !browserNavigation.correction &&
++        browserNavigation.entry(history.state) === browserNavigation.committed);
++    assert.equal(await page.locator('#view-patient').isVisible(), false);
++    assert.equal(uiWrites.length, 1);
++    check('doctor: one versioned UI event write; return and Back revalidate, completed event stays absent with no repeat write');
++
++    const checkRead = response(page, '/api/patients/workspace/checklists');
++    await day.locator('[data-f1-doctor-mode=checklists]').click();
++    const checkData = await auditedRead(await checkRead, 'doctor checklists');
++    assert.equal(checkData.checklists.find(row => row.patient_id === patients.checklist.id).incomplete_required, 1);
++    const checklist = listed(page, '[data-f1-doctor-row=checklists]', patients.checklist);
++    await card(page, checklist.getByRole('button', {name: /^К чек-листу/}), patients.checklist, 'checklist');
++    const item = page.locator('#patientPanels').getByRole('checkbox', {name: fixture.item, exact: false});
++    assert.equal(await item.isChecked(), false);
++    const checkPath = '/api/patients/' + patients.checklist.id + '/history/0/checklist';
++    const patch = response(page, checkPath, {method: 'PATCH'});
++    await item.press('Space');
++    const checkSaved = await patch;
++    assert.equal(checkSaved.status(), 200);
++    assert.equal((await checkSaved.json()).history[0].checklist[fixture.item], true);
++    assert.deepEqual(uiWrites[1], {path: checkPath, method: 'PATCH', body: {item: fixture.item, checked: true, expected: false}});
++    await page.waitForFunction(({id, item}) => app.getPatient(id).history[0].checklist[item] === true, {id: patients.checklist.id, item: fixture.item});
++    const checkFresh = response(page, '/api/patients/workspace/checklists');
++    await page.locator('#backToF1').click();
++    const checkList = await auditedRead(await checkFresh, 'checklist after authorized write');
++    assert.equal(checkList.checklists.find(row => row.patient_id === patients.checklist.id).incomplete_required, 0);
++    await checklist.getByRole('button', {name: /^Посмотреть чек-лист/}).waitFor();
++    check('doctor: existing checklist checkbox sends one conditional PATCH and reflects server completion on return');
++
++    const eventsAgain = response(page, '/api/patients/workspace/events');
++    await day.locator('[data-f1-doctor-mode=events]').click();
++    assert.equal((await eventsAgain).status(), 200);
++    await overdue.waitFor();
++    const otherId = patients.overdue.eventIds[1];
++    const latest = await admin.context.request.get(origin + '/api/patients/' + patients.overdue.id);
++    const old = (await latest.json()).history[0].events.find(item => item.id === otherId);
++    const otherPath = '/api/patients/' + patients.overdue.id + '/events/' + otherId;
++    assert.equal((await controlRequest(admin.context, 'PATCH', otherPath,
++        {field: 'actualDate', value: fixture.today, version: old.version})).status(), 200);
++    const staleObject = response(page, '/api/patients/' + patients.overdue.id);
++    const staleRefresh = response(page, '/api/patients/workspace/events');
++    await overdue.getByRole('button', {name: /^К событию/}).click();
++    assert.equal((await staleObject).status(), 200);
++    const fresh = await auditedRead(await staleRefresh, 'events after other session commit');
++    assert(!fresh.events.some(item => item.id === otherId));
++    await day.getByRole('status').filter({hasText: 'Факт события уже отмечен.'}).waitFor();
++    assert.equal(await overdue.count(), 0);
++    assert.equal(await page.evaluate(() => app.currentView), 'myDay');
++    check('doctor: another real authorized session completes a visible task; the stale button triggers fresh validation and disappears');
++}
++
++async function managerReturn(manager, before) {
++    const {page} = manager;
++    const pulse = page.locator('#f1Pulse');
++    const detailRefetch = response(page, '/api/analytics/details', {params: {stage: 'exam', type: 'overdue_events', offset: '20'}});
++    const summaryRefetch = response(page, '/api/analytics/summary', {params: {stage: 'exam'}});
++    await page.locator('#backToF1').click();
++    const freshSummary = cards(await auditedRead(await summaryRefetch, 'manager summary after confirmed writes'));
++    const details = await auditedRead(await detailRefetch, 'same manager page after confirmed writes');
++    assert.equal(freshSummary.overdue_events, before.overdue_events - 2);
++    assert.equal(freshSummary.incomplete_required_checklists, before.incomplete_required_checklists - 1);
++    assert.equal(details.total, freshSummary.overdue_events);
++    assert(!details.items.some(item => item.patient_id === patients.overdue.id));
++    const overdue = metric(pulse, 'overdue_events');
++    await overdue.waitFor();
++    assert.equal(await overdue.getAttribute('aria-pressed'), 'true');
++    assert.equal(await pulse.locator('#f1PulseStage').inputValue(), 'exam');
++    const value = (await overdue.getAttribute('aria-label')).match(/\d+/g).join('');
++    assert.equal(Number(value), freshSummary.overdue_events);
++    receipt.kpis = {countsBefore: {overdueEvents: before.overdue_events,
++        incompleteItems: before.incomplete_required_checklists}, countsAfter: {overdueEvents: freshSummary.overdue_events,
++        incompleteItems: freshSummary.incomplete_required_checklists}, stagePreserved: true, offsetPreserved: 20};
++    check('management: return from card after confirmed updates elsewhere refetches summary and prior details; KPI matches fresh backend');
++}
++
++async function readOnlyScenario(viewer) {
++    const {page} = viewer;
++    await navigate(page, 'pulse');
++    const pulse = page.locator('#f1Pulse');
++    const overdue = metric(pulse, 'overdue_events');
++    await overdue.click();
++    const task = listed(page, '#f1PulseDetails li', patients.paged).first();
++    await card(page, task.locator('[data-f1-open-patient]'), patients.paged, 'events');
++    assert.equal(await page.locator('#readOnlyChip').isVisible(), true);
++    assert.equal(await page.locator('#patientPanels [data-card-save]:visible').count(), 0);
++    assert.equal(await page.locator('#patientPanels input:enabled').count(), 0);
++    check('management: global read-only role reaches the correct card section without writable controls');
++}
++
++async function revokedScenario(doctor, admin) {
++    const {page} = doctor;
++    const day = page.locator('#f1MyDay');
++    const target = listed(page, '[data-f1-doctor-row=events]', patients.revoked);
++    const pathname = '/api/patients/' + patients.revoked.id;
++    await target.waitFor();
++    const gated = async route => {
++        try {
++            const current = await admin.context.request.get(origin + pathname);
++            assert.equal(current.status(), 200);
++            const {version} = await current.json();
++            const updated = await controlRequest(admin.context, 'PUT', pathname + '/treating-doctor', {
++                userId: fixture.accountIds.foreign, expectedVersion: version,
++            });
++            assert.equal(updated.status(), 200);
++            assert.equal((await updated.json()).treatingDoctorUserId, fixture.accountIds.foreign);
++            await route.continue();
++        } catch (error) {
++            await route.abort();
++            throw error;
++        }
++    };
++    const request = origin + pathname;
++    await page.route(request, gated, {times: 1});
++    const objectRead = response(page, pathname);
++    const refresh = response(page, '/api/patients/workspace/events');
++    await target.getByRole('button', {name: /^К событию/}).click();
++    const denied = await objectRead;
++    assert.equal(denied.status(), 404);
++    assert(!(await denied.text()).includes(patients.revoked.name));
++    const events = await auditedRead(await refresh, 'events after authorized reassignment');
++    assert(!events.events.some(item => item.patientId === patients.revoked.id));
++    await day.getByRole('status').filter({hasText: 'Запись больше недоступна.'}).waitFor();
++    await absent(day, patients.revoked);
++    assert.equal(await page.evaluate(() => app.currentView), 'myDay');
++    check('doctor: a real other-session reassignment before object navigation yields neutral 404 and removes the old action');
++}
++
++async function draftScenario(doctor) {
++    const {page} = doctor;
++    const day = page.locator('#f1MyDay');
++    const modes = day.locator('[data-f1-doctor-mode=patients]');
++    await modes.click();
++    const row = listed(page, '[data-f1-doctor-row=patients]', patients.healthy);
++    await card(page, row.getByRole('button', {name: /^Открыть карточку/}), patients.healthy, 'overview');
++    await page.getByRole('tab', {name: 'Данные', exact: true}).click();
++    const input = page.locator('#patientPanels input[type=tel]');
++    const value = '+70000000991';
++    await input.fill(value);
++    await page.getByRole('tab', {name: 'История', exact: true}).click();
++    const modal = page.locator('#confirmModal');
++    await modal.waitFor();
++    await page.locator('#confirmCancelBtn').click();
++    assert.equal(await input.inputValue(), value);
++    assert.equal(await page.evaluate(() => app.currentTab), 'data');
++    await page.locator('#backToF1').click();
++    await modal.waitFor();
++    await page.locator('#confirmCancelBtn').click();
++    assert.equal(await input.inputValue(), value);
++    assert.equal(uiWrites.length, 2);
++    await page.locator('#backToF1').click();
++    await modal.waitFor();
++    await page.locator('#confirmOkBtn').click();
++    await row.waitFor();
++    assert.equal(await page.locator('#view-patient').isVisible(), false);
++    assert.equal(await page.evaluate(() => app.sessionFieldDrafts.size), 1);
++    assert((await page.locator('#sessionFieldDrafts').textContent()).includes(value));
++    await page.locator('#sessionFieldDrafts').getByRole('button', {name: 'Отменить правку'}).click();
++    await page.locator('#confirmOkBtn').click();
++    await page.waitForFunction(() => app.sessionFieldDrafts.size === 0);
++    assert.equal(await page.evaluate(() => app.currentView), 'myDay');
++    await row.waitFor();
++    check('doctor: tab change and return protect a dirty card field; confirmed return preserves the local draft until explicit discard, with no writes');
++}
++
++function injected(code) {
++    return {status: 409, contentType: 'application/json', body: JSON.stringify({code})};
++}
++
++async function conflicts(doctor) {
++    const {page, context} = doctor;
++    const day = page.locator('#f1MyDay');
++    const eventRoute = '**/api/patients/workspace/events**';
++    let dispatches = 0;
++    const singleConflict = route => {
++        dispatches++;
++        return dispatches === 1 ? route.fulfill(injected('PATIENT_QUERY_CHANGED')) : route.continue();
++    };
++    await page.route(eventRoute, singleConflict);
++    const rejected = response(page, '/api/patients/workspace/events');
++    await day.locator('[data-f1-doctor-mode=events]').click();
++    assert.equal((await rejected).status(), 409);
++    await day.getByRole('status').filter({hasText: 'Список изменился.'}).waitFor();
++    assert.equal(dispatches, 2);
++    await page.unroute(eventRoute, singleConflict);
++    receipt.injectedTransportFaults.push({code: 'PATIENT_QUERY_CHANGED', automaticGets: 2, successfulRetry: true});
++
++    const checklistRoute = '**/api/patients/workspace/checklists**';
++    dispatches = 0;
++    const doubleConflict = route => {
++        dispatches++;
++        return route.fulfill(injected('PATIENT_QUERY_CHANGED'));
++    };
++    await page.route(checklistRoute, doubleConflict);
++    await day.locator('[data-f1-doctor-mode=checklists]').click();
++    await day.getByRole('alert').waitFor();
++    assert.equal(dispatches, 2);
++    assert.equal(await day.locator('[data-f1-doctor-row]').count(), 0);
++    const refresh = day.getByRole('button', {name: 'Обновить список', exact: true});
++    await page.unroute(checklistRoute, doubleConflict);
++    const recovered = response(page, '/api/patients/workspace/checklists');
++    await activate(refresh, true);
++    assert.equal((await recovered).status(), 200);
++    await listed(page, '[data-f1-doctor-row=checklists]', patients.checklist).waitFor();
++    receipt.injectedTransportFaults.push({code: 'PATIENT_QUERY_CHANGED', automaticGets: 2, explicitKeyboardRecovery: true});
++
++    dispatches = 0;
++    const accessChange = route => {
++        dispatches++;
++        return route.fulfill(injected('ACCESS_CONTEXT_CHANGED'));
++    };
++    await page.route(eventRoute, accessChange);
++    await day.locator('[data-f1-doctor-mode=events]').click();
++    await page.locator('#loginScreen').waitFor();
++    assert.equal(dispatches, 1);
++    assert.equal(await day.locator('[data-f1-doctor-row]').count(), 0);
++    await page.unroute(eventRoute, accessChange);
++    await login(page, 'doctor', false);
++    receipt.injectedTransportFaults.push({code: 'ACCESS_CONTEXT_CHANGED', automaticGets: 1, locksSession: true});
++    check('doctor: bounded ordinary 409 restart, terminal double 409 with keyboard recovery, access change goes to login without ordinary retry');
++
++    if (!(await day.isVisible())) await navigate(page, 'myDay');
++    await day.locator('[data-f1-doctor-mode=patients]').click();
++    await listed(page, '[data-f1-doctor-row=patients]', patients.healthy).waitFor();
++    assert.equal((await controlRequest(context, 'POST', '/api/auth/logout')).status(), 200);
++    const gone = response(page, '/api/patients/workspace/events');
++    await day.locator('[data-f1-doctor-mode=events]').click();
++    assert.equal((await gone).status(), 401);
++    await page.locator('#loginScreen').waitFor();
++    assert.equal(await day.locator('[data-f1-doctor-row]').count(), 0);
++    await login(page, 'doctor', false);
++    check('doctor: real revoked session receives 401; locked screen has no former route data; fresh same-user login works');
++}
++
++function deferred() {
++    let resolve;
++    let reject;
++    const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
++    return {promise, resolve, reject};
++}
++
++function bounded(promise, message) {
++    let timer;
++    return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), 12000); })])
++        .finally(() => clearTimeout(timer));
++}
++
++async function lateResponse(doctor) {
++    const {page, context} = doctor;
++    const day = page.locator('#f1MyDay');
++    if (!(await day.isVisible())) await navigate(page, 'myDay');
++    await day.locator('[data-f1-doctor-mode=patients]').click();
++    await listed(page, '[data-f1-doctor-row=patients]', patients.healthy).waitFor();
++    const peer = await setupPage(context);
++    await peer.goto(origin);
++    await sessionReady(peer, 'doctor');
++    await page.bringToFront();
++    await sessionReady(page, 'doctor');
++    const eventRoute = '**/api/patients/workspace/events**';
++    const hold = deferred();
++    const ready = deferred();
++    const complete = deferred();
++    const handler = async route => {
++        try {
++            const reply = await route.fetch();
++            assert.equal(reply.status(), 200);
++            assert((await reply.json()).events.some(item => item.patientId === patients.repeated.id));
++            ready.resolve();
++            await hold.promise;
++            try {
++                await route.fulfill({response: reply});
++                complete.resolve('delivered');
++            } catch {
++                complete.resolve('discarded with old document');
++            }
++        } catch (error) {
++            ready.reject(error);
++        }
++    };
++    await page.route(eventRoute, handler, {times: 1});
++    try {
++        await day.locator('[data-f1-doctor-mode=events]').click();
++        await bounded(ready.promise, 'previous identity response was not intercepted');
++        await Promise.all([peer.waitForEvent('load'), peer.getByRole('button', {name: 'Выйти', exact: true}).click()]);
++        await login(peer, 'foreign', false);
++        await sessionReady(page, 'foreign');
++        hold.resolve();
++        receipt.oldResponseDisposition = await bounded(complete.promise, 'previous identity response was not finalized');
++        if (!(await day.isVisible())) await navigate(page, 'myDay');
++        if (await day.locator('[data-f1-doctor-mode=patients]').getAttribute('aria-pressed') !== 'true') {
++            await day.locator('[data-f1-doctor-mode=patients]').click();
++        }
++        await listed(page, '[data-f1-doctor-row=patients]', patients.foreign).waitFor();
++        await absent(day, patients.repeated);
++        await absent(day, patients.healthy);
++        assert.equal(await page.evaluate(() => app.sessionFieldDrafts.size), 0);
++        check('doctor: late actual HTTP 200 after real peer-tab identity change never adds old scoped cards or drafts');
++    } finally {
++        hold.resolve();
++        await peer.close();
++    }
++}
++
++async function setTheme(page, theme) {
++    if ((await page.locator('html').getAttribute('data-theme')) !== theme) await page.locator('#themeToggle').click();
++    assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
++}
++
++async function geometry(page, view) {
++    return page.evaluate(view => {
++        window.scrollTo(0, 0);
++        const heading = document.querySelector(`#view-${view} h1`);
++        const topbar = document.querySelector('.topbar').getBoundingClientRect();
++        const rect = heading.getBoundingClientRect();
++        const visible = document.elementFromPoint(rect.left + Math.min(rect.width / 2, 20), rect.top + rect.height / 2);
++        return {width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth,
++            headingClearOfTopbar: rect.top + 1 >= topbar.bottom && rect.bottom < innerHeight &&
++                visible && (visible === heading || heading.contains(visible)),
++            browserScale: visualViewport.scale, pixelRatio: devicePixelRatio};
++    }, view);
++}
++
++async function assessAxe(page, label) {
++    const violations = await page.evaluate(async values => (await axe.run(document, {
++        runOnly: {type: 'tag', values},
++    })).violations.map(rule => ({id: rule.id, targets: rule.nodes.map(node => node.target)})), checkTags);
++    if (violations.length) fs.writeFileSync(path.join(output, 'axe-failure.json'), JSON.stringify({label, violations}, null, 2));
++    assert.deepEqual(violations, [], label);
++}
++
++async function responsive(page, view) {
++    await page.evaluate(axeSource);
++    for (const theme of ['light', 'dark']) {
++        await setTheme(page, theme);
++        for (const width of [320, 375, 768, 1440]) {
++            await page.setViewportSize({width, height: 1000});
++            const dimensions = await geometry(page, view);
++            assert.equal(dimensions.width, width);
++            assert.equal(dimensions.overflow, false, `${view}: horizontal overflow at ${width}`);
++            assert.equal(dimensions.headingClearOfTopbar, true, `${view}: topbar overlaps the heading at ${width}`);
++            await assessAxe(page, `${view}/${theme}/${width}`);
++            receipt.axe.push({view, theme, width, violations: 0, headingClearOfTopbar: true});
++            if (process.env.F2_SCREENSHOTS === '1' && (theme === 'light' && width === 1440 || theme === 'dark' && width === 375)) {
++                await page.evaluate(() => { document.activeElement.blur(); window.scrollTo(0, 0); });
++                await page.screenshot({path: path.join(output, `${view}-${theme}-${width}.png`), animations: 'disabled'});
++            }
++        }
++    }
++}
++
++async function nativeZoom() {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clinic-f2-native-'));
++    const extension = path.join(dir, 'extension');
++    fs.mkdirSync(extension);
++    fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({manifest_version: 3,
++        name: 'Synthetic localhost zoom verification', version: '1.0', permissions: ['tabs'],
++        background: {service_worker: 'worker.js'}}));
++    fs.writeFileSync(path.join(extension, 'worker.js'), 'chrome.runtime.onInstalled.addListener(()=>{});');
++    try {
++        for (const [view, role] of [['pulse', 'head'], ['myDay', 'doctor']]) {
++            const context = await chromium.launchPersistentContext(path.join(dir, role), {
++                headless: true, reducedMotion: 'reduce', viewport: null, ignoreDefaultArgs: ['--disable-extensions'],
++                executablePath: process.env.WP_H_FULL_CHROMIUM || chromium.executablePath(),
++                args: ['--window-size=1280,1000', '--disable-background-networking',
++                    '--disable-extensions-except=' + extension, '--load-extension=' + extension],
++            });
++            try {
++                await setupContext(context);
++                const page = await setupPage(context);
++                await login(page, role);
++                await navigate(page, view);
++                const ready = view === 'pulse' ? '[data-f1-metric=overdue_events]' : '[data-f1-doctor-row=patients]';
++                await page.locator(ready).first().waitFor();
++                await page.evaluate(axeSource);
++                const serviceWorker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', {timeout: 12000});
++                const base = await page.evaluate(() => devicePixelRatio);
++                for (const theme of ['light', 'dark']) {
++                    await setTheme(page, theme);
++                    for (const factor of [1, 2, 4]) {
++                        const zoom = await serviceWorker.evaluate(async ({url, factor}) => {
++                            const [tab] = (await chrome.tabs.query({})).filter(item => item.url === url);
++                            if (!tab) throw new Error('the synthetic tab must exist');
++                            await chrome.tabs.setZoom(tab.id, factor);
++                            return chrome.tabs.getZoom(tab.id);
++                        }, {url: page.url(), factor});
++                        assert.equal(Math.round(zoom * 100), factor * 100);
++                        await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base * factor);
++                        const dimensions = await geometry(page, view);
++                        assert.equal(dimensions.overflow, false);
++                        assert.equal(dimensions.headingClearOfTopbar, true);
++                        assert.equal(dimensions.browserScale, 1);
++                        await assessAxe(page, `${view}/${theme}/native-${factor * 100}`);
++                        receipt.nativeZoom.push({view, theme, percent: factor * 100, viewport: dimensions.width,
++                            violations: 0, headingClearOfTopbar: true});
++                    }
++                }
++            } finally {
++                await context.close();
++            }
++        }
++        check('layout: two themes at 320/375/768/1440px and native Chromium 100/200/400%; no clipping, overflow or axe A/AA findings');
++    } finally {
++        fs.rmSync(dir, {recursive: true, force: true});
++    }
++}
++
++async function main() {
++    const browser = await chromium.launch({headless: true, executablePath: process.env.BROWSER_EXECUTABLE,
++        args: ['--disable-background-networking']});
++    receipt.chromium = browser.version();
++    try {
++        activeCheck = 'manager selection, card and back';
++        const manager = await actor(browser, 'head');
++        const kpis = await managerScenario(manager);
++        activeCheck = 'doctor browser writes, return and cross-session completion';
++        const doctor = await actor(browser, 'doctor');
++        const admin = await actor(browser, 'admin');
++        await doctorScenario(doctor, admin);
++        activeCheck = 'responsive My Day with authoritative event list';
++        await responsive(doctor.page, 'myDay');
++        activeCheck = 'manager return after audited writes';
++        await managerReturn(manager, kpis);
++        await responsive(manager.page, 'pulse');
++        activeCheck = 'read-only manager';
++        const readonly = await actor(browser, 'readonly');
++        await readOnlyScenario(readonly);
++        await readonly.context.close();
++        activeCheck = 'real object reassignment during navigation';
++        await revokedScenario(doctor, admin);
++        await admin.context.close();
++        activeCheck = 'draft and close guards';
++        await draftScenario(doctor);
++        activeCheck = 'bounded conflicts and real 401';
++        await conflicts(doctor);
++        activeCheck = 'late response and real identity change';
++        await lateResponse(doctor);
++    } finally {
++        await browser.close();
++    }
++    activeCheck = 'native Chromium zoom';
++    await nativeZoom();
++    assert.equal(uiWrites.length, 2);
++    assert.equal(receipt.pageErrors, 0);
++    receipt.explicitBrowserClinicalWrites = uiWrites.length;
++    receipt.noAutomaticClinicalWrites = true;
++    fs.writeFileSync(process.env.F2_RECEIPT, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx', mode: 0o600});
++}
++
++main().catch(error => {
++    process.stderr.write(`${activeCheck}\n${error.stack}\n`);
++    process.exitCode = 1;
++});
+diff --git a/tools/tests/fast_track_f2/run.py b/tools/tests/fast_track_f2/run.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4d7f1f6a45415a4f05bf2f39885496d94cb5ee1c
+--- /dev/null
++++ b/tools/tests/fast_track_f2/run.py
+@@ -0,0 +1,161 @@
++"""Run Sprint F2 in real Chromium against an isolated localhost FastAPI fixture."""
++import argparse
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++
++# Reuse the F1 readiness and exact read-audit receipt verifier without changing F1.
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "fast_track_f1"))
++from run import wait_ready, verify_manifest  # noqa: E402
++
++HOST = "127.0.0.1"
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++
++
++def snapshot(db):
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        conn.row_factory = sqlite3.Row
++        rows = {
++            "patients": conn.execute("SELECT * FROM patients ORDER BY id").fetchall(),
++            "history": conn.execute("SELECT * FROM history_entries ORDER BY id").fetchall(),
++            "events": conn.execute("SELECT * FROM events ORDER BY id").fetchall(),
++            "facts": conn.execute("SELECT * FROM patient_event_fact_history ORDER BY id").fetchall(),
++        }
++        assert conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
++        last_audit_id = conn.execute("SELECT max(id) FROM audit_events").fetchone()[0]
++    return {key: {row["id"]: dict(row) for row in value} for key, value in rows.items()}, last_audit_id
++
++
++def validate_mutations(db, before, first_audit_id, fixture):
++    after, _ = snapshot(db)
++    patients, actors = fixture["patients"], fixture["accountIds"]
++    first_event, second_event = patients["overdue"]["eventIds"]
++    patient = patients["overdue"]["id"]
++    checklist = patients["checklist"]["id"]
++    revoked = patients["revoked"]["id"]
++    assert set(before["events"]) == set(after["events"])
++    for key, row in before["events"].items():
++        if key in {first_event, second_event}:
++            row = {**row, "actual_date": fixture["today"], "matched_plan": 0, "version": row["version"] + 1}
++        assert after["events"][key] == row, "Only the two explicit event completions may change events"
++    assert set(before["patients"]) == set(after["patients"])
++    for key, row in before["patients"].items():
++        updated = after["patients"][key]
++        if key in {patient, checklist, revoked}:
++            update_count = int(key == revoked)
++            row = {**row, "version": row["version"] + update_count, "updated_at": updated["updated_at"]}
++        if key == revoked:
++            row = {**row, "treating_doctor_user_id": actors["foreign"], "doctor": updated["doctor"]}
++        assert updated == row, "No other patient fields may change"
++    assert set(before["history"]) == set(after["history"])
++    for key, row in before["history"].items():
++        updated = after["history"][key]
++        if row["patient_id"] == checklist:
++            expected = {**json.loads(row["checklist_json"]), fixture["item"]: True}
++            assert json.loads(updated["checklist_json"]) == expected
++            row = {**row, "checklist_json": updated["checklist_json"]}
++        assert updated == row, "No implicit stage/history changes or draft writes"
++    assert all(after["facts"][key] == row for key, row in before["facts"].items())
++    added_facts = [row for key, row in after["facts"].items() if key not in before["facts"]]
++    assert {row["event_id"] for row in added_facts} == {first_event, second_event}
++    assert len(added_facts) == 2
++    for row in added_facts:
++        assert row["patient_id"] == patient and not row["old_value"] and row["new_value"] == fixture["today"]
++        assert row["field"] == "actual_date" and row["source"] == "event_update"
++        assert row["actor_user_id"] == (actors["doctor"] if row["event_id"] == first_event else actors["admin"])
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        rows = conn.execute(
++            "SELECT event_type,actor_user_id,patient_id,result,detail FROM audit_events "
++            "WHERE id>? AND event_type IN ('patient_updated','treating_doctor_changed') ORDER BY id",
++            (first_audit_id,),
++        ).fetchall()
++    assert len(rows) == 4, "Exactly four explicit clinical or authority mutations must be audited"
++    one, two, three, four = rows
++    fact_event = "action=event_update;field=actualDate"
++    assert one[:4] == ("patient_updated", actors["doctor"], patient, "ok") and fact_event in one[4] and first_event in one[4]
++    assert two[:4] == ("patient_updated", actors["doctor"], checklist, "ok") and "action=checklist;outcome=changed;checked=1" in two[4]
++    assert three[:4] == ("patient_updated", actors["admin"], patient, "ok") and fact_event in three[4] and second_event in three[4]
++    assert four[:4] == ("treating_doctor_changed", actors["admin"], revoked, "ok")
++    return {"explicitBrowserClinicalWrites": 2, "authorizedControlMutations": 2,
++            "recordedFacts": len(added_facts), "matchedWriteAudits": len(rows), "allOtherClinicalRowsUnchanged": True}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if APP in output.parents or APP == output:
++        parser.error("write private outputs outside the source checkout")
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    with socket.socket() as listener:
++        listener.bind((HOST, 0))
++        port = listener.getsockname()[1]
++    origin = f"http://{HOST}:{port}"
++    sha = subprocess.check_output(["git", "-C", str(APP), "rev-parse", "HEAD"], text=True).strip()
++    tree = subprocess.check_output(["git", "-C", str(APP), "rev-parse", "HEAD^{tree}"], text=True).strip()
++    dirty = bool(subprocess.check_output(["git", "-C", str(APP), "status", "--porcelain"]))
++    with tempfile.TemporaryDirectory(prefix="clinic-f2-") as working:
++        scratch = Path(working).resolve()
++        clean_env = {"PATH": os.environ["PATH"], "HOME": str(scratch), "TMPDIR": str(scratch),
++                     "LANG": "C.UTF-8", "PYTHONDONTWRITEBYTECODE": "1"}
++        fixture_file = scratch / "fixture.json"
++        browser_env = {
++            **clean_env,
++            **{name: os.environ[name] for name in ("PLAYWRIGHT_MODULE", "PLAYWRIGHT_BROWSERS_PATH",
++                                                  "BROWSER_EXECUTABLE", "WP_H_FULL_CHROMIUM", "AXE_SOURCE",
++                                                  "F2_SCREENSHOTS") if name in os.environ},
++            "F2_FIXTURE": str(fixture_file), "F2_RECEIPT": str(output / "browser-results.json"),
++        }
++        db = scratch / "db/clinic.db"
++        with (output / "server.local.log").open("wb") as server_log:
++            worker = subprocess.Popen(
++                [sys.executable, "-I", "-B", str(HERE / "server.py"), "--scratch", str(scratch), "--port", str(port)],
++                cwd=scratch, env=clean_env, stdout=server_log, stderr=subprocess.STDOUT,
++            )
++        try:
++            wait_ready(worker, origin, fixture_file)
++            fixture = json.loads(fixture_file.read_bytes())
++            before, first_audit = snapshot(db)
++            with (output / "browser.local.log").open("wb") as browser_log:
++                run = subprocess.run(
++                    ["node", str(HERE / "browser.cjs")], cwd=scratch, env=browser_env,
++                    stdout=browser_log, stderr=subprocess.STDOUT, timeout=420, check=False,
++                )
++            if run.returncode != 0:
++                return run.returncode
++            results = json.loads((output / "browser-results.json").read_bytes())
++            audit = verify_manifest(db, results.pop("responseProofs"))
++            del audit["clinicalFixturesUnchanged"]
++            results["audit"] = audit | validate_mutations(db, before, first_audit, fixture)
++            results.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty,
++                           syntheticOnly=True, syntheticPatients=len(fixture["patients"]), schemaVersion=fixture["schema"])
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean_exit = worker.wait(timeout=15) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait(timeout=5)
++                clean_exit = False
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex((HOST, port)) != 0
++    results["cleanup"] = dict(cleanExit=clean_exit, databaseRemoved=not scratch.exists(), listenerClosed=closed)
++    assert all(results["cleanup"].values())
++    (output / "public.json").write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n")
++    print(f"F2 Chromium: {len(results['checks'])} groups; authorized audit and clean shutdown")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tools/tests/fast_track_f2/server.py b/tools/tests/fast_track_f2/server.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7797598d9de48ae5e6de15b2fe38cdf9593201e9
+--- /dev/null
++++ b/tools/tests/fast_track_f2/server.py
+@@ -0,0 +1,157 @@
++"""Isolated, synthetic-only FastAPI fixture for the two Fast Track F2 routes."""
++import argparse
++import base64
++import json
++import os
++from datetime import timedelta
++from pathlib import Path
++import secrets
++import sys
++
++HOST = "127.0.0.1"
++
++
++def seed():
++    from backend.app import audit, clock, db, operations_state, policy, store, users
++    from backend.app.models import PatientCreateIn
++    from backend.app.services import data_quality, patient_create
++
++    operations_state.bootstrap_database(confirm_new=True)
++    operations_state.verify_database(confirm_offline=True)
++    connection = db.get_connection()
++    password = secrets.token_urlsafe(32)
++
++    def account(key, role):
++        name = f"f2.{key}"
++        uid = users.create_user(
++            connection, username=name, full_name=f"Синтетический сотрудник {key}",
++            role_id=role, password=password, must_change_password=False,
++        )
++        return uid, name
++
++    head, head_name = account("head", "department_head")
++    doctor, doctor_name = account("doctor", "doctor")
++    coworker, _ = account("coworker", "doctor")
++    foreign, foreign_name = account("foreign", "doctor")
++    admin, admin_name = account("admin", "developer")
++    readonly, readonly_name = account("readonly", "deputy_chief_oncology")
++    department = users.create_department(connection, "Синтетическое отделение F2")
++    other_department = users.create_department(connection, "Отдельное синтетическое отделение F2")
++    users.set_department_head(connection, department, head)
++    for uid in (doctor, coworker):
++        users.add_doctor_to_department(connection, uid, department)
++    users.add_doctor_to_department(connection, foreign, other_department)
++    today = clock.today_moscow()
++    actor = policy.load_current_user(connection, admin)
++    required = data_quality.REQUIRED_CHECKLISTS["lung34"]["exam"]
++    item = required[0]
++    cases = [
++        ("overdue", "Синтетический Просроченный", doctor, (-3, -1)),
++        ("checklist", "Синтетический Чеклист", doctor, (3,)),
++        ("quality", "Синтетический Неполные Данные", coworker, (4,)),
++        ("healthy", "Синтетический Плановый", doctor, (5,)),
++        ("noDue", "Синтетический Без Даты", doctor, ()),
++        ("foreign", "Синтетический Чужая Область", foreign, (-6,)),
++        ("revoked", "Синтетический Смена Врача", doctor, (-4,)),
++        ("repeated", "Синтетический Повтор Обследования", doctor, (-7,)),
++        ("paged", "Синтетический Много Событий", coworker, range(-41, -20)),
++    ]
++    patients = {}
++    try:
++        for index, (key, name, owner, offsets) in enumerate(cases):
++            planned = [{"date": (today + timedelta(days=days)).isoformat(), "time": "10:30"} for days in offsets]
++            card = patient_create.create_patient_card(connection, actor, PatientCreateIn(
++                name=name, age=46, priority="normal", stage="exam",
++                phone=f"+700000002{index:02d}" if key != "quality" else "",
++                policyNumber=f"99765432200000{index:02d}",
++                diagnosis="C34.1", nosology="lung34", treatingDoctorUserId=owner,
++                head="Синтетический заведующий F2", events=planned,
++            ))
++            patient_id = card["id"]
++            if key == "repeated":
++                for stage in ("appointment", "exam"):
++                    current = store.patient_to_dict(connection, patient_id)
++                    def record_stage(outcome):
++                        audit.record_required_or_fail(connection, audit.PATIENT_UPDATED, patient_id=patient_id,
++                                                      detail="synthetic fixture", **audit.actor_ctx(actor))
++                    assert store.change_stage(connection, patient_id, stage, None, expected_stage=current["stage"],
++                                              expected_history_entry_id=current["history"][-1]["id"],
++                                              audit_hook=record_stage, actor_user_id=admin)
++                card = store.patient_to_dict(connection, patient_id)
++            if key in {"healthy", "checklist"}:
++                for label in required if key == "healthy" else required[1:]:
++                    def record_check(outcome):
++                        assert outcome["outcome"] == "changed"
++                        audit.record_required_or_fail(connection, audit.PATIENT_UPDATED, patient_id=patient_id,
++                                                      detail="action=checklist;synthetic fixture", **audit.actor_ctx(actor))
++                    assert store.update_checklist_item(connection, patient_id, 0, label, True, expected=False,
++                                                       audit_hook=record_check)
++            patients[key] = {"id": patient_id, "name": name, "eventIds": [event["id"] for event in card["history"][0]["events"]]}
++        physician = policy.load_current_user(connection, doctor)
++        issues = data_quality.evaluate(connection, physician, today=today)["issues"]
++        assert not any(issue["patient_id"] == patients["healthy"]["id"] for issue in issues)
++        revision = connection.execute("SELECT version FROM schema_version").fetchone()[0]
++        if revision != 33:
++            raise RuntimeError("Fixture must use the accepted schema")
++        return dict(
++            syntheticOnly=True, schema=revision, password=password, today=today.isoformat(), item=item,
++            users={"head": head_name, "doctor": doctor_name, "admin": admin_name,
++                   "readonly": readonly_name, "foreign": foreign_name},
++            accountIds={"head": head, "doctor": doctor, "admin": admin, "readonly": readonly, "foreign": foreign},
++            patients=patients,
++        )
++    finally:
++        db.reset_singleton_for_tests()
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--scratch", required=True, type=Path)
++    parser.add_argument("--port", required=True, type=int)
++    args = parser.parse_args()
++    scratch = args.scratch.resolve(strict=True)
++    if scratch.stat().st_mode & 0o077 or not scratch.name.startswith("clinic-f2-"):
++        raise RuntimeError("Use a fresh private fixture directory")
++    if not 1024 <= args.port <= 65535 or (scratch / "db").exists():
++        raise RuntimeError("Use a fresh database and an unprivileged loopback port")
++
++    data = scratch / "db"
++    data.mkdir(mode=0o700)
++    os.environ.update(
++        CLINIC_DATA_DIR=str(data), CLINIC_HOST=HOST, CLINIC_PORT=str(args.port),
++        CLINIC_ENV="test", CLINIC_DEBUG="false", CLINIC_HTTPS="false",
++        CLINIC_AI_MODE="disabled", CLINIC_AI_DATA_MODE="disabled",
++        NOTIFICATION_PROVIDER="mock", CLINIC_EXPORT_SIGNING_KEY_ID="synthetic-f1",
++        CLINIC_EXPORT_SIGNING_KEY=base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("="),
++    )
++    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++    from backend.app import config
++    if (config.DATA_DIR != data or config.DB_PATH.parent != data or config.APP_ENV != "test"
++            or config.HOST != HOST or config.PORT != args.port or config.AI_MODE != "disabled"
++            or config.AI_DATA_MODE != "disabled" or config.NOTIFICATION_PROVIDER != "mock"
++            or config.TRUSTED_PROXY_IPS):
++        raise RuntimeError("Fixture configuration failed its isolation checks")
++    receipt = seed()
++    receipt["origin"] = f"http://{HOST}:{args.port}"
++
++    def network_guard(event, values):
++        if event in {"socket.connect", "socket.sendto", "socket.sendmsg", "socket.gethostbyname",
++                     "socket.gethostbyaddr", "os.system", "os.fork", "os.posix_spawn", "subprocess.Popen"}:
++            raise PermissionError("F2 fixture disallows outbound network traffic")
++        if event == "socket.bind" and (values[0].family != 2 or values[1] != (HOST, args.port)):
++            raise PermissionError("F2 fixture can listen only on its selected loopback port")
++        if event == "socket.getaddrinfo" and values[0] != HOST:
++            raise PermissionError("F2 fixture disallows external DNS")
++
++    sys.addaudithook(network_guard)
++    import uvicorn
++    from backend.app.main import app
++    path = scratch / "fixture.json"
++    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
++    with os.fdopen(fd, "w", encoding="utf-8") as stream:
++        json.dump(receipt, stream, ensure_ascii=False)
++    uvicorn.run(app, host=HOST, port=args.port, workers=1, proxy_headers=False, access_log=False)
++
++
++if __name__ == "__main__":
++    main()

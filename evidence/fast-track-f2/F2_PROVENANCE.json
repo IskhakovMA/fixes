@@ -1,0 +1,79 @@
+{
+  "productSha": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+  "productTree": "b150cdeb41d0c104436e621a8234bb7af9d0bcc8",
+  "directParent": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+  "unchangedI9": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "unchangedIntegration": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+  "unchangedMain": "20a7505d8ba0302f298f3d6998bb0fa20d0278e9",
+  "runtimeBackendChanged": false,
+  "patchSha256": "5925adf6e368e5e711bf892686df50626a8ba3f8cb8d55b8b0a8c20ae0699dc7",
+  "hostedChromium": {
+    "conclusion": "success",
+    "headBranch": "feature/fast-track-f2-actionable-routes",
+    "headSha": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "databaseId": 139503029709,
+        "name": "f2-chromium",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact F2 candidate"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check Git tree and protect existing medical contracts"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install pinned synthetic test dependencies"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run F2 workflows and F1 browser regression"
+          },
+          {
+            "conclusion": "success",
+            "name": "Retain sanitized machine receipts"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact F2 candidate"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job"
+          }
+        ]
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45698767293",
+    "receiptSHA256": {
+      "F1_CHROMIUM_REGRESSION.json": "1ff9e31ffbfe71cfe1ff3dfbbad9bce955a3cd30de952ecc5b5543f4f6df1f68",
+      "F2_CHROMIUM_HOSTED.json": "5c0a1b1862b91cbacf38f42404ce51a227d8c0312c98ef730402c353f830ad3f"
+    }
+  }
+}
