@@ -1,0 +1,13 @@
+{
+  "base": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+  "tree": "37b7d9e6f2021e471450e35be38a7dadc7f7ba6f",
+  "historicalD8ChangedPaths": [
+    "DESIGN_SYSTEM.md"
+  ],
+  "gitStatus": "clean",
+  "lockSha256": {
+    "backend/requirements.txt": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79",
+    "backend/requirements-dev.txt": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c",
+    "tools/tests/wp_h/package-lock.json": "d43fa5285a3bf2aa449c314e09bc7b2f993eb2cbca1a7465480c0ba2b5188d82"
+  }
+}

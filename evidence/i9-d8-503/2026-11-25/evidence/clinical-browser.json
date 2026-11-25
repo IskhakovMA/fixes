@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "note legacy503 retained across rerender/navigation; explicit200 clears dirty only after success",
+    "real event409: original input retained, retry blocked, server not overwritten",
+    "real event422 retains clinical input",
+    "injected event503: input retained, no automatic write",
+    "in-flight typing preserved separately from confirmed submitted value; duplicate and navigation blocked",
+    "real commit + lost event response: no resend; original input retained and blocked",
+    "confirmed placeholder retained after PATCH503; manual retry reuses ID; no duplicate POST",
+    "peer login under another identity clears prior clinical DOM; no cross-user draft",
+    "real object404 clears denied card and clinical input; rejected note never written; independent reads explicitly synchronized"
+  ],
+  "realBackend": true,
+  "transportFaults": [
+    "503",
+    "lost response after commit"
+  ]
+}

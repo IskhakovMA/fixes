@@ -1,0 +1,14 @@
+[
+  {
+    "archive": "WP_I_I9_FINAL_ACCEPTANCE_PREP.zip",
+    "sha256": "91718aef674a5683cfaf086f207d0f524951c773cd95cab28ac0e758ab333a34",
+    "crcEntries": 9,
+    "manifestEntries": 8
+  },
+  {
+    "archive": "WP_I_I9_V33_FINAL_ENGINEERING_REVIEW.zip",
+    "sha256": "3786c5aa62120a4071bf6156fa6823aee34c0cee004105cd7aaa16d1b9fa301a",
+    "crcEntries": 200,
+    "manifestEntries": 199
+  }
+]
