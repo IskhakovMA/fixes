@@ -12,3 +12,7 @@
 - Состояние отдельного Draft PR B1 — NO-GO. Новые эксперименты, ревью и D8 публикуются как самостоятельные доказательства.
 
 [Повторный подсчет](baseline/I9_PERFORMANCE_INDEPENDENT_RECOUNT.json) · [Фазы 10000](baseline/I9_10000_RAW_AUDIT.json) · [Исходное доказательство History](baseline/HISTORY_SOURCE_VERIFIED.json) · [Контрольные суммы](SHA256SUMS)
+
+## Последующая проверка публикации и E2
+
+[Итоговая публичная сводка](I9_PUBLIC_FOLLOWUP.md) · [Синтетические шесть пар](I9_HOLDOUT_PUBLIC_SUMMARY.json) · [Решение по E2](I9_E2_PUBLIC_SUMMARY.json). Публикация исходного полного комплекта остается PARTIAL. Доказательства принятого B1 и History доступны на точных SHA по ссылкам в сводке.

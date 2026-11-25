@@ -1,0 +1,79 @@
+{
+  "synthetic_only": true,
+  "valid_arms": 18,
+  "tested_backend_passed": 81,
+  "get_503_or_timeouts": 0,
+  "head_10000_6get_1patch": {
+    "B1": {
+      "get_offered": 480,
+      "get_http_200_inside": 138,
+      "get_http_200_drained": 11,
+      "get_http_409": 157,
+      "get_client_busy": 174,
+      "patch_confirmed_commits": 80
+    },
+    "E2": {
+      "get_offered": 480,
+      "get_http_200_inside": 140,
+      "get_http_200_drained": 13,
+      "get_http_409": 160,
+      "get_client_busy": 167,
+      "patch_confirmed_commits": 80
+    }
+  },
+  "developer_10000_6get_3patch": {
+    "B1": {
+      "get_offered": 96,
+      "get_http_200_inside": 0,
+      "get_http_200_drained": 0,
+      "get_http_409": 44,
+      "get_client_busy": 52,
+      "patch_confirmed_commits": 44
+    },
+    "E2": {
+      "get_offered": 96,
+      "get_http_200_inside": 0,
+      "get_http_200_drained": 0,
+      "get_http_409": 45,
+      "get_client_busy": 51,
+      "patch_confirmed_commits": 46
+    }
+  },
+  "two_writer_control": {
+    "B1": {
+      "get_offered": 30,
+      "get_http_200_inside": 0,
+      "get_http_200_drained": 0,
+      "get_http_409": 14,
+      "get_client_busy": 16,
+      "patch_confirmed_commits": 30
+    },
+    "E2": {
+      "get_offered": 30,
+      "get_http_200_inside": 0,
+      "get_http_200_drained": 1,
+      "get_http_409": 13,
+      "get_client_busy": 16,
+      "patch_confirmed_commits": 30
+    }
+  },
+  "paired_head_difference_pp": {
+    "pair_deltas_pp": [
+      -2.5,
+      -4.166666666666667,
+      7.5,
+      0.8333333333333334
+    ],
+    "mean_pp": 0.41666666666666663,
+    "AB_mean_pp": 2.5,
+    "BA_mean_pp": -1.6666666666666667,
+    "interval_95": [
+      -3.3333333333333335,
+      4.166666666666667
+    ],
+    "combinations": 16
+  },
+  "decision": "no sustained timely read delivery improvement; retain baseline",
+  "audit_manifest_and_clinical_integrity_checks_passed": true,
+  "performance_gate_closed": false
+}
