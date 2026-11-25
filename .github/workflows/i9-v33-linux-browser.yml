@@ -22,24 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         suite:
-          - history-navigation
-          - history-saving
-          - history-transportAndIdentity
-          - history-objectRevocation
-          - history-unknownDraft
-          - history-unknownDenial
-          - history-unknownRace
-          - wp-h
-          - registry-card
-          - create
-          - consilium-schedule
-          - consilium-records
-          - notifications
-          - ai
-          - management-audit
           - workspace
-          - quality-owner
-          - quality-native-zoom
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -51,8 +34,14 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $CANDIDATE_SHA"
-          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = $'A\t.github/workflows/i9-v33-linux-browser.yml'
+          parent=9472103cd17ba857ab54c35a5d84d7b01d052c9d
+          workflow=.github/workflows/i9-v33-linux-browser.yml
+          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $parent"
+          test "$(git rev-list --parents -n1 "$parent")" = "$parent $CANDIDATE_SHA"
+          test "$(git diff --name-status "$CANDIDATE_SHA" "$parent")" = "$(printf 'A\t%s' "$workflow")"
+          test "$(git diff --name-status "$parent" HEAD)" = "$(printf 'M\t%s' "$workflow")"
+          test "$(git diff --name-status "$CANDIDATE_SHA" HEAD)" = "$(printf 'A\t%s' "$workflow")"
+          echo "I9_CHAIN=$GITHUB_SHA $parent $CANDIDATE_SHA"
           echo "I9_WORKFLOW=$GITHUB_SHA"
           git checkout --detach "$CANDIDATE_SHA"
           test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
@@ -100,11 +89,50 @@ jobs:
             python - "$root" "$1" <<'PY'
           from itertools import islice
           from pathlib import Path
+          import json
           import re
           import sys
 
           root, case = Path(sys.argv[1]), sys.argv[2]
           folder = root / case
+          timeout_targets = {
+              'wp_i_consilium-decisions': ('wp_i_consilium', 'decisions.cjs'),
+              'wp_i_workspace-workflows': ('wp_i_workspace', 'workflows.cjs'),
+          }
+          timeout_target = timeout_targets.get(case)
+          timeout_locations = set()
+          timeout_ops = set()
+          completed_checks = 'unknown'
+          if timeout_target:
+              suite_dir, suite_script = timeout_target
+              source_dir = Path.cwd() / 'tools/tests' / suite_dir
+              files = {name: (source_dir / name).read_text().splitlines()
+                       for name in (suite_script, 'fixtures.cjs')}
+              file_names = b'|'.join(re.escape(name.encode()) for name in files)
+              safe_frame = re.compile(
+                  rb'^(?:[ \t]*at\b.*?[ (])(?:file://)?' + re.escape(str(source_dir).encode()) +
+                  rb'/(' + file_names + rb'):(\d{1,4}):(\d{1,4})(?:\))?[ \t]*$'
+              )
+              timeout_op = re.compile(
+                  rb'^(?:TimeoutError:[ \t]*)?'
+                  rb'(browserType\.launch|page\.(?:goto|reload|waitForFunction|waitForResponse|waitForEvent|'
+                  rb'evaluate|screenshot)|locator\.(?:click|fill|focus|selectOption|waitFor|evaluate|elementHandle)|'
+                  rb'apiRequestContext\.(?:fetch|get|post|put|patch|delete)|route\.(?:fetch|fulfill|continue|abort))'
+                  rb':[ \t]*(?:TimeoutError:[ \t]*)?Timeout \d{1,7}ms exceeded\b'
+              )
+              if case == 'wp_i_workspace-workflows':
+                  expected_checks = re.findall(r"r\.checks\.push\('([^'\r\n]+)'\)", '\n'.join(files[suite_script]))
+                  progress = folder / 'progress.json'
+                  if folder.is_dir() and not folder.is_symlink() and progress.is_file() and not progress.is_symlink():
+                      with progress.open('rb') as stream:
+                          data = stream.read(512 * 1024 + 1)
+                      if len(data) <= 512 * 1024:
+                          try:
+                              checks = json.loads(data).get('checks')
+                              if isinstance(checks, list) and checks == expected_checks[:len(checks)]:
+                                  completed_checks = f'{len(checks)}/{len(expected_checks)}'
+                          except (ValueError, AttributeError):
+                              pass
           browser_name = re.compile(r'(?:browser\.local|card|registry|(?:browser|drafts|zoom)-\d+)\.log')
           server_name = re.compile(r'(?:server(?:\.local)?|(?:browser|drafts|zoom)-\d+-server)\.log')
           sources = [(root / f'{case}.runner.log', 'runner')]
@@ -138,6 +166,23 @@ jobs:
               for marker, pattern in rules.items():
                   if re.search(pattern, prefix):
                       markers.add(f'{kind}:{marker}')
+              if kind == 'browser' and timeout_target and re.search(rules['timeout'], prefix):
+                  lines = prefix.splitlines()
+                  for index, row in enumerate(lines):
+                      operation = timeout_op.match(row)
+                      if operation is None:
+                          continue
+                      timeout_ops.add(operation[1].decode('ascii'))
+                      for frame in lines[index + 1:index + 97]:
+                          if timeout_op.match(frame):
+                              break
+                          match = safe_frame.fullmatch(frame)
+                          if not match:
+                              continue
+                          file = match[1].decode('ascii')
+                          line, column = int(match[2]), int(match[3])
+                          if 0 < line <= len(files[file]) and 0 < column <= len(files[file][line - 1]) + 1:
+                              timeout_locations.add((file, line, column))
               if kind == 'browser' and case == 'quality-browser_zoom':
                   for phase in ('launch-persistent-context', 'login-and-load-quality-page',
                                 *(f'theme={theme} nativeZoom={factor}'
@@ -150,6 +195,10 @@ jobs:
           print(f'I9_DIAG={case} sources={",".join(sorted(seen)) or "none"} '
                 f'markers={",".join(sorted(markers)) or "unknown"} '
                 f'zoom_phase={",".join(sorted(zoom_phases)) or "unknown"}')
+          if timeout_target:
+              locations = ','.join(f'{file}:{line}:{column}' for file, line, column in sorted(timeout_locations)[:4])
+              print(f'I9_TIMEOUT={case} operations={",".join(sorted(timeout_ops)) or "unknown"} '
+                    f'stack={locations or "unknown"} completed_checks={completed_checks}')
           PY
           }
           run_case() {
@@ -196,7 +245,7 @@ jobs:
             management-audit)
               suites wp_i_management 1000 browser workflows zoom
               suites wp_i_audit_chair 1000 browser workflows zoom ;;
-            workspace) suites wp_i_workspace 1000 browser workflows zoom ;;
+            workspace) suites wp_i_workspace 1000 workflows ;;
             quality-owner)
               run_case quality-browser python tools/tests/wp_i_quality/run_browser.py --suite browser --count 240 --out "$root/quality-browser" ;;
             quality-native-zoom)
