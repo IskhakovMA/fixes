@@ -442,14 +442,16 @@ async function unknownDraft(browser, fixture) {
 
 async function unknownDenial(browser, fixture) {
     const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
-    const reloadStarted = deferred();
     const releaseReload = deferred();
     try {
         const page = await context.newPage();
         const events = monitor(page);
         await page.goto(origin);
         await login(page, fixture.roles.doctor.username);
-        await openFromRegistry(page, fixture.large.name);
+        // This fixture is already in the doctor's registry. A search here
+        // schedules a debounced GET that can take the one-shot reload route.
+        await page.getByRole('button', {name: 'Открыть карточку: ' + fixture.large.name, exact: true}).click();
+        await screen(page, 'patient', 'overview');
         await page.locator('#tab-events').click();
         await screen(page, 'patient', 'events');
         await page.getByRole('textbox', {name: 'Примечание к этапу', exact: true}).first().fill('Синтетический черновик отзыва');
@@ -462,25 +464,32 @@ async function unknownDenial(browser, fixture) {
         assert(await rowPresent(), 'the pre-revocation registry still contains the fixture row');
         const registryPage = url => url.origin === origin && url.pathname === '/api/patients'
             && url.searchParams.get('view') === 'page';
+        const isRegistryRead = request => request.method() === 'GET' && registryPage(new URL(request.url()));
+        const session = await page.evaluate(() => ({epoch: app.sessionEpoch, actor: app.user?.id}));
         await page.route(registryPage, async route => {
-            const response = await route.fetch();
-            reloadStarted.resolve();
             await releaseReload.promise;
-            await route.fulfill({response});
+            await route.continue();
         }, {times: 1});
-        const reloadRequest = page.waitForRequest(request => registryPage(new URL(request.url())));
+        const reloadRequest = page.waitForRequest(isRegistryRead);
+        // If the detail assertion fails, the absent reload must not mask it.
+        void reloadRequest.catch(() => {});
         const denied = page.waitForResponse(response => response.request().method() === 'GET'
-            && new URL(response.url()).pathname === '/api/patients/' + fixture.large.id && response.status() === 404);
+            && response.url() === origin + '/api/patients/' + fixture.large.id);
         await page.locator('#confirmCancelBtn').click();
-        await (await denied).finished();
+        const deniedResponse = await denied;
+        assert.equal(deniedResponse.status(), 404, 'the live scoped detail must deny the reassigned patient');
+        await deniedResponse.finished();
         const registry = await screen(page, 'patients', null, true);
-        await reloadRequest;
-        await reloadStarted.promise;
+        const request = await reloadRequest;
         assert.equal(registry.length, previous.length);
         assert(await page.locator('#view-patient').isHidden());
-        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0));
+        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0
+            && app.sessionFieldDrafts.size === 0));
         assert(!await rowPresent(), 'the revoked row must be purged before the registry response arrives');
-        const reloaded = page.waitForResponse(response => registryPage(new URL(response.url())));
+        assert(await page.evaluate(({epoch, actor}) => Boolean(actor)
+            && app.sessionEpoch === epoch && app.user?.id === actor
+            && !app.sessionExpired && !app.sessionReconciling, session), 'object denial keeps the same authorized session');
+        const reloaded = page.waitForResponse(response => response.request() === request);
         releaseReload.resolve();
         await (await reloaded).finished();
         assert.equal(events.medicalWrites, 0);
