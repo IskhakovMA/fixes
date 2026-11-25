@@ -1,1 +1,106 @@
-{"conclusion":"","headSha":"99398cf9e1da2adad05328d2ba0624c7ff3ee94d","jobs":[{"conclusion":"success","name":"backend-test-plan","status":"completed"},{"conclusion":"success","name":"secret-scan","status":"completed"},{"conclusion":"success","name":"sast-bandit","status":"completed"},{"conclusion":"success","name":"backend-smoke","status":"completed"},{"conclusion":"success","name":"dependency-audit","status":"completed"},{"conclusion":"success","name":"workflow-policy","status":"completed"},{"conclusion":"success","name":"frontend-security","status":"completed"},{"conclusion":"","name":"backend-tests (2/6)","status":"in_progress"},{"conclusion":"","name":"backend-tests (6/6)","status":"in_progress"},{"conclusion":"","name":"backend-tests (3/6)","status":"in_progress"},{"conclusion":"","name":"backend-tests (1/6)","status":"in_progress"},{"conclusion":"","name":"backend-tests (4/6)","status":"in_progress"},{"conclusion":"","name":"backend-tests (5/6)","status":"in_progress"}],"status":"in_progress","url":"https://github.com/IskhakovMA/fixes/actions/runs/45684950937"}
+{
+  "conclusion": "success",
+  "headSha": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "databaseId": 139454964740,
+      "name": "backend-test-plan",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965166,
+      "name": "secret-scan",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965205,
+      "name": "sast-bandit",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965306,
+      "name": "backend-smoke",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965326,
+      "name": "dependency-audit",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965425,
+      "name": "workflow-policy",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139454965551,
+      "name": "frontend-security",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202492,
+      "name": "backend-tests (2/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202519,
+      "name": "backend-tests (6/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202544,
+      "name": "backend-tests (3/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202560,
+      "name": "backend-tests (1/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202581,
+      "name": "backend-tests (4/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139455202746,
+      "name": "backend-tests (5/6)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139463407775,
+      "name": "backend-tests-verify",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 139463448712,
+      "name": "release-gate",
+      "status": "completed"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/IskhakovMA/fixes/actions/runs/45684950937",
+  "backend": {
+    "collected": 2842,
+    "passed": 2842,
+    "failed": 0,
+    "skipped": 0,
+    "exactOnce": true,
+    "verifierJob": 139463407775
+  }
+}
