@@ -1,0 +1,211 @@
+{
+  "historical": {
+    "plan_sha256": "f9c45b2f2186f8d1e44b78e19d17c5ca607f408ee876dc9878902f91a6fadb7a",
+    "raw_sha256": {
+      "high409-8-1-A.json": "3469b836ea8a78d1c08103bdc2ad8c72d72a20e743a54bb3416290a2dff800c5",
+      "high409-8-1-B.json": "c6b712dea3820714d754fdc4e1851f881f13b6e49d8855c21caf9f81f1a24afd",
+      "high409-8-2-A.json": "86f4336ec9d5b842b01ba70f7b4fc148ce108cf590755265bc5a90590a057e35",
+      "high409-8-2-B.json": "3e2181d26f79b4ddb6e0f8be40c3a1824bc56a5443438b7d9d46de36b36aab06",
+      "high409-8-3-A.json": "0a72b2627a409d5e14d1f4bd35ca6c2f3cfacd55f48a6d379acddf0ebdfed4e1",
+      "high409-8-3-B.json": "200868f2e399448cc661c23a3b578be177a07e55fdd051681c9feab90f382cc4",
+      "high409-8-4-A.json": "81b010f3f500ce7f53ccb616f9d3cbb67aa12c58ee913469c43156e37751bd11",
+      "high409-8-4-B.json": "3b3e398c0d1c671fdeb82217d2fae7be75fadd866d90c8f1210c24c273a170d6",
+      "high409-8-5-A.json": "d0524faaeea5a45bb74a8cdd05948b2084c12c45a55b5b1d5fd8ccff955bcfa2",
+      "high409-8-5-B.json": "d9182e3d43628ef6c3f50e56e433da0f183343da30d598de3168f7062fb634f9",
+      "high409-8-6-A.json": "21ae07d7c125b957e1b92d58e4b16eccf1444dc37ce7d8a205c8116e5787ab2b",
+      "high409-8-6-B.json": "370841a4cfffbd9869a68aa7c9dae03e809ae08e066a8a1b6714427b3a3088d4"
+    },
+    "http_409": {
+      "A": 309,
+      "B1": 344
+    },
+    "offered_get_per_arm": 4320,
+    "paired_differences_pp": {
+      "AB": [
+        1.5277777777777777,
+        1.25,
+        0.8333333333333334
+      ],
+      "BA": [
+        -1.5277777777777777,
+        1.5277777777777777,
+        1.25
+      ]
+    },
+    "stratified_resamples": 729,
+    "difference_pp": 0.8101851851851852,
+    "exploratory_percentile_95_interval_pp": [
+      -0.11574074074074074,
+      1.4351851851851851
+    ]
+  },
+  "mixed_10000": {
+    "plan_sha256": "a42021fb271c2dbd54cfec631c76161b6a40367de252fffeab01f00f0e67f3e3",
+    "window_seconds": 3,
+    "reader_sessions": 4,
+    "get_per_second": 12,
+    "patch_per_second": 6.1,
+    "scope_percent": {
+      "developer": 100,
+      "head": 80
+    },
+    "observations": {
+      "developer": {
+        "A": {
+          "raw_sha256": "f78b61f9b2547ff67cd2b1eea0ba3e96d38dad967647b366648d2b7c72cd5d7b",
+          "object_sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+          "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+          "python": "3.13.4",
+          "sqlite_version": "3.49.1",
+          "dependency_lock_sha256": {
+            "requirements.txt": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79",
+            "requirements-dev.txt": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          },
+          "business_clock": "2026-11-24T10:00:00+03:00",
+          "schema_version": 33,
+          "clinical_writer": true,
+          "get_offered": 36,
+          "get_outcomes": {
+            "409": 8,
+            "client_busy": 28
+          },
+          "get_http_200": 0,
+          "get_timeout": 0,
+          "get_5xx": 0,
+          "get_after_window": 4,
+          "get_conflict_codes": {
+            "PATIENT_QUERY_CHANGED": 8
+          },
+          "get_conflict_classes": {
+            "medical": 8
+          },
+          "get_conflict_points": {
+            "full_fingerprint": 8
+          },
+          "patch_offered": 19,
+          "patch_outcomes": {
+            "200": 13,
+            "client_busy": 6
+          }
+        },
+        "B1": {
+          "raw_sha256": "f6190e10b52dbf83ccd21a687fb8587557fe369528481b21fd04a5d7d2f15ff1",
+          "object_sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+          "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+          "python": "3.13.4",
+          "sqlite_version": "3.49.1",
+          "dependency_lock_sha256": {
+            "requirements.txt": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79",
+            "requirements-dev.txt": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          },
+          "business_clock": "2026-11-24T10:00:00+03:00",
+          "schema_version": 33,
+          "clinical_writer": true,
+          "get_offered": 36,
+          "get_outcomes": {
+            "409": 9,
+            "client_busy": 27
+          },
+          "get_http_200": 0,
+          "get_timeout": 0,
+          "get_5xx": 0,
+          "get_after_window": 3,
+          "get_conflict_codes": {
+            "PATIENT_QUERY_CHANGED": 9
+          },
+          "get_conflict_classes": {
+            "medical": 9
+          },
+          "get_conflict_points": {
+            "full_fingerprint": 9
+          },
+          "patch_offered": 19,
+          "patch_outcomes": {
+            "200": 17,
+            "client_busy": 1,
+            "window_elapsed": 1
+          }
+        }
+      },
+      "head": {
+        "A": {
+          "raw_sha256": "1abcb9f7d81c21421e2e823e7f8004845edbd2b43905b6325af9e4bf37a3d086",
+          "object_sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+          "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+          "python": "3.13.4",
+          "sqlite_version": "3.49.1",
+          "dependency_lock_sha256": {
+            "requirements.txt": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79",
+            "requirements-dev.txt": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          },
+          "business_clock": "2026-11-24T10:00:00+03:00",
+          "schema_version": 33,
+          "clinical_writer": true,
+          "get_offered": 36,
+          "get_outcomes": {
+            "409": 12,
+            "client_busy": 24
+          },
+          "get_http_200": 0,
+          "get_timeout": 0,
+          "get_5xx": 0,
+          "get_after_window": 4,
+          "get_conflict_codes": {
+            "PATIENT_QUERY_CHANGED": 12
+          },
+          "get_conflict_classes": {
+            "medical": 10,
+            "UNKNOWN": 2
+          },
+          "get_conflict_points": {
+            "full_fingerprint": 11,
+            "data_version": 1
+          },
+          "patch_offered": 19,
+          "patch_outcomes": {
+            "200": 12,
+            "client_busy": 7
+          }
+        },
+        "B1": {
+          "raw_sha256": "0653f9f05e5bf097d04ce7b6ad80d1e46f82d1ee88549089bbf2fda20fdd33b0",
+          "object_sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+          "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+          "python": "3.13.4",
+          "sqlite_version": "3.49.1",
+          "dependency_lock_sha256": {
+            "requirements.txt": "429a5caeadc7a005c219a1cdf5eff30eb9d1579dd5d67d723f9a60fe2f942a79",
+            "requirements-dev.txt": "47dbf38cba9711be5c56bd19b6a2b4c88a2ebe2c12ab3f23f735174d04b62c5c"
+          },
+          "business_clock": "2026-11-24T10:00:00+03:00",
+          "schema_version": 33,
+          "clinical_writer": true,
+          "get_offered": 36,
+          "get_outcomes": {
+            "409": 13,
+            "client_busy": 23
+          },
+          "get_http_200": 0,
+          "get_timeout": 0,
+          "get_5xx": 0,
+          "get_after_window": 3,
+          "get_conflict_codes": {
+            "PATIENT_QUERY_CHANGED": 13
+          },
+          "get_conflict_classes": {
+            "medical": 13
+          },
+          "get_conflict_points": {
+            "full_fingerprint": 13
+          },
+          "patch_offered": 19,
+          "patch_outcomes": {
+            "200": 17,
+            "client_busy": 1,
+            "window_elapsed": 1
+          }
+        }
+      }
+    }
+  }
+}

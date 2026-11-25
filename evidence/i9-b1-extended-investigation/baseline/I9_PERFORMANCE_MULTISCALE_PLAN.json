@@ -1,0 +1,337 @@
+{
+  "harness_sha256": {
+    "calibration_readback.py": "e1f33f51c0fb18a995b58a7d894c65218e162cb5fbe0978530bd21ace5b266a6",
+    "extended_driver.py": "585708946bca165290b92b14d108598f20a24b46675a24e3c984583a2d47ab27",
+    "instrumented_worker.py": "55e82f0976e86464533317bd729aa4aa7b1ef8e45674f3b6a971b63ba1abf3b0",
+    "probes.py": "c1ea0d453ec521b3d7ec50bf40dbc13d512d7da79cac262c39cd0f5d7a49b858",
+    "receipt_summary.py": "30c19050f0fa562a4fda12d151f64177f85436213b0ad359307af950d8f1e0e3",
+    "request_diagnostics.py": "a38b614ae3cfceaf2ccc0b84bd4bf5b7d373fe805c530d2ea3ec33c4261aaa3a",
+    "schedule_open.py": "6470ba0545b5fe4ec4a706c9e6e6479a9747665248f1691d20173c06cada887b",
+    "server.py": "e156bf74af956bd47e87250876d6826669e99388ae4a822e569893c282a4f976",
+    "run_multiscale.py": "840e83d0342af7d6c1edb84379b1691609f40d7af530c1148f2a7554d081570f"
+  },
+  "read_hz_per_session": "3",
+  "write_hz": "6.1",
+  "arms": [
+    {
+      "name": "100-developer-8-A",
+      "count": 100,
+      "role": "developer",
+      "readers": 8,
+      "seconds": 8,
+      "arm": "A",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 192,
+        "PATCH": 49
+      },
+      "slots_sha256": "5c21ad9354363771b4b4cc654fa78b96b56e8ac3d2a72f35327f04f78dd5643d",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "100-developer-8-B1",
+      "count": 100,
+      "role": "developer",
+      "readers": 8,
+      "seconds": 8,
+      "arm": "B1",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 192,
+        "PATCH": 49
+      },
+      "slots_sha256": "5c21ad9354363771b4b4cc654fa78b96b56e8ac3d2a72f35327f04f78dd5643d",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "100-developer-4-B1",
+      "count": 100,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "100-developer-4-A",
+      "count": 100,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "100-doctor-4-A",
+      "count": 100,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "100-doctor-4-B1",
+      "count": 100,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "100-head-4-B1",
+      "count": 100,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "100-head-4-A",
+      "count": 100,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "1000-developer-4-A",
+      "count": 1000,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "1000-developer-4-B1",
+      "count": 1000,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "1000-doctor-4-B1",
+      "count": 1000,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "1000-doctor-4-A",
+      "count": 1000,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "1000-head-4-A",
+      "count": 1000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "1000-head-4-B1",
+      "count": 1000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "10000-developer-4-B1",
+      "count": 10000,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "10000-developer-4-A",
+      "count": 10000,
+      "role": "developer",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "10000-doctor-4-A",
+      "count": 10000,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    },
+    {
+      "name": "10000-doctor-4-B1",
+      "count": 10000,
+      "role": "doctor",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "A\u2013B1",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "10000-head-4-B1",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "B1",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "b1",
+      "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c"
+    },
+    {
+      "name": "10000-head-4-A",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 3,
+      "arm": "A",
+      "order": "B1\u2013A",
+      "offered": {
+        "GET": 36,
+        "PATCH": 19
+      },
+      "slots_sha256": "c1e531408638365dad6662db77c1429ea68a2c5b3192e711464f36357d79b359",
+      "directory": "a",
+      "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18"
+    }
+  ]
+}

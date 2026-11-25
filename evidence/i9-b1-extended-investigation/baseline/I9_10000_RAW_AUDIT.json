@@ -1,0 +1,776 @@
+{
+  "10000-developer-4-B1": {
+    "warmup_outcomes": {
+      "200": 8
+    },
+    "actual_clinical_changes": 17,
+    "clinical_audit_events": 17,
+    "chain_uncertain": false,
+    "sha256": "f6190e10b52dbf83ccd21a687fb8587557fe369528481b21fd04a5d7d2f15ff1",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 9,
+          "client_busy": 27
+        },
+        "dispatched": 9,
+        "completed_http": 9,
+        "inside_window": {
+          "409": 6
+        },
+        "drained_after_window": {
+          "409": 3
+        },
+        "last_http_ms": 3514.342791,
+        "max_drain_ms": 514.342791,
+        "request_latency_ms": {
+          "min": 824.642,
+          "p50": 1112.162,
+          "p95": 1906.079,
+          "max": 1906.079
+        },
+        "latency_by_HTTP_ms": {
+          "409": {
+            "min": 824.642,
+            "p50": 1112.162,
+            "p95": 1906.079,
+            "max": 1906.079
+          }
+        },
+        "late_dispatch_after_20ms": 4,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 139.702,
+          "p50": 289.605,
+          "p95": 878.276,
+          "max": 878.276
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 193.363,
+            "p50": 509.19,
+            "p95": 994.57,
+            "max": 994.57
+          },
+          "validation": {
+            "min": 139.691,
+            "p50": 289.597,
+            "p95": 878.267,
+            "max": 878.267
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 407.488,
+          "p50": 670.571,
+          "p95": 897.512,
+          "max": 897.512
+        },
+        "release_queue_wait_ms": {
+          "min": 0.0,
+          "p50": 367.584,
+          "p95": 602.221,
+          "max": 602.221
+        },
+        "release_begin_wait_ms": {
+          "min": 0.014,
+          "p50": 0.093,
+          "p95": 0.124,
+          "max": 0.124
+        },
+        "release_hold_ms": {
+          "min": 1.385,
+          "p50": 1.719,
+          "p95": 3.685,
+          "max": 3.685
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 9
+        },
+        "rolled_back_409": 9,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 17,
+          "client_busy": 1,
+          "window_elapsed": 1
+        },
+        "dispatched": 17,
+        "completed_http": 17,
+        "inside_window": {
+          "200": 17
+        },
+        "drained_after_window": {},
+        "last_http_ms": 2890.160375,
+        "max_drain_ms": 0.0,
+        "request_latency_ms": {
+          "min": 7.234,
+          "p50": 15.242,
+          "p95": 196.645,
+          "max": 196.645
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 7.234,
+            "p50": 15.242,
+            "p95": 196.645,
+            "max": 196.645
+          }
+        },
+        "late_dispatch_after_20ms": 8,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  },
+  "10000-developer-4-A": {
+    "warmup_outcomes": {
+      "409": 6,
+      "200": 2
+    },
+    "actual_clinical_changes": 13,
+    "clinical_audit_events": 13,
+    "chain_uncertain": false,
+    "sha256": "f78b61f9b2547ff67cd2b1eea0ba3e96d38dad967647b366648d2b7c72cd5d7b",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 8,
+          "client_busy": 28
+        },
+        "dispatched": 8,
+        "completed_http": 8,
+        "inside_window": {
+          "409": 4
+        },
+        "drained_after_window": {
+          "409": 4
+        },
+        "last_http_ms": 3940.639666,
+        "max_drain_ms": 940.639666,
+        "request_latency_ms": {
+          "min": 1394.449,
+          "p50": 1774.492,
+          "p95": 2057.695,
+          "max": 2057.695
+        },
+        "latency_by_HTTP_ms": {
+          "409": {
+            "min": 1394.449,
+            "p50": 1774.492,
+            "p95": 2057.695,
+            "max": 2057.695
+          }
+        },
+        "late_dispatch_after_20ms": 3,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 416.023,
+          "p50": 724.121,
+          "p95": 924.136,
+          "max": 924.136
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 193.051,
+            "p50": 853.937,
+            "p95": 1087.244,
+            "max": 1087.244
+          },
+          "validation": {
+            "min": 416.014,
+            "p50": 724.107,
+            "p95": 924.126,
+            "max": 924.126
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 551.211,
+          "p50": 914.002,
+          "p95": 1188.018,
+          "max": 1188.018
+        },
+        "release_queue_wait_ms": null,
+        "release_begin_wait_ms": {
+          "min": 0.02,
+          "p50": 0.154,
+          "p95": 219.443,
+          "max": 219.443
+        },
+        "release_hold_ms": {
+          "min": 0.144,
+          "p50": 0.285,
+          "p95": 1.64,
+          "max": 1.64
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 8
+        },
+        "rolled_back_409": 8,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 13,
+          "client_busy": 6
+        },
+        "dispatched": 13,
+        "completed_http": 13,
+        "inside_window": {
+          "200": 12
+        },
+        "drained_after_window": {
+          "200": 1
+        },
+        "last_http_ms": 3021.365791,
+        "max_drain_ms": 21.365791,
+        "request_latency_ms": {
+          "min": 7.78,
+          "p50": 15.628,
+          "p95": 533.006,
+          "max": 533.006
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 7.78,
+            "p50": 15.628,
+            "p95": 533.006,
+            "max": 533.006
+          }
+        },
+        "late_dispatch_after_20ms": 4,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  },
+  "10000-doctor-4-A": {
+    "warmup_outcomes": {
+      "200": 4,
+      "409": 4
+    },
+    "actual_clinical_changes": 19,
+    "clinical_audit_events": 19,
+    "chain_uncertain": false,
+    "sha256": "f9368bec64175f6c5436fccda91536d6a32df5f6f2e5d21f2b2faaac3aeb413b",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 15,
+          "200": 21
+        },
+        "dispatched": 36,
+        "completed_http": 36,
+        "inside_window": {
+          "409": 15,
+          "200": 21
+        },
+        "drained_after_window": {},
+        "last_http_ms": 2997.310458,
+        "max_drain_ms": 0.0,
+        "request_latency_ms": {
+          "min": 76.479,
+          "p50": 78.84,
+          "p95": 85.765,
+          "max": 95.469
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 76.479,
+            "p50": 77.088,
+            "p95": 80.528,
+            "max": 95.469
+          },
+          "409": {
+            "min": 77.264,
+            "p50": 80.692,
+            "p95": 85.765,
+            "max": 85.765
+          }
+        },
+        "late_dispatch_after_20ms": 0,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 24.598,
+          "p50": 25.366,
+          "p95": 30.524,
+          "max": 40.526
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 31.475,
+            "p50": 31.971,
+            "p95": 34.897,
+            "max": 35.599
+          },
+          "validation": {
+            "min": 24.592,
+            "p50": 25.125,
+            "p95": 30.28,
+            "max": 40.132
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 38.382,
+          "p50": 39.7,
+          "p95": 45.238,
+          "max": 56.203
+        },
+        "release_queue_wait_ms": null,
+        "release_begin_wait_ms": {
+          "min": 0.005,
+          "p50": 0.006,
+          "p95": 0.068,
+          "max": 2.033
+        },
+        "release_hold_ms": {
+          "min": 0.072,
+          "p50": 0.699,
+          "p95": 1.538,
+          "max": 1.632
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/matched/data_version/UNKNOWN": 9,
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/UNKNOWN": 2,
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 2,
+          "PATIENT_QUERY_CHANGED/matched/data_version/medical": 2
+        },
+        "rolled_back_409": 15,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 19
+        },
+        "dispatched": 19,
+        "completed_http": 19,
+        "inside_window": {
+          "200": 18
+        },
+        "drained_after_window": {
+          "200": 1
+        },
+        "last_http_ms": 3000.021875,
+        "max_drain_ms": 0.021875,
+        "request_latency_ms": {
+          "min": 5.635,
+          "p50": 22.22,
+          "p95": 66.892,
+          "max": 66.892
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 5.635,
+            "p50": 22.22,
+            "p95": 66.892,
+            "max": 66.892
+          }
+        },
+        "late_dispatch_after_20ms": 0,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  },
+  "10000-doctor-4-B1": {
+    "warmup_outcomes": {
+      "200": 8
+    },
+    "actual_clinical_changes": 19,
+    "clinical_audit_events": 19,
+    "chain_uncertain": false,
+    "sha256": "1ab243f1291ccbf8e82e802fffd325b0973a93976faf661c94c2901aab71bac2",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 15,
+          "200": 21
+        },
+        "dispatched": 36,
+        "completed_http": 36,
+        "inside_window": {
+          "409": 15,
+          "200": 21
+        },
+        "drained_after_window": {},
+        "last_http_ms": 2989.527375,
+        "max_drain_ms": 0.0,
+        "request_latency_ms": {
+          "min": 67.588,
+          "p50": 70.025,
+          "p95": 75.799,
+          "max": 92.879
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 67.588,
+            "p50": 68.352,
+            "p95": 70.806,
+            "max": 71.519
+          },
+          "409": {
+            "min": 68.725,
+            "p50": 72.187,
+            "p95": 92.879,
+            "max": 92.879
+          }
+        },
+        "late_dispatch_after_20ms": 0,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 24.702,
+          "p50": 25.433,
+          "p95": 27.031,
+          "max": 30.833
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 31.628,
+            "p50": 32.288,
+            "p95": 36.099,
+            "max": 50.437
+          },
+          "validation": {
+            "min": 24.696,
+            "p50": 25.195,
+            "p95": 26.696,
+            "max": 30.516
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 29.486,
+          "p50": 30.9,
+          "p95": 35.581,
+          "max": 35.701
+        },
+        "release_queue_wait_ms": {
+          "min": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        },
+        "release_begin_wait_ms": {
+          "min": 0.005,
+          "p50": 0.006,
+          "p95": 0.071,
+          "max": 0.165
+        },
+        "release_hold_ms": {
+          "min": 1.262,
+          "p50": 1.919,
+          "p95": 2.833,
+          "max": 2.998
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/matched/data_version/UNKNOWN": 9,
+          "PATIENT_QUERY_CHANGED/matched/data_version/medical": 1,
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/UNKNOWN": 3,
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 2
+        },
+        "rolled_back_409": 15,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 19
+        },
+        "dispatched": 19,
+        "completed_http": 19,
+        "inside_window": {
+          "200": 19
+        },
+        "drained_after_window": {},
+        "last_http_ms": 2991.369834,
+        "max_drain_ms": 0.0,
+        "request_latency_ms": {
+          "min": 5.008,
+          "p50": 10.794,
+          "p95": 35.701,
+          "max": 35.701
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 5.008,
+            "p50": 10.794,
+            "p95": 35.701,
+            "max": 35.701
+          }
+        },
+        "late_dispatch_after_20ms": 0,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  },
+  "10000-head-4-B1": {
+    "warmup_outcomes": {
+      "200": 8
+    },
+    "actual_clinical_changes": 17,
+    "clinical_audit_events": 17,
+    "chain_uncertain": false,
+    "sha256": "0653f9f05e5bf097d04ce7b6ad80d1e46f82d1ee88549089bbf2fda20fdd33b0",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 13,
+          "client_busy": 23
+        },
+        "dispatched": 13,
+        "completed_http": 13,
+        "inside_window": {
+          "409": 10
+        },
+        "drained_after_window": {
+          "409": 3
+        },
+        "last_http_ms": 3493.906709,
+        "max_drain_ms": 493.906709,
+        "request_latency_ms": {
+          "min": 522.285,
+          "p50": 800.002,
+          "p95": 1093.046,
+          "max": 1093.046
+        },
+        "latency_by_HTTP_ms": {
+          "409": {
+            "min": 522.285,
+            "p50": 800.002,
+            "p95": 1093.046,
+            "max": 1093.046
+          }
+        },
+        "late_dispatch_after_20ms": 7,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 107.506,
+          "p50": 210.532,
+          "p95": 384.788,
+          "max": 384.788
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 147.457,
+            "p50": 280.281,
+            "p95": 469.231,
+            "max": 469.231
+          },
+          "validation": {
+            "min": 107.497,
+            "p50": 210.522,
+            "p95": 384.778,
+            "max": 384.778
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 350.948,
+          "p50": 499.91,
+          "p95": 652.703,
+          "max": 652.703
+        },
+        "release_queue_wait_ms": {
+          "min": 0.0,
+          "p50": 235.104,
+          "p95": 362.652,
+          "max": 362.652
+        },
+        "release_begin_wait_ms": {
+          "min": 0.01,
+          "p50": 0.097,
+          "p95": 2.053,
+          "max": 2.053
+        },
+        "release_hold_ms": {
+          "min": 1.396,
+          "p50": 2.833,
+          "p95": 34.871,
+          "max": 34.871
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 13
+        },
+        "rolled_back_409": 13,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 17,
+          "client_busy": 1,
+          "window_elapsed": 1
+        },
+        "dispatched": 17,
+        "completed_http": 17,
+        "inside_window": {
+          "200": 17
+        },
+        "drained_after_window": {},
+        "last_http_ms": 2871.294917,
+        "max_drain_ms": 0.0,
+        "request_latency_ms": {
+          "min": 9.256,
+          "p50": 17.321,
+          "p95": 165.367,
+          "max": 165.367
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 9.256,
+            "p50": 17.321,
+            "p95": 165.367,
+            "max": 165.367
+          }
+        },
+        "late_dispatch_after_20ms": 9,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  },
+  "10000-head-4-A": {
+    "warmup_outcomes": {
+      "409": 6,
+      "200": 2
+    },
+    "actual_clinical_changes": 12,
+    "clinical_audit_events": 12,
+    "chain_uncertain": false,
+    "sha256": "1abcb9f7d81c21421e2e823e7f8004845edbd2b43905b6325af9e4bf37a3d086",
+    "methods": {
+      "GET": {
+        "offered": 36,
+        "status_counts": {
+          "409": 12,
+          "client_busy": 24
+        },
+        "dispatched": 12,
+        "completed_http": 12,
+        "inside_window": {
+          "409": 8
+        },
+        "drained_after_window": {
+          "409": 4
+        },
+        "last_http_ms": 3871.18675,
+        "max_drain_ms": 871.18675,
+        "request_latency_ms": {
+          "min": 879.914,
+          "p50": 972.641,
+          "p95": 1200.549,
+          "max": 1200.549
+        },
+        "latency_by_HTTP_ms": {
+          "409": {
+            "min": 879.914,
+            "p50": 972.641,
+            "p95": 1200.549,
+            "max": 1200.549
+          }
+        },
+        "late_dispatch_after_20ms": 5,
+        "nonevent_soft_repeat": 0,
+        "fingerprint_ms": {
+          "min": 135.625,
+          "p50": 376.729,
+          "p95": 665.313,
+          "max": 665.313
+        },
+        "snapshot_read_ms": {
+          "original": {
+            "min": 150.046,
+            "p50": 399.414,
+            "p95": 698.037,
+            "max": 698.037
+          },
+          "validation": {
+            "min": 135.612,
+            "p50": 376.718,
+            "p95": 663.299,
+            "max": 663.299
+          }
+        },
+        "release_persist_wall_ms": {
+          "min": 280.159,
+          "p50": 487.604,
+          "p95": 1001.698,
+          "max": 1001.698
+        },
+        "release_queue_wait_ms": null,
+        "release_begin_wait_ms": {
+          "min": 0.015,
+          "p50": 0.126,
+          "p95": 285.234,
+          "max": 285.234
+        },
+        "release_hold_ms": {
+          "min": 0.088,
+          "p50": 0.451,
+          "p95": 33.51,
+          "max": 33.51
+        },
+        "conflicts": {
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/medical": 9,
+          "PATIENT_QUERY_CHANGED/matched/data_version/medical": 1,
+          "PATIENT_QUERY_CHANGED/changed/full_fingerprint/UNKNOWN": 2
+        },
+        "rolled_back_409": 12,
+        "rolled_back_audit_or_manifest_rowchanges_409": [
+          0,
+          0
+        ]
+      },
+      "PATCH": {
+        "offered": 19,
+        "status_counts": {
+          "200": 12,
+          "client_busy": 7
+        },
+        "dispatched": 12,
+        "completed_http": 12,
+        "inside_window": {
+          "200": 11
+        },
+        "drained_after_window": {
+          "200": 1
+        },
+        "last_http_ms": 3096.0645,
+        "max_drain_ms": 96.0645,
+        "request_latency_ms": {
+          "min": 6.939,
+          "p50": 107.656,
+          "p95": 555.337,
+          "max": 555.337
+        },
+        "latency_by_HTTP_ms": {
+          "200": {
+            "min": 6.939,
+            "p50": 107.656,
+            "p95": 555.337,
+            "max": 555.337
+          }
+        },
+        "late_dispatch_after_20ms": 1,
+        "nonevent_soft_repeat": 0
+      }
+    }
+  }
+}
