@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "complete deterministic schedule for each confirmation block",
+      "status": "PASS"
+    },
+    {
+      "name": "first HTTP outcome survives successful UI recovery",
+      "status": "PASS"
+    },
+    {
+      "name": "HTTP 200 does not certify DOM, dispatch, timeout or deadline",
+      "status": "PASS"
+    },
+    {
+      "name": "bounded code projection and finite-sample descriptive quantiles",
+      "status": "PASS"
+    }
+  ],
+  "passed": 4,
+  "independentReceiptReconciliation": [
+    {
+      "sessions": 4,
+      "reconciledOffered": 103,
+      "observedReleaseDigests": 87,
+      "status": "PASS",
+      "concerns": []
+    },
+    {
+      "sessions": 8,
+      "reconciledOffered": 103,
+      "observedReleaseDigests": 89,
+      "status": "PASS",
+      "concerns": []
+    }
+  ]
+}

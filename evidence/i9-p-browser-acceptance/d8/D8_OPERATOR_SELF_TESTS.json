@@ -1,0 +1,13 @@
+{
+  "testFixturesOnly": true,
+  "manualResultsRecorded": 0,
+  "checks": {
+    "publishedKitVerified": true,
+    "publishedScenarioCount": 16,
+    "emptyAndPartialRemainNotTested": true,
+    "syntheticCompleteStatusAggregation": true,
+    "blockedAndFailPrecedence": true,
+    "requiredShutdownFields": true,
+    "sensitiveInputHeuristicCases": true
+  }
+}

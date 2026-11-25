@@ -1,0 +1,31 @@
+{
+  "browser": "Chromium",
+  "version": "151.0.7922.34",
+  "checks": [
+    {
+      "theme": "light",
+      "skipMainFocus": true,
+      "arrowsHomeEndFocus": true,
+      "labelledPanel": true,
+      "tabExitAndReturn": true,
+      "unexpectedMutations": 0,
+      "outboundBlocked": 0,
+      "authActivity": 1,
+      "pageErrors": 0
+    },
+    {
+      "theme": "dark",
+      "skipMainFocus": true,
+      "arrowsHomeEndFocus": true,
+      "labelledPanel": true,
+      "tabExitAndReturn": true,
+      "unexpectedMutations": 0,
+      "outboundBlocked": 0,
+      "authActivity": 1,
+      "pageErrors": 0
+    }
+  ],
+  "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "cleanExit": true,
+  "manualResultsRecorded": 0
+}

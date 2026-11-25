@@ -1,0 +1,86 @@
+{
+  "productSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "chromium": "153.0.8010.12",
+  "syntheticOnly": true,
+  "registry": {
+    "result": "PASS",
+    "patients": 1000,
+    "roles": 6,
+    "axeChecks": 24,
+    "axeViolations": 0,
+    "legacyRegistryCalls": 0,
+    "medicalWritesFromRegistryRolePages": 0,
+    "responseAuditManifestHashAssertions": "PASS",
+    "realServerFaultInjection": [
+      "patient update between snapshot and release: one controlled restart and terminal repeat",
+      "technical SQLite commit between validation and release: first page restored without stale second page, exactly one restart; terminal repeat"
+    ],
+    "transportDiagnostic": [
+      "hold real old response while changing search",
+      "injected 410, 503, 401 and ACCESS_CONTEXT_CHANGED"
+    ],
+    "rawSourceSha256": "caa560db34674cac55810d7cb93ce0f96ec474452a1fd9c3f5f228731032ca6c"
+  },
+  "drafts": {
+    "result": "PASS",
+    "patients": 100,
+    "checks": {
+      "realBackend": true,
+      "draftAcross401AndPage409": true,
+      "selectedPatientRetained": true,
+      "originalVersionRetained": true,
+      "noAutomaticWrite": true,
+      "manualStaleSave409": true,
+      "serverNotOverwritten": true
+    },
+    "rawSourceSha256": "71cdd72d748785dc7fb8639a956d89cc8e0a457f5b1f641a7a657300cca45514"
+  },
+  "quality": {
+    "result": "PASS",
+    "patients": 240,
+    "faultGroups": 9,
+    "axeChecks": 6,
+    "axeViolations": 0,
+    "checks": [
+      "late real 200 cannot replace newer 200 or synthetic terminal 503",
+      "injected 409 PATIENT_QUERY_CHANGED: one restart and terminal repeated failure",
+      "injected 410 CURSOR_EXPIRED: one restart and terminal repeated failure",
+      "injected 403 and neutral 404 do not render actionable member rows or retry",
+      "actual pending clinical write blocks navigation; cancel retains draft; only explicit save",
+      "real two-tab identity change rejects held old actor body",
+      "delayed failure of an old identity check cannot lock a freshly authenticated epoch",
+      "real 401 and real access-context 409 lock, re-auth and clear old rows without restart",
+      "real same-session owner 404 clears opened card, derived rows and existing draft without reauth"
+    ],
+    "rawSourceSha256": "9518bb567efefabc8b07cabd288c166362ad4bdadd12f3f51f1e4bdc1784d38f"
+  },
+  "natural409Sample": null,
+  "UX_SLO": "INSUFFICIENT",
+  "historical503": "UNKNOWN_0_OF_2",
+  "keyboardDiagnostic": {
+    "fastApiResponsesBeforeAdditionalTabTraversal": [
+      [
+        409,
+        200
+      ],
+      [
+        409,
+        409
+      ]
+    ],
+    "initialAction": "focused pagination control then physical-keyboard Enter through Playwright",
+    "faultSource": "controlled real server patient-page race",
+    "singleConflictRecoveredWithPaginationStatusFocus": true,
+    "terminalConflictErrorVisible": true,
+    "terminalOldResultsHiddenAndDidNotContainFocus": true,
+    "boundedTabsChecked": 60,
+    "reachedExplicitRetryDuringBoundedTraversal": false,
+    "extraGetObservedDuringTabTraversal": true,
+    "extraGetAttribution": "UNDETERMINED",
+    "outcome": "REVIEW_REQUIRED_BROWSER_KEYBOARD",
+    "finalTimingReport": "UNAVAILABLE_AFTER_ASSERTION",
+    "proposedFocusPatch": "UNVALIDATED",
+    "rawAssertionSha256": "527a1e129cc163577d8f46d59f91365d107badf48a35de120779994ac8d8f645",
+    "rawServerLogSha256": "b6a79912655991663673bd5f3e07893eb352ce575469c7e6596a5342d9cc8692"
+  }
+}

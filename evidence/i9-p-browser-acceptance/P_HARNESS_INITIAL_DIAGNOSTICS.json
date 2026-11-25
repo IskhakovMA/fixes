@@ -1,0 +1,78 @@
+{
+  "syntheticOnly": true,
+  "notAcceptanceEvidence": true,
+  "preflightFirst": {
+    "status": "FAIL",
+    "cause": "harness read PRAGMA user_version instead of application schema_version"
+  },
+  "initialBrowser": {
+    "4": {
+      "registry": {
+        "offered": 60,
+        "dispatchedActions": 47,
+        "firstHttp": {
+          "200": 42,
+          "409:PATIENT_QUERY_CHANGED": 5
+        },
+        "outcomes": {
+          "timely_200": 26,
+          "timeout": 16,
+          "client_busy": 13,
+          "http_409:PATIENT_QUERY_CHANGED": 5
+        }
+      },
+      "workspace": {
+        "offered": 4,
+        "dispatchedActions": 4,
+        "firstHttp": {
+          "200": 4
+        },
+        "outcomes": {
+          "http_200_without_valid_ui": 4
+        }
+      },
+      "cleanup": {
+        "cleanServerExit": true,
+        "listenerClosed": true,
+        "syntheticFilesRemoved": true
+      },
+      "validForConclusions": false
+    },
+    "8": {
+      "registry": {
+        "offered": 60,
+        "dispatchedActions": 48,
+        "firstHttp": {
+          "200": 41,
+          "409:PATIENT_QUERY_CHANGED": 7
+        },
+        "outcomes": {
+          "timeout": 15,
+          "timely_200": 26,
+          "client_busy": 12,
+          "http_409:PATIENT_QUERY_CHANGED": 7
+        }
+      },
+      "workspace": {
+        "offered": 4,
+        "dispatchedActions": 4,
+        "firstHttp": {
+          "200": 4
+        },
+        "outcomes": {
+          "http_200_without_valid_ui": 4
+        }
+      },
+      "cleanup": {
+        "cleanServerExit": true,
+        "listenerClosed": true,
+        "syntheticFilesRemoved": true
+      },
+      "validForConclusions": false
+    }
+  },
+  "attributionIssues": [
+    "early classification during implicit registry GET",
+    "workspace aria-busy is removed, not set to false"
+  ]
+}

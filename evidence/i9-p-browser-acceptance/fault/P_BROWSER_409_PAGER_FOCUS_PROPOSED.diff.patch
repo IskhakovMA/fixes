@@ -1,0 +1,34 @@
+--- a/static/app.js
++++ b/static/app.js
+@@ -2093,13 +2093,29 @@
+         let index = this.pageIndex + direction;
+         if (index < 0 || (direction > 0 && !this.patientPage.page.hasNext)) return;
+         if (direction > 0) this.pageTrail[index] = this.patientPage.page.nextCursor;
++        const returnToRetry = $('patientPagination')?.contains(document.activeElement);
++        const epoch = this.sessionEpoch;
++        let requestVersion;
+         this.pageLoading = true;
+         try {
+             const cursor = this.pageTrail[index];
+-            await this.loadPatients(cursor);
++            const request = this.loadPatients(cursor);
++            requestVersion = this.readVersions.patients;
++            await request;
+             if (this.patientPage?.page.offset === index * 50) this.pageIndex = index;
+             this.renderPatients(); this.renderPatientPagination();
+             $('patientPageStatus')?.focus();
+-        } catch (error) { ui.toast(error.message, 'danger'); }
++        } catch (error) {
++            ui.toast(error.message, 'danger');
++            const retry = $('retryPatientListBtn');
++            if (returnToRetry && !error.obsolete && error.status === 409
++                && error.data?.code === 'PATIENT_QUERY_CHANGED' && this.currentView === 'patients'
++                && this.patientListState === 'error' && epoch === this.sessionEpoch && !this.sessionReconciling
++                && this.isCurrentRead('patients', requestVersion) && document.hasFocus()
++                && document.activeElement === document.body && !ui.topModal()
++                && retry && !retry.disabled && !retry.closest('[hidden],.is-hidden,[inert]')) {
++                retry.focus({preventScroll: true});
++            }
++        }
+         finally { this.pageLoading = false; }
+     },
