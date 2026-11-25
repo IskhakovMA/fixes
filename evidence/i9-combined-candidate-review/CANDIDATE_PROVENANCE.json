@@ -1,0 +1,22 @@
+{
+  "base": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+  "b1": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "focus": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "historySource": "b4b1661ec6359800bfd700405b73b03f6c46b30d",
+  "candidate": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "candidateTree": "cd00d4d55140d377038783234cc204c602741869",
+  "candidateParent": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+  "unchangedCiAndPythonBackendRelativeToB1": true,
+  "files": [
+    {
+      "path": "static/app.js",
+      "source": "99398cf9e1da2adad05328d2ba0624c7ff3ee94d",
+      "sha256": "82932058459a2b2ed880597405aa65510e5383a1c489c64adc83a0db7ff369e3"
+    },
+    {
+      "path": "tools/tests/wp_i_card/history.cjs",
+      "source": "b4b1661ec6359800bfd700405b73b03f6c46b30d",
+      "sha256": "5e508d73edc690b55edff2b5c35d04c6a003b9252924cd99ee3268812ca5da78"
+    }
+  ]
+}

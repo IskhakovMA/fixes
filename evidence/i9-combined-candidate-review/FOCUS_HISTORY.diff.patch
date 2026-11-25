@@ -1,0 +1,125 @@
+diff --git a/static/app.js b/static/app.js
+index 362b707..f6ab581 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -2093,15 +2093,48 @@ const app = {
+         let index = this.pageIndex + direction;
+         if (index < 0 || (direction > 0 && !this.patientPage.page.hasNext)) return;
+         if (direction > 0) this.pageTrail[index] = this.patientPage.page.nextCursor;
+-        this.pageLoading = true;
++        const epoch = this.sessionEpoch;
++        const navigation = browserNavigation.generation;
++        const paging = {};
++        this.pageLoading = paging;
++        // The loading state makes the pager inert. Move focus out before that,
++        // and only complete the handoff if the user stays on the anchor.
++        const anchor = $('patientRegistryTitle');
++        let ownsPagerFocus = document.hasFocus() && !ui.topModal() &&
++            $('patientPagination')?.contains(document.activeElement);
++        const releaseFocus = () => { ownsPagerFocus = false; };
++        if (ownsPagerFocus) {
++            anchor.tabIndex = -1;
++            anchor.focus({preventScroll: true});
++            ownsPagerFocus = document.activeElement === anchor;
++            if (ownsPagerFocus) anchor.addEventListener('focusout', releaseFocus, {once: true});
++        }
++
++        const request = this.loadPatients(this.pageTrail[index]);
++        const read = this.readVersions.patients;
++        const current = () => epoch === this.sessionEpoch && navigation === browserNavigation.generation &&
++            this.currentView === 'patients' && !this.sessionReconciling && this.isCurrentRead('patients', read);
++        const ownsFocus = () => ownsPagerFocus && document.hasFocus() && document.activeElement === anchor && !ui.topModal();
+         try {
+-            const cursor = this.pageTrail[index];
+-            await this.loadPatients(cursor);
++            await request;
++            if (!current() || this.patientListState !== 'ready') return;
+             if (this.patientPage?.page.offset === index * 50) this.pageIndex = index;
+             this.renderPatients(); this.renderPatientPagination();
+-            $('patientPageStatus')?.focus();
+-        } catch (error) { ui.toast(error.message, 'danger'); }
+-        finally { this.pageLoading = false; }
++            if (ownsFocus()) $('patientPageStatus')?.focus();
++        } catch (error) {
++            if (!current() || error.obsolete) return;
++            ui.toast(error.message, 'danger');
++            const retry = $('retryPatientListBtn');
++            if (error.status === 409 && error.data?.code === 'PATIENT_QUERY_CHANGED' &&
++                this.patientListState === 'error' && ownsFocus() && retry && !retry.disabled &&
++                !retry.closest('[hidden], [inert], .is-hidden') && retry.getClientRects().length) {
++                retry.setAttribute('aria-describedby', 'patientListErrorText');
++                retry.focus();
++            }
++        } finally {
++            anchor.removeEventListener('focusout', releaseFocus);
++            if (this.pageLoading === paging) this.pageLoading = false;
++        }
+     },
+ 
+     renderPatientPagination() {
+diff --git a/tools/tests/wp_i_card/history.cjs b/tools/tests/wp_i_card/history.cjs
+index df25e99..6eba8fa 100644
+--- a/tools/tests/wp_i_card/history.cjs
++++ b/tools/tests/wp_i_card/history.cjs
+@@ -442,14 +442,16 @@ async function unknownDraft(browser, fixture) {
+ 
+ async function unknownDenial(browser, fixture) {
+     const context = await browser.newContext({viewport: {width: 1440, height: 1000}});
+-    const reloadStarted = deferred();
+     const releaseReload = deferred();
+     try {
+         const page = await context.newPage();
+         const events = monitor(page);
+         await page.goto(origin);
+         await login(page, fixture.roles.doctor.username);
+-        await openFromRegistry(page, fixture.large.name);
++        // This fixture is already in the doctor's registry. A search here
++        // schedules a debounced GET that can take the one-shot reload route.
++        await page.getByRole('button', {name: 'Открыть карточку: ' + fixture.large.name, exact: true}).click();
++        await screen(page, 'patient', 'overview');
+         await page.locator('#tab-events').click();
+         await screen(page, 'patient', 'events');
+         await page.getByRole('textbox', {name: 'Примечание к этапу', exact: true}).first().fill('Синтетический черновик отзыва');
+@@ -462,25 +464,32 @@ async function unknownDenial(browser, fixture) {
+         assert(await rowPresent(), 'the pre-revocation registry still contains the fixture row');
+         const registryPage = url => url.origin === origin && url.pathname === '/api/patients'
+             && url.searchParams.get('view') === 'page';
++        const isRegistryRead = request => request.method() === 'GET' && registryPage(new URL(request.url()));
++        const session = await page.evaluate(() => ({epoch: app.sessionEpoch, actor: app.user?.id}));
+         await page.route(registryPage, async route => {
+-            const response = await route.fetch();
+-            reloadStarted.resolve();
+             await releaseReload.promise;
+-            await route.fulfill({response});
++            await route.continue();
+         }, {times: 1});
+-        const reloadRequest = page.waitForRequest(request => registryPage(new URL(request.url())));
++        const reloadRequest = page.waitForRequest(isRegistryRead);
++        // If the detail assertion fails, the absent reload must not mask it.
++        void reloadRequest.catch(() => {});
+         const denied = page.waitForResponse(response => response.request().method() === 'GET'
+-            && new URL(response.url()).pathname === '/api/patients/' + fixture.large.id && response.status() === 404);
++            && response.url() === origin + '/api/patients/' + fixture.large.id);
+         await page.locator('#confirmCancelBtn').click();
+-        await (await denied).finished();
++        const deniedResponse = await denied;
++        assert.equal(deniedResponse.status(), 404, 'the live scoped detail must deny the reassigned patient');
++        await deniedResponse.finished();
+         const registry = await screen(page, 'patients', null, true);
+-        await reloadRequest;
+-        await reloadStarted.promise;
++        const request = await reloadRequest;
+         assert.equal(registry.length, previous.length);
+         assert(await page.locator('#view-patient').isHidden());
+-        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0));
++        assert(await page.evaluate(() => app.currentPatientId == null && app.patientDetails.size === 0
++            && app.sessionFieldDrafts.size === 0));
+         assert(!await rowPresent(), 'the revoked row must be purged before the registry response arrives');
+-        const reloaded = page.waitForResponse(response => registryPage(new URL(response.url())));
++        assert(await page.evaluate(({epoch, actor}) => Boolean(actor)
++            && app.sessionEpoch === epoch && app.user?.id === actor
++            && !app.sessionExpired && !app.sessionReconciling, session), 'object denial keeps the same authorized session');
++        const reloaded = page.waitForResponse(response => response.request() === request);
+         releaseReload.resolve();
+         await (await reloaded).finished();
+         assert.equal(events.medicalWrites, 0);

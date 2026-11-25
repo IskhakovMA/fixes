@@ -1,0 +1,95 @@
+{
+  "acceptedHistoricalRunId": 45663612243,
+  "workflowSha": "1cf6e74ad4fd5bfcdb93b21385a0bd3a9a4c08fc",
+  "testedProductSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "matrixJobs": 18,
+  "commands": 49,
+  "passedCommandsByJobSuite": {
+    "ai": [
+      "wp_i_ai-browser",
+      "wp_i_ai-workflows",
+      "wp_i_ai-zoom"
+    ],
+    "consilium-records": [
+      "wp_i_consilium-decisions",
+      "wp_i_consilium-decisionzoom",
+      "wp_i_consilium-records",
+      "wp_i_consilium-recordszoom"
+    ],
+    "consilium-schedule": [
+      "wp_i_consilium-schedule",
+      "wp_i_consilium-workflows",
+      "wp_i_consilium-loading",
+      "wp_i_consilium-zoom"
+    ],
+    "create": [
+      "wp_i_create-create",
+      "wp_i_create-errors",
+      "wp_i_create-workflows",
+      "wp_i_create-zoom"
+    ],
+    "history-navigation": [
+      "wp_i_card-history"
+    ],
+    "history-objectRevocation": [
+      "wp_i_card-history"
+    ],
+    "history-saving": [
+      "wp_i_card-history"
+    ],
+    "history-transportAndIdentity": [
+      "wp_i_card-history"
+    ],
+    "history-unknownDenial": [
+      "wp_i_card-history"
+    ],
+    "history-unknownDraft": [
+      "wp_i_card-history"
+    ],
+    "history-unknownRace": [
+      "wp_i_card-history"
+    ],
+    "management-audit": [
+      "wp_i_management-browser",
+      "wp_i_management-workflows",
+      "wp_i_management-zoom",
+      "wp_i_audit_chair-browser",
+      "wp_i_audit_chair-workflows",
+      "wp_i_audit_chair-zoom"
+    ],
+    "notifications": [
+      "wp_i_notifications-browser",
+      "wp_i_notifications-workflows",
+      "wp_i_notifications-retry",
+      "wp_i_notifications-zoom",
+      "wp_i_notifications-fix1",
+      "wp_i_notifications-fix2"
+    ],
+    "quality-native-zoom": [
+      "quality-browser_zoom"
+    ],
+    "quality-owner": [
+      "quality-browser"
+    ],
+    "registry-card": [
+      "registry-100",
+      "registry-1000",
+      "registry-10000",
+      "wp_i_card-card",
+      "wp_i_card-errors",
+      "wp_i_card-clinical",
+      "wp_i_card-zoom"
+    ],
+    "workspace": [
+      "wp_i_workspace-browser",
+      "wp_i_workspace-workflows",
+      "wp_i_workspace-zoom"
+    ],
+    "wp-h": [
+      "wp-h-browser",
+      "wp-h-drafts",
+      "wp-h-zoom"
+    ]
+  },
+  "note": "Expected coverage baseline for comparison with separately executed combined candidate results."
+}

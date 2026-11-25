@@ -1,0 +1,152 @@
+{
+  "run": 45688807818,
+  "candidateSha": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "candidateTree": "cd00d4d55140d377038783234cc204c602741869",
+  "workflowSha": "f026f1e46b914157a484131cfb24f3d72c10469e",
+  "passedJobs": 18,
+  "passedCommands": 49,
+  "historyScenarios": 7,
+  "historyGroups": 16,
+  "workspaceCheckGroups": 13,
+  "verificationJobs": {
+    "ai": {
+      "jobId": 139468453631,
+      "commands": [
+        "wp_i_ai-browser",
+        "wp_i_ai-workflows",
+        "wp_i_ai-zoom"
+      ]
+    },
+    "consilium-records": {
+      "jobId": 139468453572,
+      "commands": [
+        "wp_i_consilium-decisions",
+        "wp_i_consilium-decisionzoom",
+        "wp_i_consilium-records",
+        "wp_i_consilium-recordszoom"
+      ]
+    },
+    "consilium-schedule": {
+      "jobId": 139468453325,
+      "commands": [
+        "wp_i_consilium-schedule",
+        "wp_i_consilium-workflows",
+        "wp_i_consilium-loading",
+        "wp_i_consilium-zoom"
+      ]
+    },
+    "create": {
+      "jobId": 139468453662,
+      "commands": [
+        "wp_i_create-create",
+        "wp_i_create-errors",
+        "wp_i_create-workflows",
+        "wp_i_create-zoom"
+      ]
+    },
+    "history-navigation": {
+      "jobId": 139468453350,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-objectRevocation": {
+      "jobId": 139468453399,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-saving": {
+      "jobId": 139468453349,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-transportAndIdentity": {
+      "jobId": 139468453320,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-unknownDenial": {
+      "jobId": 139468453352,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-unknownDraft": {
+      "jobId": 139468453418,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "history-unknownRace": {
+      "jobId": 139468453338,
+      "commands": [
+        "wp_i_card-history"
+      ]
+    },
+    "management-audit": {
+      "jobId": 139468453764,
+      "commands": [
+        "wp_i_management-browser",
+        "wp_i_management-workflows",
+        "wp_i_management-zoom",
+        "wp_i_audit_chair-browser",
+        "wp_i_audit_chair-workflows",
+        "wp_i_audit_chair-zoom"
+      ]
+    },
+    "notifications": {
+      "jobId": 139468453627,
+      "commands": [
+        "wp_i_notifications-browser",
+        "wp_i_notifications-workflows",
+        "wp_i_notifications-retry",
+        "wp_i_notifications-zoom",
+        "wp_i_notifications-fix1",
+        "wp_i_notifications-fix2"
+      ]
+    },
+    "quality-native-zoom": {
+      "jobId": 139468453505,
+      "commands": [
+        "quality-browser_zoom"
+      ]
+    },
+    "quality-owner": {
+      "jobId": 139468453913,
+      "commands": [
+        "quality-browser"
+      ]
+    },
+    "registry-card": {
+      "jobId": 139468452987,
+      "commands": [
+        "registry-100",
+        "registry-1000",
+        "registry-10000",
+        "wp_i_card-card",
+        "wp_i_card-errors",
+        "wp_i_card-clinical",
+        "wp_i_card-zoom"
+      ]
+    },
+    "workspace": {
+      "jobId": 139468453789,
+      "commands": [
+        "wp_i_workspace-browser",
+        "wp_i_workspace-workflows",
+        "wp_i_workspace-zoom"
+      ]
+    },
+    "wp-h": {
+      "jobId": 139468453655,
+      "commands": [
+        "wp-h-browser",
+        "wp-h-drafts",
+        "wp-h-zoom"
+      ]
+    }
+  }
+}

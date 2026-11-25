@@ -1,0 +1,464 @@
+{
+  "status": "PASS",
+  "candidate": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "tree": "cd00d4d55140d377038783234cc204c602741869",
+  "workflow": "f026f1e46b914157a484131cfb24f3d72c10469e",
+  "jobs": {
+    "history-navigation": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-saving": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-transportAndIdentity": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-objectRevocation": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-unknownDraft": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-unknownDenial": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "history-unknownRace": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "wp_i_card-history",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "wp-h": {
+      "expected": 3,
+      "passed": 3,
+      "cases": [
+        {
+          "name": "wp-h-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp-h-drafts",
+          "status": "PASS"
+        },
+        {
+          "name": "wp-h-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "registry-card": {
+      "expected": 7,
+      "passed": 7,
+      "cases": [
+        {
+          "name": "registry-100",
+          "status": "PASS"
+        },
+        {
+          "name": "registry-1000",
+          "status": "PASS"
+        },
+        {
+          "name": "registry-10000",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_card-card",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_card-errors",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_card-clinical",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_card-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "create": {
+      "expected": 4,
+      "passed": 4,
+      "cases": [
+        {
+          "name": "wp_i_create-create",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_create-errors",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_create-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_create-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "consilium-schedule": {
+      "expected": 4,
+      "passed": 4,
+      "cases": [
+        {
+          "name": "wp_i_consilium-schedule",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-loading",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "consilium-records": {
+      "expected": 4,
+      "passed": 4,
+      "cases": [
+        {
+          "name": "wp_i_consilium-decisions",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-decisionzoom",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-records",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_consilium-recordszoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "notifications": {
+      "expected": 6,
+      "passed": 6,
+      "cases": [
+        {
+          "name": "wp_i_notifications-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_notifications-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_notifications-retry",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_notifications-zoom",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_notifications-fix1",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_notifications-fix2",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "ai": {
+      "expected": 3,
+      "passed": 3,
+      "cases": [
+        {
+          "name": "wp_i_ai-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_ai-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_ai-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "management-audit": {
+      "expected": 6,
+      "passed": 6,
+      "cases": [
+        {
+          "name": "wp_i_management-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_management-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_management-zoom",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_audit_chair-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_audit_chair-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_audit_chair-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "workspace": {
+      "expected": 3,
+      "passed": 3,
+      "cases": [
+        {
+          "name": "wp_i_workspace-browser",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_workspace-workflows",
+          "status": "PASS"
+        },
+        {
+          "name": "wp_i_workspace-zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "quality-owner": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "quality-browser",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    },
+    "quality-native-zoom": {
+      "expected": 1,
+      "passed": 1,
+      "cases": [
+        {
+          "name": "quality-browser_zoom",
+          "status": "PASS"
+        }
+      ],
+      "verified": true
+    }
+  },
+  "jobsVerified": 18,
+  "commandsPassed": 49,
+  "historyGroups": {
+    "transportAndIdentity": 3,
+    "unknownRace": 2,
+    "saving": 1,
+    "navigation": 6,
+    "unknownDenial": 1,
+    "objectRevocation": 1,
+    "unknownDraft": 2
+  },
+  "totalHistoryGroups": 16,
+  "verifiedWorkspaceMarkers": 1,
+  "rawLogSha256": "5dd89e87918e13267c8be6f688c942d9fbe326aed5c8cd0440d696506499b4b4",
+  "github": {
+    "conclusion": "success",
+    "headSha": "f026f1e46b914157a484131cfb24f3d72c10469e",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "databaseId": 139468452987,
+        "name": "synthetic-browser (registry-card)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453320,
+        "name": "synthetic-browser (history-transportAndIdentity)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453325,
+        "name": "synthetic-browser (consilium-schedule)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453338,
+        "name": "synthetic-browser (history-unknownRace)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453349,
+        "name": "synthetic-browser (history-saving)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453350,
+        "name": "synthetic-browser (history-navigation)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453352,
+        "name": "synthetic-browser (history-unknownDenial)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453399,
+        "name": "synthetic-browser (history-objectRevocation)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453418,
+        "name": "synthetic-browser (history-unknownDraft)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453505,
+        "name": "synthetic-browser (quality-native-zoom)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453572,
+        "name": "synthetic-browser (consilium-records)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453627,
+        "name": "synthetic-browser (notifications)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453631,
+        "name": "synthetic-browser (ai)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453655,
+        "name": "synthetic-browser (wp-h)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453662,
+        "name": "synthetic-browser (create)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453764,
+        "name": "synthetic-browser (management-audit)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453789,
+        "name": "synthetic-browser (workspace)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 139468453913,
+        "name": "synthetic-browser (quality-owner)",
+        "status": "completed"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45688807818"
+  },
+  "permanentHistory": true,
+  "temporaryHistoryOverlay": false,
+  "historicalMatrixExactMatch": true,
+  "historicalRunId": 45663612243
+}

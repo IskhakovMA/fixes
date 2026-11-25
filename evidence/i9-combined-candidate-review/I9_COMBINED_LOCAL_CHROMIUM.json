@@ -1,0 +1,724 @@
+{
+  "candidate": "b5b408fe411f4431042eced96f0801cffb577a83",
+  "tree": "cd00d4d55140d377038783234cc204c602741869",
+  "syntheticLoopbackOnly": true,
+  "worktreeCleanAfter": true,
+  "productOverlays": false,
+  "frontendSha256": "82932058459a2b2ed880597405aa65510e5383a1c489c64adc83a0db7ff369e3",
+  "permanentHistorySha256": "5e508d73edc690b55edff2b5c35d04c6a003b9252924cd99ee3268812ca5da78",
+  "focus": {
+    "exitCode": 0,
+    "caseCount": 14,
+    "chromium": "151.0.7922.34",
+    "equivalentToFocusOnly": true,
+    "receiptSha256": "e9b075aadd0ffc43d925b12dc3b5b70bde49f6eeee509adeffaaa3906e96b359",
+    "results": [
+      {
+        "kind": "single",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            200
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "patientPageStatus",
+          "state": "ready",
+          "hidden": false,
+          "inert": false,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            200
+          ]
+        }
+      },
+      {
+        "kind": "double",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [
+          "sortOrderSelect",
+          "retryPatientListBtn"
+        ],
+        "writes": 0,
+        "axe": [],
+        "followup": null,
+        "terminal": {
+          "active": "retryPatientListBtn",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": true,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "double",
+        "width": 390,
+        "theme": "dark",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [
+          "openFiltersSheetBtn",
+          "retryPatientListBtn"
+        ],
+        "writes": 0,
+        "axe": [],
+        "followup": null,
+        "terminal": {
+          "active": "retryPatientListBtn",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": true,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "move-focus",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "searchInput",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "move-back",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "patientRegistryTitle",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "modal",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": "Escape closed modal",
+        "terminal": {
+          "active": "confirmCancelBtn",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "navigate",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "H1",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "calendar"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "stale-200",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 1,
+          "statuses": [
+            200
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": "real Back to registry and Forward to calendar",
+        "terminal": {
+          "active": "H1",
+          "state": "ready",
+          "hidden": false,
+          "inert": false,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "calendar"
+        },
+        "afterKeyboard": {
+          "requests": 1,
+          "statuses": [
+            200
+          ]
+        }
+      },
+      {
+        "kind": "401",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            401
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "username",
+          "state": "loading",
+          "hidden": false,
+          "inert": true,
+          "expired": true,
+          "errorDescribed": false,
+          "epoch": 1,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            401
+          ]
+        }
+      },
+      {
+        "kind": "context",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "username",
+          "state": "loading",
+          "hidden": false,
+          "inert": true,
+          "expired": true,
+          "errorDescribed": false,
+          "epoch": 1,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "network",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            "transport-failure"
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "patientRegistryTitle",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            "transport-failure"
+          ]
+        }
+      },
+      {
+        "kind": "cursor",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            410,
+            200
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "patientPageStatus",
+          "state": "ready",
+          "hidden": false,
+          "inert": false,
+          "expired": false,
+          "errorDescribed": false,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            410,
+            200
+          ]
+        }
+      },
+      {
+        "kind": "repeat-enter",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": null,
+        "terminal": {
+          "active": "retryPatientListBtn",
+          "state": "error",
+          "hidden": true,
+          "inert": true,
+          "expired": false,
+          "errorDescribed": true,
+          "epoch": 0,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            409
+          ]
+        }
+      },
+      {
+        "kind": "real-401",
+        "width": 1440,
+        "theme": "light",
+        "automatic": {
+          "requests": 2,
+          "statuses": [
+            409,
+            401
+          ]
+        },
+        "traversal": [],
+        "writes": 0,
+        "axe": null,
+        "followup": "real relogin and keyboard paging succeeded",
+        "terminal": {
+          "active": "username",
+          "state": "loading",
+          "hidden": false,
+          "inert": true,
+          "expired": true,
+          "errorDescribed": false,
+          "epoch": 1,
+          "view": "patients"
+        },
+        "afterKeyboard": {
+          "requests": 2,
+          "statuses": [
+            409,
+            401
+          ]
+        }
+      }
+    ]
+  },
+  "nativeZoom": {
+    "exitCode": 0,
+    "caseCount": 6,
+    "receiptSha256": "f6a7816ad97cacd5bcd36843703f0be7cc8983420e11a67d554bafe6461c18fd",
+    "syntheticOnly": true,
+    "browser": "151.0.7922.34",
+    "nativeChromeTabZoom": true,
+    "checks": [
+      {
+        "theme": "light",
+        "zoomPercent": 100,
+        "active": true,
+        "width": 1280,
+        "dpr": 1,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      },
+      {
+        "theme": "light",
+        "zoomPercent": 200,
+        "active": true,
+        "width": 640,
+        "dpr": 2,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      },
+      {
+        "theme": "light",
+        "zoomPercent": 400,
+        "active": true,
+        "width": 320,
+        "dpr": 4,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      },
+      {
+        "theme": "dark",
+        "zoomPercent": 100,
+        "active": true,
+        "width": 1280,
+        "dpr": 1,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      },
+      {
+        "theme": "dark",
+        "zoomPercent": 200,
+        "active": true,
+        "width": 640,
+        "dpr": 2,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      },
+      {
+        "theme": "dark",
+        "zoomPercent": 400,
+        "active": true,
+        "width": 320,
+        "dpr": 4,
+        "visualScale": 1,
+        "overflow": false,
+        "inViewport": true,
+        "hiddenOld": true,
+        "described": true,
+        "violations": [],
+        "automaticStatuses": [
+          409,
+          409
+        ],
+        "explicitRetryStatus": 200,
+        "clinicalWrites": 0
+      }
+    ]
+  },
+  "history": {
+    "scenarioCount": 7,
+    "groupCount": 16,
+    "axeStates": 8,
+    "permanentFile": true,
+    "scenarios": [
+      {
+        "scenario": "navigation",
+        "exitCode": 0,
+        "groups": [
+          "Eight real card tabs traverse Back/Forward without adding entries; authorized GET and medical read audit",
+          "Clinical draft cancel restores index and preserves Forward; explicit discard permits next transition",
+          "Click through calendar and analytics to authorized cards, with Back/Forward and focus",
+          "Create form Back cancellation preserves local input; explicit discard returns to registry",
+          "Chromium both themes, 320/375/768/1440 and WCAG 2.0/2.1 A/AA",
+          "Arrow navigation, reload and old history entries resolve to authorized registry, zero medical writes"
+        ],
+        "axeStates": 8,
+        "receiptSha256": "0ed9c3692b868dcc21741d933c17b897cee7d58c6a40e50a3ebed96ed95923a7"
+      },
+      {
+        "scenario": "saving",
+        "exitCode": 0,
+        "groups": [
+          "Pending explicit save blocks Back and never resubmits; real 409 retains manual original-version draft"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "cdaeb6e35147d667c216d827a10490e4aad61a7362695d48ecb6ec67b95af854"
+      },
+      {
+        "scenario": "transportAndIdentity",
+        "exitCode": 0,
+        "groups": [
+          "Opposite browser traversal beats delayed genuine HTTP 200 and retains authorized destination",
+          "Failed detail transport restores current location without revealing cached card",
+          "External document, revoked session (real 401), different login and unchanged RBAC (real audit 403)"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "c1d1f9ab3c297789e8a7a78fd7543652ec38a96ac68f3c153100fd1517bbd447"
+      },
+      {
+        "scenario": "objectRevocation",
+        "exitCode": 0,
+        "groups": [
+          "Real 404 after independently reassigned object; unchanged pre-restore epoch, previous card purged"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "ed39bd6caa39e6d81179f472a7cd561bed1b440c5aa0b40590926c580c9fb0bc"
+      },
+      {
+        "scenario": "unknownDraft",
+        "exitCode": 0,
+        "groups": [
+          "Unknown entry, stay: audited real GET, original DOM/draft/focus, only replaceState, zero medical writes",
+          "Unknown entry, leave: authorized registry, explicit draft discard, only replaceState, zero medical writes"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "a32fe65263f3719c7f6f5dcc290d9b59a913a43018aeb1f80eaf3b97a1009401"
+      },
+      {
+        "scenario": "unknownDenial",
+        "exitCode": 0,
+        "groups": [
+          "Unknown entry, stay denied by real 404: only replaceState, card and registry row purged before reload, zero medical writes"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "6253c37e7e3913132f253fbdfc145d4d1fb639fcc8d797bef8d2adff90090849",
+        "final": {
+          "screen": "patients",
+          "expectedFocus": true
+        }
+      },
+      {
+        "scenario": "unknownRace",
+        "exitCode": 0,
+        "groups": [
+          "Unknown stay race: held audited HTTP 200 cannot override the newer Back/Forward and confirmed exit",
+          "Unknown stay race: held audited HTTP 200 cannot restore card after real 401 and changed session epoch"
+        ],
+        "axeStates": 0,
+        "receiptSha256": "42bc78d9ebdc71b36d18f21737fc89adc69e127651ce6e64fb8cf1087f58c1f2"
+      }
+    ]
+  },
+  "quality": {
+    "exitCode": 0,
+    "roleCount": 7,
+    "receiptSha256": "c4985616acf55513830d0a2b4d6904136f97e8175fa100ac760dc2c7cd7d8419",
+    "chromium": "151.0.7922.34",
+    "checks": [
+      "five well-formed production requests retain coded 503; legacy remains available",
+      "real composite first/next/previous, one request per click, keyboard focus, no hidden traversal",
+      "real group pager, members and both facet selectors bound to the original root",
+      "registry and finding actions use fresh object GET; owner issue/groups/departments stay bounded",
+      "explicit second-page facet selection uses technical ID and header search; scope totals separate"
+    ],
+    "faultChecks": [
+      "late real 200 cannot replace newer 200 or synthetic terminal 503",
+      "injected 409 PATIENT_QUERY_CHANGED: one restart and terminal repeated failure",
+      "injected 410 CURSOR_EXPIRED: one restart and terminal repeated failure",
+      "injected 403 and neutral 404 do not render actionable member rows or retry",
+      "actual pending clinical write blocks navigation; cancel retains draft; only explicit save",
+      "real two-tab identity change rejects held old actor body",
+      "delayed failure of an old identity check cannot lock a freshly authenticated epoch",
+      "real 401 and real access-context 409 lock, re-auth and clear old rows without restart",
+      "real same-session owner 404 clears opened card, derived rows and existing draft without reauth"
+    ]
+  },
+  "diagnostics": {
+    "initialFocusExit": 1,
+    "classification": "local tooling environment before browser launch",
+    "cause": "installed Chromium cache path was omitted from isolated launcher environment",
+    "correctedVariable": "PLAYWRIGHT_BROWSERS_PATH",
+    "targetedRetryExit": 0,
+    "initialPrivateLogSha256": "54c039f89bf396c0ea91d70fe560c1e8219d9a1cd532c4bf66acf61dd22c1fb0"
+  }
+}
