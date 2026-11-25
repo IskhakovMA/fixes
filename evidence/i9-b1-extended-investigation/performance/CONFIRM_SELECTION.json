@@ -1,0 +1,83 @@
+{
+  "source_exploratory_sha256": "6afb14fc2694e8854a8ab62d18c7044f4969af75dd750920134e20cd520f21bb",
+  "selection": "wide scope, lower offered mixed pressure than prior failure; both arms have 200s and equal confirmed PATCH counts in exploration; priority head, then developer. Chosen once from six exploratory cells; no pilot reused.",
+  "profile": {
+    "role": "head",
+    "count": 10000,
+    "readers": 4,
+    "get_total_hz": "6",
+    "patch_hz": "1"
+  },
+  "scope": "independent holdout of the frozen synthetic boundary profile only; no general performance or acceptance gate",
+  "paired_samples": 6,
+  "power": "six symmetric pairs is a bounded confirmation effort, not exact power or assigned threshold; wide intervals remain inconclusive",
+  "order": "3 AB and 3 BA, alternating in given chronological pair order",
+  "primary": "paired B1−A change of HTTP 200 inside the window divided by all offered GET",
+  "secondary": [
+    "GET 200 including drain divided by offered",
+    "GET 409 divided by offered",
+    "client_busy/offered",
+    "dispatched latency p50/p95",
+    "COMMIT count and timing in both arms",
+    "scheduled slot outcomes and integrity"
+  ],
+  "reported_interval": "exact 729 stratified bootstrap resamples of paired deltas with nearest-rank 2.5th/97.5th percentiles; each unit is a pair; no pooling by requests",
+  "analysis_stop": "stop on safety failure; no early stop for preferred outcomes. No partial pair substitution or repeated failed tests; preserve rejected receipts and report inconclusive when incomplete.",
+  "direction_diagnostic": "report consistency including AB and BA means, pair signs and interval, separate stability facts from owner approval; no significance/test reach threshold contingent on outcome.",
+  "cells": [
+    {
+      "cell": "confirm-00",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    },
+    {
+      "cell": "confirm-01",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    },
+    {
+      "cell": "confirm-02",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    },
+    {
+      "cell": "confirm-03",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    },
+    {
+      "cell": "confirm-04",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    },
+    {
+      "cell": "confirm-05",
+      "count": 10000,
+      "role": "head",
+      "readers": 4,
+      "seconds": 30,
+      "get_total_hz": "6",
+      "patch_hz": "1"
+    }
+  ]
+}

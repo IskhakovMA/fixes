@@ -1,0 +1,2156 @@
+{
+  "plan_sha256": "13fb180b07eb9ca6fa2a9b49505ed86035c708d4b25a1ecab25f62fd77114858",
+  "mode": "explore",
+  "arm_count": 12,
+  "arms": [
+    {
+      "profile": {
+        "cell": "explore-00",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "12",
+        "patch_hz": "0",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "A–B1",
+        "name": "explore-00-A",
+        "get_hz_per_session": "3",
+        "offered": {
+          "GET": 60
+        },
+        "slots_sha256": "28a0768803847091676dee602d3249521ea482d1c97ac7d7e6a634e6656ada75"
+      },
+      "receipt_sha256": "5db72e13e8a1b097c59a896800498cdb33611dc9977c70d58585cc7c49bc21f6",
+      "methods": {
+        "GET": {
+          "offered": 60,
+          "dispatched": 13,
+          "within_window_http": 9,
+          "drained_http": 4,
+          "success_200_after_cutoff": 2,
+          "outcomes": {
+            "http_200": 6,
+            "http_409": 7,
+            "client_busy": 47
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 7
+          },
+          "synthetic_conflict_causes": {
+            "technical_read_audit": 7
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 881,
+          "phases": {
+            "dispatch_drift": {
+              "n": 13,
+              "p50_ms": 15.408,
+              "p95_ms": 53.412
+            },
+            "dispatch_to_completion": {
+              "n": 13,
+              "p50_ms": 1495.566,
+              "p95_ms": 2075.933
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 6,
+              "p50_ms": 1432.901,
+              "p95_ms": 2075.933
+            },
+            "sampled_original_snapshot": {
+              "n": 13,
+              "p50_ms": 654.981,
+              "p95_ms": 1054.901
+            },
+            "sampled_validation_snapshot": {
+              "n": 13,
+              "p50_ms": 618.914,
+              "p95_ms": 941.376
+            },
+            "original_fingerprint_build": {
+              "n": 13,
+              "p50_ms": 39.285,
+              "p95_ms": 51.519
+            },
+            "validation_fingerprint_build": {
+              "n": 13,
+              "p50_ms": 41.03,
+              "p95_ms": 42.228
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 13,
+              "p50_ms": 0.28,
+              "p95_ms": 61.189
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 26,
+              "p50_ms": 0.025,
+              "p95_ms": 0.053
+            },
+            "fresh_reader": {
+              "n": 26,
+              "p50_ms": 0.258,
+              "p95_ms": 11.737
+            },
+            "persist_wall": {
+              "n": 13,
+              "p50_ms": 893.455,
+              "p95_ms": 1109.973
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 13,
+              "p50_ms": 0.821,
+              "p95_ms": 71.756
+            },
+            "release_native_commit": {
+              "n": 6,
+              "p50_ms": 0.275,
+              "p95_ms": 0.385
+            },
+            "http_body_to_client_completion": {
+              "n": 13,
+              "p50_ms": 2.564,
+              "p95_ms": 9.808
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 13,
+              "p50_ms": 790.014,
+              "p95_ms": 1111.308
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 0,
+          "dispatched": 0,
+          "within_window_http": 0,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {},
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": null,
+          "phases": {
+            "dispatch_drift": null,
+            "dispatch_to_completion": null,
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": null,
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 2,
+        "409": 6
+      },
+      "get_409_writer_outside_page_confirmed": 7
+    },
+    {
+      "profile": {
+        "cell": "explore-00",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "12",
+        "patch_hz": "0",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "A–B1",
+        "name": "explore-00-B1",
+        "get_hz_per_session": "3",
+        "offered": {
+          "GET": 60
+        },
+        "slots_sha256": "28a0768803847091676dee602d3249521ea482d1c97ac7d7e6a634e6656ada75"
+      },
+      "receipt_sha256": "03e38be7bf57bf0483bd9fb6d6624535b57ae0e2be23897bb2eded1ecc618636",
+      "methods": {
+        "GET": {
+          "offered": 60,
+          "dispatched": 15,
+          "within_window_http": 12,
+          "drained_http": 3,
+          "success_200_after_cutoff": 3,
+          "outcomes": {
+            "http_200": 15,
+            "client_busy": 45
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 108,
+          "phases": {
+            "dispatch_drift": {
+              "n": 15,
+              "p50_ms": 5.651,
+              "p95_ms": 69.342
+            },
+            "dispatch_to_completion": {
+              "n": 15,
+              "p50_ms": 1255.611,
+              "p95_ms": 1867.666
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 15,
+              "p50_ms": 1255.611,
+              "p95_ms": 1867.666
+            },
+            "sampled_original_snapshot": {
+              "n": 15,
+              "p50_ms": 369.675,
+              "p95_ms": 956.352
+            },
+            "sampled_validation_snapshot": {
+              "n": 15,
+              "p50_ms": 340.065,
+              "p95_ms": 843.606
+            },
+            "original_fingerprint_build": {
+              "n": 15,
+              "p50_ms": 40.122,
+              "p95_ms": 53.378
+            },
+            "validation_fingerprint_build": {
+              "n": 15,
+              "p50_ms": 40.838,
+              "p95_ms": 42.877
+            },
+            "ordered_release_wait": {
+              "n": 15,
+              "p50_ms": 362.195,
+              "p95_ms": 574.922
+            },
+            "sqlite_release_begin_wait": {
+              "n": 15,
+              "p50_ms": 0.025,
+              "p95_ms": 0.054
+            },
+            "release_admission_wall": {
+              "n": 15,
+              "p50_ms": 1.65,
+              "p95_ms": 2.426
+            },
+            "check_data_version": {
+              "n": 30,
+              "p50_ms": 0.021,
+              "p95_ms": 0.034
+            },
+            "fresh_reader": {
+              "n": 30,
+              "p50_ms": 0.126,
+              "p95_ms": 0.227
+            },
+            "persist_wall": {
+              "n": 15,
+              "p50_ms": 721.031,
+              "p95_ms": 915.75
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 15,
+              "p50_ms": 2.87,
+              "p95_ms": 4.101
+            },
+            "release_native_commit": {
+              "n": 15,
+              "p50_ms": 0.331,
+              "p95_ms": 0.357
+            },
+            "http_body_to_client_completion": {
+              "n": 15,
+              "p50_ms": 2.593,
+              "p95_ms": 2.885
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 15,
+              "p50_ms": 855.763,
+              "p95_ms": 1509.777
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 0,
+          "dispatched": 0,
+          "within_window_http": 0,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {},
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": null,
+          "phases": {
+            "dispatch_drift": null,
+            "dispatch_to_completion": null,
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": null,
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 0
+    },
+    {
+      "profile": {
+        "cell": "explore-01",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "12",
+        "patch_hz": "0",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "B1–A",
+        "name": "explore-01-B1",
+        "get_hz_per_session": "3",
+        "offered": {
+          "GET": 60
+        },
+        "slots_sha256": "28a0768803847091676dee602d3249521ea482d1c97ac7d7e6a634e6656ada75"
+      },
+      "receipt_sha256": "7d5317e18a4c3907b926051a5857f0f5af48c11290d0142a4c273dba86cc1637",
+      "methods": {
+        "GET": {
+          "offered": 60,
+          "dispatched": 21,
+          "within_window_http": 18,
+          "drained_http": 3,
+          "success_200_after_cutoff": 3,
+          "outcomes": {
+            "http_200": 21,
+            "client_busy": 39
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 111,
+          "phases": {
+            "dispatch_drift": {
+              "n": 21,
+              "p50_ms": 13.202,
+              "p95_ms": 33.948
+            },
+            "dispatch_to_completion": {
+              "n": 21,
+              "p50_ms": 805.399,
+              "p95_ms": 1052.941
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 21,
+              "p50_ms": 805.399,
+              "p95_ms": 1052.941
+            },
+            "sampled_original_snapshot": {
+              "n": 21,
+              "p50_ms": 360.876,
+              "p95_ms": 577.9
+            },
+            "sampled_validation_snapshot": {
+              "n": 21,
+              "p50_ms": 199.627,
+              "p95_ms": 391.788
+            },
+            "original_fingerprint_build": {
+              "n": 21,
+              "p50_ms": 30.191,
+              "p95_ms": 33.656
+            },
+            "validation_fingerprint_build": {
+              "n": 21,
+              "p50_ms": 30.544,
+              "p95_ms": 61.236
+            },
+            "ordered_release_wait": {
+              "n": 21,
+              "p50_ms": 207.736,
+              "p95_ms": 303.893
+            },
+            "sqlite_release_begin_wait": {
+              "n": 21,
+              "p50_ms": 0.021,
+              "p95_ms": 0.132
+            },
+            "release_admission_wall": {
+              "n": 21,
+              "p50_ms": 1.836,
+              "p95_ms": 5.092
+            },
+            "check_data_version": {
+              "n": 42,
+              "p50_ms": 0.019,
+              "p95_ms": 0.059
+            },
+            "fresh_reader": {
+              "n": 42,
+              "p50_ms": 0.157,
+              "p95_ms": 0.545
+            },
+            "persist_wall": {
+              "n": 21,
+              "p50_ms": 425.631,
+              "p95_ms": 530.508
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 21,
+              "p50_ms": 5.232,
+              "p95_ms": 10.551
+            },
+            "release_native_commit": {
+              "n": 21,
+              "p50_ms": 0.313,
+              "p95_ms": 0.375
+            },
+            "http_body_to_client_completion": {
+              "n": 21,
+              "p50_ms": 2.387,
+              "p95_ms": 55.629
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 21,
+              "p50_ms": 471.232,
+              "p95_ms": 865.939
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 0,
+          "dispatched": 0,
+          "within_window_http": 0,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {},
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": null,
+          "phases": {
+            "dispatch_drift": null,
+            "dispatch_to_completion": null,
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": null,
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 0
+    },
+    {
+      "profile": {
+        "cell": "explore-01",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "12",
+        "patch_hz": "0",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "B1–A",
+        "name": "explore-01-A",
+        "get_hz_per_session": "3",
+        "offered": {
+          "GET": 60
+        },
+        "slots_sha256": "28a0768803847091676dee602d3249521ea482d1c97ac7d7e6a634e6656ada75"
+      },
+      "receipt_sha256": "343ece8cde97925122465d60f6d95dacd4d205041af3f5a11e33f9a16e453681",
+      "methods": {
+        "GET": {
+          "offered": 60,
+          "dispatched": 18,
+          "within_window_http": 14,
+          "drained_http": 4,
+          "success_200_after_cutoff": 2,
+          "outcomes": {
+            "http_200": 8,
+            "http_409": 10,
+            "client_busy": 42
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 10
+          },
+          "synthetic_conflict_causes": {
+            "technical_read_audit": 10
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 884.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 18,
+              "p50_ms": 6.804,
+              "p95_ms": 60.967
+            },
+            "dispatch_to_completion": {
+              "n": 18,
+              "p50_ms": 1109.748,
+              "p95_ms": 1233.893
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 8,
+              "p50_ms": 1009.246,
+              "p95_ms": 1228.883
+            },
+            "sampled_original_snapshot": {
+              "n": 18,
+              "p50_ms": 402.253,
+              "p95_ms": 682.334
+            },
+            "sampled_validation_snapshot": {
+              "n": 18,
+              "p50_ms": 489.007,
+              "p95_ms": 745.162
+            },
+            "original_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 29.617,
+              "p95_ms": 40.295
+            },
+            "validation_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.789,
+              "p95_ms": 34.467
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 18,
+              "p50_ms": 0.19,
+              "p95_ms": 60.99
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 36,
+              "p50_ms": 0.022,
+              "p95_ms": 0.105
+            },
+            "fresh_reader": {
+              "n": 36,
+              "p50_ms": 0.535,
+              "p95_ms": 2.383
+            },
+            "persist_wall": {
+              "n": 18,
+              "p50_ms": 588.272,
+              "p95_ms": 848.071
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 18,
+              "p50_ms": 0.844,
+              "p95_ms": 50.397
+            },
+            "release_native_commit": {
+              "n": 8,
+              "p50_ms": 0.322,
+              "p95_ms": 0.361
+            },
+            "http_body_to_client_completion": {
+              "n": 18,
+              "p50_ms": 2.15,
+              "p95_ms": 79.362
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 18,
+              "p50_ms": 469.91,
+              "p95_ms": 801.835
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 0,
+          "dispatched": 0,
+          "within_window_http": 0,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {},
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": null,
+          "phases": {
+            "dispatch_drift": null,
+            "dispatch_to_completion": null,
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": null,
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "409": 6,
+        "200": 2
+      },
+      "get_409_writer_outside_page_confirmed": 10
+    },
+    {
+      "profile": {
+        "cell": "explore-02",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "1",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "A–B1",
+        "name": "explore-02-A",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 5
+        },
+        "slots_sha256": "ca66f8c3251ef0b723ca9cd43de67e94bf9e1fb99ed6fe1795a06cc8b37c1a1f"
+      },
+      "receipt_sha256": "b2f3024e0dcbbb90f65e71fc90629ba122ad39604dcf70d9a478441179643024",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 14,
+          "within_window_http": 11,
+          "drained_http": 3,
+          "success_200_after_cutoff": 1,
+          "outcomes": {
+            "http_409": 11,
+            "http_200": 3,
+            "client_busy": 16
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 11
+          },
+          "synthetic_conflict_causes": {
+            "medical": 9,
+            "technical_read_audit": 2
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 881.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 14,
+              "p50_ms": 21.275,
+              "p95_ms": 68.571
+            },
+            "dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 1385.98,
+              "p95_ms": 1765.027
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 3,
+              "p50_ms": 1214.367,
+              "p95_ms": 1303.835
+            },
+            "sampled_original_snapshot": {
+              "n": 14,
+              "p50_ms": 657.371,
+              "p95_ms": 983.296
+            },
+            "sampled_validation_snapshot": {
+              "n": 14,
+              "p50_ms": 643.74,
+              "p95_ms": 858.249
+            },
+            "original_fingerprint_build": {
+              "n": 14,
+              "p50_ms": 38.528,
+              "p95_ms": 87.576
+            },
+            "validation_fingerprint_build": {
+              "n": 14,
+              "p50_ms": 39.613,
+              "p95_ms": 43.395
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 14,
+              "p50_ms": 0.138,
+              "p95_ms": 31.944
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 22,
+              "p50_ms": 0.025,
+              "p95_ms": 0.059
+            },
+            "fresh_reader": {
+              "n": 28,
+              "p50_ms": 0.238,
+              "p95_ms": 0.545
+            },
+            "persist_wall": {
+              "n": 14,
+              "p50_ms": 755.362,
+              "p95_ms": 988.584
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 14,
+              "p50_ms": 0.356,
+              "p95_ms": 75.674
+            },
+            "release_native_commit": {
+              "n": 3,
+              "p50_ms": 0.4,
+              "p95_ms": 0.401
+            },
+            "http_body_to_client_completion": {
+              "n": 14,
+              "p50_ms": 2.457,
+              "p95_ms": 46.031
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 14,
+              "p50_ms": 830.114,
+              "p95_ms": 1020.205
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 5,
+          "dispatched": 5,
+          "within_window_http": 5,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 5
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            46.047,
+            1467.54,
+            2136.983,
+            3161.611,
+            3975.364
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 5,
+              "p50_ms": 5.972,
+              "p95_ms": 25.657
+            },
+            "dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 14.104,
+              "p95_ms": 454.452
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 14.104,
+              "p95_ms": 454.452
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 5,
+              "p50_ms": 1.385,
+              "p95_ms": 1.754
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 2,
+        "409": 6
+      },
+      "get_409_writer_outside_page_confirmed": 11
+    },
+    {
+      "profile": {
+        "cell": "explore-02",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "1",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "A–B1",
+        "name": "explore-02-B1",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 5
+        },
+        "slots_sha256": "ca66f8c3251ef0b723ca9cd43de67e94bf9e1fb99ed6fe1795a06cc8b37c1a1f"
+      },
+      "receipt_sha256": "76625cc351c7db810d5d7d718febe6df12f4390fb7341c9fc292a6e68cecbb0a",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 14,
+          "within_window_http": 11,
+          "drained_http": 3,
+          "success_200_after_cutoff": 2,
+          "outcomes": {
+            "http_409": 11,
+            "http_200": 3,
+            "client_busy": 16
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 11
+          },
+          "synthetic_conflict_causes": {
+            "medical": 11
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 54.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 14,
+              "p50_ms": 17.5,
+              "p95_ms": 51.89
+            },
+            "dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 1167.916,
+              "p95_ms": 1708.597
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 3,
+              "p50_ms": 1028.971,
+              "p95_ms": 1097.353
+            },
+            "sampled_original_snapshot": {
+              "n": 14,
+              "p50_ms": 461.783,
+              "p95_ms": 845.879
+            },
+            "sampled_validation_snapshot": {
+              "n": 14,
+              "p50_ms": 323.561,
+              "p95_ms": 774.238
+            },
+            "original_fingerprint_build": {
+              "n": 14,
+              "p50_ms": 39.944,
+              "p95_ms": 84.13
+            },
+            "validation_fingerprint_build": {
+              "n": 14,
+              "p50_ms": 40.107,
+              "p95_ms": 102.144
+            },
+            "ordered_release_wait": {
+              "n": 14,
+              "p50_ms": 347.554,
+              "p95_ms": 696.632
+            },
+            "sqlite_release_begin_wait": {
+              "n": 14,
+              "p50_ms": 0.065,
+              "p95_ms": 55.834
+            },
+            "release_admission_wall": {
+              "n": 14,
+              "p50_ms": 1.764,
+              "p95_ms": 52.675
+            },
+            "check_data_version": {
+              "n": 18,
+              "p50_ms": 0.023,
+              "p95_ms": 0.054
+            },
+            "fresh_reader": {
+              "n": 28,
+              "p50_ms": 0.128,
+              "p95_ms": 0.323
+            },
+            "persist_wall": {
+              "n": 14,
+              "p50_ms": 713.451,
+              "p95_ms": 924.255
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 14,
+              "p50_ms": 2.075,
+              "p95_ms": 54.491
+            },
+            "release_native_commit": {
+              "n": 3,
+              "p50_ms": 0.337,
+              "p95_ms": 0.353
+            },
+            "http_body_to_client_completion": {
+              "n": 14,
+              "p50_ms": 2.886,
+              "p95_ms": 8.347
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 14,
+              "p50_ms": 823.123,
+              "p95_ms": 1544.398
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 5,
+          "dispatched": 5,
+          "within_window_http": 5,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 5
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            45.257,
+            1298.624,
+            2222.698,
+            3162.129,
+            4043.656
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 5,
+              "p50_ms": 72.959,
+              "p95_ms": 118.604
+            },
+            "dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 16.992,
+              "p95_ms": 193.193
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 16.992,
+              "p95_ms": 193.193
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 5,
+              "p50_ms": 1.377,
+              "p95_ms": 2.754
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 11
+    },
+    {
+      "profile": {
+        "cell": "explore-03",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "1",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "B1–A",
+        "name": "explore-03-B1",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 5
+        },
+        "slots_sha256": "ca66f8c3251ef0b723ca9cd43de67e94bf9e1fb99ed6fe1795a06cc8b37c1a1f"
+      },
+      "receipt_sha256": "1d115dace71b4f4391257e62a14cbd987ffc884272d1f490e7aa7311ca9a7454",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 18,
+          "within_window_http": 18,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_409": 8,
+            "http_200": 10,
+            "client_busy": 12
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 8
+          },
+          "synthetic_conflict_causes": {
+            "medical": 6,
+            "UNKNOWN": 2
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 111.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 18,
+              "p50_ms": 3.105,
+              "p95_ms": 54.733
+            },
+            "dispatch_to_completion": {
+              "n": 18,
+              "p50_ms": 707.336,
+              "p95_ms": 763.724
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 10,
+              "p50_ms": 693.425,
+              "p95_ms": 751.443
+            },
+            "sampled_original_snapshot": {
+              "n": 18,
+              "p50_ms": 223.3,
+              "p95_ms": 377.549
+            },
+            "sampled_validation_snapshot": {
+              "n": 18,
+              "p50_ms": 169.051,
+              "p95_ms": 391.756
+            },
+            "original_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.705,
+              "p95_ms": 47.872
+            },
+            "validation_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 31.2,
+              "p95_ms": 66.357
+            },
+            "ordered_release_wait": {
+              "n": 18,
+              "p50_ms": 159.239,
+              "p95_ms": 278.002
+            },
+            "sqlite_release_begin_wait": {
+              "n": 18,
+              "p50_ms": 0.027,
+              "p95_ms": 35.625
+            },
+            "release_admission_wall": {
+              "n": 18,
+              "p50_ms": 1.926,
+              "p95_ms": 3.302
+            },
+            "check_data_version": {
+              "n": 29,
+              "p50_ms": 0.021,
+              "p95_ms": 0.068
+            },
+            "fresh_reader": {
+              "n": 36,
+              "p50_ms": 0.129,
+              "p95_ms": 0.441
+            },
+            "persist_wall": {
+              "n": 18,
+              "p50_ms": 337.401,
+              "p95_ms": 497.727
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 18,
+              "p50_ms": 2.513,
+              "p95_ms": 10.395
+            },
+            "release_native_commit": {
+              "n": 10,
+              "p50_ms": 0.326,
+              "p95_ms": 2.596
+            },
+            "http_body_to_client_completion": {
+              "n": 18,
+              "p50_ms": 1.979,
+              "p95_ms": 3.585
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 18,
+              "p50_ms": 364.16,
+              "p95_ms": 585.376
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 5,
+          "dispatched": 5,
+          "within_window_http": 5,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 5
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            48.455,
+            1064.705,
+            2099.917,
+            3210.387,
+            4008.968
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 5,
+              "p50_ms": 19.844,
+              "p95_ms": 33.056
+            },
+            "dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 21.483,
+              "p95_ms": 51.548
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 21.483,
+              "p95_ms": 51.548
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 5,
+              "p50_ms": 1.461,
+              "p95_ms": 2.589
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 8
+    },
+    {
+      "profile": {
+        "cell": "explore-03",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "1",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "B1–A",
+        "name": "explore-03-A",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 5
+        },
+        "slots_sha256": "ca66f8c3251ef0b723ca9cd43de67e94bf9e1fb99ed6fe1795a06cc8b37c1a1f"
+      },
+      "receipt_sha256": "e0aba437a371baf3b154012a9281fe3b6b2e8a25bda4fe04797cc9c1b5f99174",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 18,
+          "within_window_http": 15,
+          "drained_http": 3,
+          "success_200_after_cutoff": 1,
+          "outcomes": {
+            "http_409": 15,
+            "http_200": 3,
+            "client_busy": 12
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 15
+          },
+          "synthetic_conflict_causes": {
+            "medical": 11,
+            "UNKNOWN": 2,
+            "technical_read_audit": 2
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 884.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 18,
+              "p50_ms": 2.41,
+              "p95_ms": 58.773
+            },
+            "dispatch_to_completion": {
+              "n": 18,
+              "p50_ms": 1000.061,
+              "p95_ms": 1267.138
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 3,
+              "p50_ms": 623.418,
+              "p95_ms": 670.727
+            },
+            "sampled_original_snapshot": {
+              "n": 18,
+              "p50_ms": 365.582,
+              "p95_ms": 723.029
+            },
+            "sampled_validation_snapshot": {
+              "n": 18,
+              "p50_ms": 370.978,
+              "p95_ms": 679.663
+            },
+            "original_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.715,
+              "p95_ms": 34.77
+            },
+            "validation_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 31.822,
+              "p95_ms": 38.297
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 18,
+              "p50_ms": 0.123,
+              "p95_ms": 66.17
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 29,
+              "p50_ms": 0.023,
+              "p95_ms": 0.073
+            },
+            "fresh_reader": {
+              "n": 36,
+              "p50_ms": 0.498,
+              "p95_ms": 7.115
+            },
+            "persist_wall": {
+              "n": 18,
+              "p50_ms": 514.217,
+              "p95_ms": 821.869
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 18,
+              "p50_ms": 0.583,
+              "p95_ms": 21.445
+            },
+            "release_native_commit": {
+              "n": 3,
+              "p50_ms": 0.399,
+              "p95_ms": 0.789
+            },
+            "http_body_to_client_completion": {
+              "n": 18,
+              "p50_ms": 2.287,
+              "p95_ms": 75.02
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 18,
+              "p50_ms": 405.892,
+              "p95_ms": 854.949
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 5,
+          "dispatched": 5,
+          "within_window_http": 5,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 5
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            46.759,
+            1188.106,
+            2143.277,
+            3161.019,
+            3981.502
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 5,
+              "p50_ms": 8.148,
+              "p95_ms": 18.17
+            },
+            "dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 18.717,
+              "p95_ms": 183.92
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 5,
+              "p50_ms": 18.717,
+              "p95_ms": 183.92
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 5,
+              "p50_ms": 1.765,
+              "p95_ms": 2.124
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "409": 5,
+        "200": 3
+      },
+      "get_409_writer_outside_page_confirmed": 15
+    },
+    {
+      "profile": {
+        "cell": "explore-04",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "3",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "A–B1",
+        "name": "explore-04-A",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 15
+        },
+        "slots_sha256": "0fe4b8c475849f65d73c7d976d7b558ce94a2a01287f2c8e574b1068870f0b77"
+      },
+      "receipt_sha256": "3ad9109f08bce82c528ba564948effd724930bdd60ac86280958e3c29981aa5d",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 13,
+          "within_window_http": 9,
+          "drained_http": 4,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_409": 13,
+            "client_busy": 17
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 13
+          },
+          "synthetic_conflict_causes": {
+            "medical": 13
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 880,
+          "phases": {
+            "dispatch_drift": {
+              "n": 13,
+              "p50_ms": 19.938,
+              "p95_ms": 92.404
+            },
+            "dispatch_to_completion": {
+              "n": 13,
+              "p50_ms": 1750.888,
+              "p95_ms": 2012.426
+            },
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": {
+              "n": 13,
+              "p50_ms": 777.302,
+              "p95_ms": 990.078
+            },
+            "sampled_validation_snapshot": {
+              "n": 13,
+              "p50_ms": 819.991,
+              "p95_ms": 934.359
+            },
+            "original_fingerprint_build": {
+              "n": 13,
+              "p50_ms": 39.654,
+              "p95_ms": 73.884
+            },
+            "validation_fingerprint_build": {
+              "n": 13,
+              "p50_ms": 41.776,
+              "p95_ms": 75.421
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 13,
+              "p50_ms": 3.92,
+              "p95_ms": 40.65
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 14,
+              "p50_ms": 0.029,
+              "p95_ms": 0.091
+            },
+            "fresh_reader": {
+              "n": 26,
+              "p50_ms": 0.228,
+              "p95_ms": 0.788
+            },
+            "persist_wall": {
+              "n": 13,
+              "p50_ms": 983.21,
+              "p95_ms": 1138.288
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 13,
+              "p50_ms": 0.242,
+              "p95_ms": 1.25
+            },
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 13,
+              "p50_ms": 2.301,
+              "p95_ms": 8.391
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 13,
+              "p50_ms": 990.72,
+              "p95_ms": 1072.17
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 15,
+          "dispatched": 13,
+          "within_window_http": 13,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 13,
+            "client_busy": 2
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            45.263,
+            608.183,
+            727.467,
+            1580.861,
+            1715.962,
+            2121.878,
+            2628.201,
+            2707.186,
+            3593.258,
+            3718.921,
+            4151.249,
+            4628.404,
+            4684.296
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 13,
+              "p50_ms": 2.622,
+              "p95_ms": 106.523
+            },
+            "dispatch_to_completion": {
+              "n": 13,
+              "p50_ms": 38.603,
+              "p95_ms": 558.799
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 13,
+              "p50_ms": 38.603,
+              "p95_ms": 558.799
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 13,
+              "p50_ms": 1.607,
+              "p95_ms": 8.847
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "409": 6,
+        "200": 2
+      },
+      "get_409_writer_outside_page_confirmed": 13
+    },
+    {
+      "profile": {
+        "cell": "explore-04",
+        "count": 10000,
+        "role": "developer",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "3",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "A–B1",
+        "name": "explore-04-B1",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 15
+        },
+        "slots_sha256": "0fe4b8c475849f65d73c7d976d7b558ce94a2a01287f2c8e574b1068870f0b77"
+      },
+      "receipt_sha256": "be42c52b4200cb9ab48a2ff9e789ba186c05b3f9b916d3626468dd23b275adc9",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 15,
+          "within_window_http": 11,
+          "drained_http": 4,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_409": 15,
+            "client_busy": 15
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 15
+          },
+          "synthetic_conflict_causes": {
+            "medical": 15
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 54,
+          "phases": {
+            "dispatch_drift": {
+              "n": 15,
+              "p50_ms": 22.728,
+              "p95_ms": 47.394
+            },
+            "dispatch_to_completion": {
+              "n": 15,
+              "p50_ms": 1250.558,
+              "p95_ms": 1738.968
+            },
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": {
+              "n": 15,
+              "p50_ms": 542.669,
+              "p95_ms": 902.056
+            },
+            "sampled_validation_snapshot": {
+              "n": 15,
+              "p50_ms": 322.836,
+              "p95_ms": 767.557
+            },
+            "original_fingerprint_build": {
+              "n": 15,
+              "p50_ms": 38.983,
+              "p95_ms": 87.318
+            },
+            "validation_fingerprint_build": {
+              "n": 15,
+              "p50_ms": 40.629,
+              "p95_ms": 83.518
+            },
+            "ordered_release_wait": {
+              "n": 15,
+              "p50_ms": 351.925,
+              "p95_ms": 567.684
+            },
+            "sqlite_release_begin_wait": {
+              "n": 15,
+              "p50_ms": 0.082,
+              "p95_ms": 11.584
+            },
+            "release_admission_wall": {
+              "n": 15,
+              "p50_ms": 2.891,
+              "p95_ms": 133.102
+            },
+            "check_data_version": {
+              "n": 16,
+              "p50_ms": 0.025,
+              "p95_ms": 0.066
+            },
+            "fresh_reader": {
+              "n": 30,
+              "p50_ms": 0.126,
+              "p95_ms": 0.341
+            },
+            "persist_wall": {
+              "n": 15,
+              "p50_ms": 713.158,
+              "p95_ms": 966.399
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 15,
+              "p50_ms": 3.004,
+              "p95_ms": 133.394
+            },
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 15,
+              "p50_ms": 4.035,
+              "p95_ms": 10.526
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 15,
+              "p50_ms": 908.231,
+              "p95_ms": 1416.421
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 15,
+          "dispatched": 14,
+          "within_window_http": 14,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 14,
+            "client_busy": 1
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            45.176,
+            571.35,
+            728.584,
+            1377.264,
+            1741.149,
+            2089.021,
+            2405.335,
+            2778.457,
+            3166.391,
+            3434.881,
+            3733.286,
+            4074.19,
+            4419.501,
+            4684.817
+          ],
+          "sql_operator_p50": 33.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 14,
+              "p50_ms": 22.283,
+              "p95_ms": 191.005
+            },
+            "dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 17.102,
+              "p95_ms": 238.187
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 17.102,
+              "p95_ms": 238.187
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 14,
+              "p50_ms": 1.71,
+              "p95_ms": 3.004
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 15
+    },
+    {
+      "profile": {
+        "cell": "explore-05",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "3",
+        "arm": "B1",
+        "sha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+        "order": "B1–A",
+        "name": "explore-05-B1",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 15
+        },
+        "slots_sha256": "0fe4b8c475849f65d73c7d976d7b558ce94a2a01287f2c8e574b1068870f0b77"
+      },
+      "receipt_sha256": "5ef02c02588126d1e939c32e328d86756e28e18333a9005e9b810fc404651d83",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 18,
+          "within_window_http": 18,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_409": 18,
+            "client_busy": 12
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 18
+          },
+          "synthetic_conflict_causes": {
+            "medical": 15,
+            "UNKNOWN": 3
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 57.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 18,
+              "p50_ms": 1.858,
+              "p95_ms": 37.036
+            },
+            "dispatch_to_completion": {
+              "n": 18,
+              "p50_ms": 742.463,
+              "p95_ms": 895.272
+            },
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": {
+              "n": 18,
+              "p50_ms": 232.301,
+              "p95_ms": 412.396
+            },
+            "sampled_validation_snapshot": {
+              "n": 18,
+              "p50_ms": 202.154,
+              "p95_ms": 393.687
+            },
+            "original_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.026,
+              "p95_ms": 34.005
+            },
+            "validation_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.885,
+              "p95_ms": 63.012
+            },
+            "ordered_release_wait": {
+              "n": 18,
+              "p50_ms": 151.298,
+              "p95_ms": 327.389
+            },
+            "sqlite_release_begin_wait": {
+              "n": 18,
+              "p50_ms": 0.047,
+              "p95_ms": 4.697
+            },
+            "release_admission_wall": {
+              "n": 18,
+              "p50_ms": 1.931,
+              "p95_ms": 35.307
+            },
+            "check_data_version": {
+              "n": 19,
+              "p50_ms": 0.021,
+              "p95_ms": 0.102
+            },
+            "fresh_reader": {
+              "n": 36,
+              "p50_ms": 0.147,
+              "p95_ms": 0.908
+            },
+            "persist_wall": {
+              "n": 18,
+              "p50_ms": 339.831,
+              "p95_ms": 508.966
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 18,
+              "p50_ms": 2.199,
+              "p95_ms": 38.109
+            },
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 18,
+              "p50_ms": 2.041,
+              "p95_ms": 4.067
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 18,
+              "p50_ms": 380.004,
+              "p95_ms": 698.088
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 15,
+          "dispatched": 15,
+          "within_window_http": 15,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 15
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            46.034,
+            409.294,
+            820.586,
+            1112.558,
+            1351.898,
+            1712.473,
+            2085.667,
+            2353.753,
+            2748.282,
+            3074.375,
+            3494.565,
+            3787.848,
+            4103.108,
+            4412.802,
+            4729.35
+          ],
+          "sql_operator_p50": 33,
+          "phases": {
+            "dispatch_drift": {
+              "n": 15,
+              "p50_ms": 13.476,
+              "p95_ms": 54.856
+            },
+            "dispatch_to_completion": {
+              "n": 15,
+              "p50_ms": 19.941,
+              "p95_ms": 77.304
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 15,
+              "p50_ms": 19.941,
+              "p95_ms": 77.304
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 15,
+              "p50_ms": 1.376,
+              "p95_ms": 2.792
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "200": 8
+      },
+      "get_409_writer_outside_page_confirmed": 18
+    },
+    {
+      "profile": {
+        "cell": "explore-05",
+        "count": 10000,
+        "role": "head",
+        "readers": 4,
+        "seconds": 5,
+        "get_total_hz": "6",
+        "patch_hz": "3",
+        "arm": "A",
+        "sha": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+        "order": "B1–A",
+        "name": "explore-05-A",
+        "get_hz_per_session": "3/2",
+        "offered": {
+          "GET": 30,
+          "PATCH": 15
+        },
+        "slots_sha256": "0fe4b8c475849f65d73c7d976d7b558ce94a2a01287f2c8e574b1068870f0b77"
+      },
+      "receipt_sha256": "5a59f1f6824c383c24977f5ad7e0f352e633462624fb19ad100169eac411334c",
+      "methods": {
+        "GET": {
+          "offered": 30,
+          "dispatched": 18,
+          "within_window_http": 15,
+          "drained_http": 3,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_409": 18,
+            "client_busy": 12
+          },
+          "http_409_codes": {
+            "PATIENT_QUERY_CHANGED": 18
+          },
+          "synthetic_conflict_causes": {
+            "medical": 16,
+            "UNKNOWN": 2
+          },
+          "confirmed_clinical_commit_offsets_ms": [],
+          "sql_operator_p50": 883.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 18,
+              "p50_ms": 8.864,
+              "p95_ms": 34.21
+            },
+            "dispatch_to_completion": {
+              "n": 18,
+              "p50_ms": 897.482,
+              "p95_ms": 1250.625
+            },
+            "true_200_dispatch_to_completion": null,
+            "sampled_original_snapshot": {
+              "n": 18,
+              "p50_ms": 300.111,
+              "p95_ms": 673.475
+            },
+            "sampled_validation_snapshot": {
+              "n": 18,
+              "p50_ms": 305.902,
+              "p95_ms": 737.555
+            },
+            "original_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 30.64,
+              "p95_ms": 35.418
+            },
+            "validation_fingerprint_build": {
+              "n": 18,
+              "p50_ms": 31.781,
+              "p95_ms": 64.515
+            },
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": {
+              "n": 18,
+              "p50_ms": 0.314,
+              "p95_ms": 47.507
+            },
+            "release_admission_wall": null,
+            "check_data_version": {
+              "n": 22,
+              "p50_ms": 0.025,
+              "p95_ms": 0.079
+            },
+            "fresh_reader": {
+              "n": 36,
+              "p50_ms": 0.58,
+              "p95_ms": 54.736
+            },
+            "persist_wall": {
+              "n": 18,
+              "p50_ms": 441.169,
+              "p95_ms": 835.089
+            },
+            "release_write_hold_through_commit_or_rollback": {
+              "n": 18,
+              "p50_ms": 0.723,
+              "p95_ms": 58.576
+            },
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 18,
+              "p50_ms": 2.354,
+              "p95_ms": 56.319
+            },
+            "original_first_read_to_validation_first_read": {
+              "n": 18,
+              "p50_ms": 340.914,
+              "p95_ms": 798.44
+            }
+          }
+        },
+        "PATCH": {
+          "offered": 15,
+          "dispatched": 14,
+          "within_window_http": 14,
+          "drained_http": 0,
+          "success_200_after_cutoff": 0,
+          "outcomes": {
+            "http_200": 14,
+            "client_busy": 1
+          },
+          "http_409_codes": {},
+          "synthetic_conflict_causes": {},
+          "confirmed_clinical_commit_offsets_ms": [
+            46.173,
+            598.182,
+            755.731,
+            1124.2,
+            1590.895,
+            1784.638,
+            2097.585,
+            2431.561,
+            3116.348,
+            3562.549,
+            3694.951,
+            4161.485,
+            4437.962,
+            4913.575
+          ],
+          "sql_operator_p50": 33.0,
+          "phases": {
+            "dispatch_drift": {
+              "n": 14,
+              "p50_ms": 16.654,
+              "p95_ms": 77.902
+            },
+            "dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 67.174,
+              "p95_ms": 416.925
+            },
+            "true_200_dispatch_to_completion": {
+              "n": 14,
+              "p50_ms": 67.174,
+              "p95_ms": 416.925
+            },
+            "sampled_original_snapshot": null,
+            "sampled_validation_snapshot": null,
+            "original_fingerprint_build": null,
+            "validation_fingerprint_build": null,
+            "ordered_release_wait": null,
+            "sqlite_release_begin_wait": null,
+            "release_admission_wall": null,
+            "check_data_version": null,
+            "fresh_reader": null,
+            "persist_wall": null,
+            "release_write_hold_through_commit_or_rollback": null,
+            "release_native_commit": null,
+            "http_body_to_client_completion": {
+              "n": 14,
+              "p50_ms": 1.836,
+              "p95_ms": 5.128
+            },
+            "original_first_read_to_validation_first_read": null
+          }
+        }
+      },
+      "writer_commits_by_session": null,
+      "warmup_outcomes": {
+        "409": 5,
+        "200": 3
+      },
+      "get_409_writer_outside_page_confirmed": 18
+    }
+  ]
+}
