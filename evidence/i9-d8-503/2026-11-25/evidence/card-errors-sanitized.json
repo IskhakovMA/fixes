@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "real 422: no invalid write, draft retained",
+    "injected transport 503: no automatic retry, draft retained",
+    "committed write + lost response: no automatic resend; manual original-version retry gets real409"
+  ],
+  "realBackend": true,
+  "transportInjection": [
+    "503",
+    "response loss after commit"
+  ]
+}

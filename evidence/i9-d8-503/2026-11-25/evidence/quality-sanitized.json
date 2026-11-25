@@ -1,0 +1,61 @@
+{
+  "checks": [
+    "five well-formed production requests retain coded 503; legacy remains available",
+    "real composite first/next/previous, one request per click, keyboard focus, no hidden traversal",
+    "real group pager, members and both facet selectors bound to the original root",
+    "registry and finding actions use fresh object GET; owner issue/groups/departments stay bounded",
+    "explicit second-page facet selection uses technical ID and header search; scope totals separate"
+  ],
+  "faultChecks": [
+    "late real 200 cannot replace newer 200 or synthetic terminal 503",
+    "injected 409 PATIENT_QUERY_CHANGED: one restart and terminal repeated failure",
+    "injected 410 CURSOR_EXPIRED: one restart and terminal repeated failure",
+    "injected 403 and neutral 404 do not render actionable member rows or retry",
+    "actual pending clinical write blocks navigation; cancel retains draft; only explicit save",
+    "real two-tab identity change rejects held old actor body",
+    "delayed failure of an old identity check cannot lock a freshly authenticated epoch",
+    "real 401 and real access-context 409 lock, re-auth and clear old rows without restart",
+    "real same-session owner 404 clears opened card, derived rows and existing draft without reauth"
+  ],
+  "accessibility": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "overflow": false,
+      "violations": []
+    }
+  ],
+  "chromium": "151.0.7922.34",
+  "realFastApi": true,
+  "syntheticOnly": true
+}

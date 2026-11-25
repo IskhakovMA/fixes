@@ -1,0 +1,2 @@
+{"phase": "protect_read_serialize_before_release", "route": "GET protected synthetic Quality", "status": 503, "code": "QUALITY_READ_UNAVAILABLE", "injectedException": "ValueError", "medicalBodyReleased": false, "committedAuditDelta": 0, "committedManifestDelta": 0}
+{"phase": "create_http_render_after_commit", "route": "POST /api/patients", "status": 500, "code": null, "injectedException": "ValueError", "committedPatientDelta": 1, "committedCreateAuditDelta": 1, "explicitSameKeyReplayStatus": 201, "duplicate": false}

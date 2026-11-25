@@ -1,0 +1,17 @@
+{
+  "idleReached": true,
+  "pending": [],
+  "totalCompleted": 43,
+  "workspace": {
+    "calendarSelected": true,
+    "patientHidden": true,
+    "sessionExpired": false
+  },
+  "exitStatus": 0,
+  "scenario": "transportAndIdentity",
+  "checks": [
+    "Opposite browser traversal beats delayed genuine HTTP 200 and retains authorized destination",
+    "Failed detail transport restores current location without revealing cached card",
+    "External document, revoked session (real 401), different login and unchanged RBAC (real audit 403)"
+  ]
+}

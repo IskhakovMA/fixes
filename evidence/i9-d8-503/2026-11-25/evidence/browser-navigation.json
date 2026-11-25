@@ -1,0 +1,18 @@
+{
+  "exitStatus": 1,
+  "watchdogSeconds": 125,
+  "failingWait": "page.waitForLoadState(networkidle)",
+  "file": "tools/tests/wp_i_card/history.cjs",
+  "line": 333,
+  "priorPassedGroups": [
+    "Eight real card tabs traverse Back/Forward without adding entries; authorized GET and medical read audit",
+    "Clinical draft cancel restores index and preserves Forward; explicit discard permits next transition",
+    "Click through calendar and analytics to authorized cards, with Back/Forward and focus",
+    "Create form Back cancellation preserves local input; explicit discard returns to registry",
+    "Chromium both themes, 320/375/768/1440 and WCAG 2.0/2.1 A/AA",
+    "Arrow navigation, reload and old history entries resolve to authorized registry, zero medical writes",
+    "Pending explicit save blocks Back and never resubmits; real 409 retains manual original-version draft"
+  ],
+  "axeStates": 8,
+  "phase": "transportAndIdentity"
+}
