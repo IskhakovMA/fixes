@@ -1,0 +1,30 @@
+{
+  "exactProductSha": "3a0cb5db434032b3f7b6370c305c558a4b5d331c",
+  "healthHttp": 200,
+  "htmlHttp": 200,
+  "syntheticPatients": 240,
+  "privateFixture": "0600",
+  "outboundSocketPolicy": "python-socket-denied",
+  "manualResultsRecorded": 0,
+  "cleanExit": true,
+  "listenerClosed": true,
+  "scratchRemoved": true,
+  "fixtureRemoved": true,
+  "loopbackOnly": true,
+  "productCheckoutClean": true,
+  "launcherFilesMatchPublishedBytes": 3,
+  "dependencyCheck": "PASS",
+  "macOS": "26.5.2",
+  "safari": "26.5.2",
+  "voiceOverInstalled": true,
+  "macManual": {
+    "NOT_TESTED": 16,
+    "PASS": 0
+  },
+  "windowsManual": {
+    "BLOCKED": 16
+  },
+  "physicalMobileManual": {
+    "BLOCKED": 16
+  }
+}
