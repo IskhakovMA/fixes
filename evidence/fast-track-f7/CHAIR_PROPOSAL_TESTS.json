@@ -1,0 +1,18 @@
+{
+  "status": "PROPOSED — NOT APPROVED — NOT FOR MERGE",
+  "decision": "AWAITING OWNER APPROVAL",
+  "candidateSha": "ba7d5834c0589d3a5d3f2178255d6f5409a447b5",
+  "candidateTree": "4caea2749301398339023cefba8da158b06928e2",
+  "base": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "branch": "proposal/f7-consilium-chair-version-guard",
+  "syntheticOnly": true,
+  "dirtyCheckout": false,
+  "historicalBaselineAssessment": "static source review",
+  "pytestTarget": "backend/tests/test_f7_chair_version_guard.py",
+  "passed": 18,
+  "failed": 0,
+  "skipped": 0,
+  "durationSeconds": 23.5,
+  "originalLogSHA256": "8f5cebcfc706ff723a592854ca7460c65940e873f7092b051f9ea57db870b278",
+  "approvedForProduction": false
+}

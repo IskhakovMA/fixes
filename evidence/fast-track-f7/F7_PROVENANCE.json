@@ -1,0 +1,176 @@
+{
+  "productSha": "071959f405323c1a01ea2c2f4ddf90061a47725d",
+  "productTree": "2702c7364b1265ca42dd138ed16d6f2dfd4a2841",
+  "directParent": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "productBranch": "feature/fast-track-f7-patient-intake",
+  "baseTree": "bc26b4164c7322881e6943d3c0a82c0714c39273",
+  "f6Evidence": "fa5df5c8af967e842ad31d52f42bf0d3ca7d6277",
+  "protectedSourcePathsUnchanged": [
+    "backend/app",
+    "backend/migrations",
+    "prototype",
+    "backend/requirements-dev.txt",
+    "tools/tests/wp_h/package-lock.json",
+    ".github/workflows/ci.yml"
+  ],
+  "protectedRefsBefore": {
+    "refs/heads/evidence/fast-track-f6-2026-11-26": "fa5df5c8af967e842ad31d52f42bf0d3ca7d6277",
+    "refs/heads/feature/fast-track-f1-management-doctor": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+    "refs/heads/feature/fast-track-f2-actionable-routes": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+    "refs/heads/feature/fast-track-f3-registry-stage35": "0b91473ffb65892ce8551755a8d31118c332a000",
+    "refs/heads/feature/fast-track-f4-schedule-notifications": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+    "refs/heads/feature/fast-track-f5-analytics-reporting": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+    "refs/heads/feature/fast-track-f6-consilium-staffux": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+    "refs/heads/fix/i9-b1-focus-history-review": "b5b408fe411f4431042eced96f0801cffb577a83",
+    "refs/heads/fix/wp-i-redesign-integration": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+    "refs/heads/main": "20a7505d8ba0302f298f3d6998bb0fa20d0278e9",
+    "refs/heads/proposal/f7-consilium-chair-version-guard": "ba7d5834c0589d3a5d3f2178255d6f5409a447b5"
+  },
+  "localExactSHA256": {
+    "F7_LOCAL_EXACT.json": "7acbf0e02045306ab6dc42f72da98fb4f06feb9f20e20ba8bb89cbf6a68c1b09",
+    "f7-intake-dark-375.png": "02f38e2838e5e4591ee96a2361cd7374c4cee82ea5d93c238df31a5f6877eba4",
+    "f7-intake-light-1440.png": "1f0ed50899cbe5af1b1e5303274441e58b6aa83c8c6e93285ab765836b15d62b"
+  },
+  "hostedRun": {
+    "conclusion": "success",
+    "event": "push",
+    "headBranch": "feature/fast-track-f7-patient-intake",
+    "headSha": "071959f405323c1a01ea2c2f4ddf90061a47725d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-26T07:25:22Z",
+        "conclusion": "success",
+        "databaseId": 139753208058,
+        "name": "f7-chromium",
+        "startedAt": "2026-11-26T07:15:57Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-26T07:16:00Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-26T07:15:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:16:06Z",
+            "conclusion": "success",
+            "name": "Checkout exact F7 candidate",
+            "number": 2,
+            "startedAt": "2026-11-26T07:16:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:16:06Z",
+            "conclusion": "success",
+            "name": "Check Git tree and protect existing medical contracts",
+            "number": 3,
+            "startedAt": "2026-11-26T07:16:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:16:06Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 4,
+            "startedAt": "2026-11-26T07:16:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:16:10Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 5,
+            "startedAt": "2026-11-26T07:16:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:19:12Z",
+            "conclusion": "success",
+            "name": "Install pinned synthetic test dependencies",
+            "number": 6,
+            "startedAt": "2026-11-26T07:16:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:17Z",
+            "conclusion": "success",
+            "name": "Run F7 and affected browser regressions",
+            "number": 7,
+            "startedAt": "2026-11-26T07:19:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:18Z",
+            "conclusion": "success",
+            "name": "Retain sanitized machine receipts",
+            "number": 8,
+            "startedAt": "2026-11-26T07:25:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:19Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 14,
+            "startedAt": "2026-11-26T07:25:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:19Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 15,
+            "startedAt": "2026-11-26T07:25:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:19Z",
+            "conclusion": "success",
+            "name": "Post Checkout exact F7 candidate",
+            "number": 16,
+            "startedAt": "2026-11-26T07:25:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T07:25:19Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-11-26T07:25:19Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/IskhakovMA/fixes/actions/runs/45774025798/job/139753208058"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45774025798",
+    "workflowName": "Fast Track F7 Chromium",
+    "receiptSHA256": {
+      "f6-decisions.json": "d5e230c1f5a37435c82e39b0f5b26d01c25554d21946ba265a5fc9ba58012471",
+      "f6-decisionzoom.json": "6445c4d25feb460fa50d660ae9e9740ee661bda1141454fde14e4d3f9125ea94",
+      "f6-journey.json": "efe2991c26f2a89a827f44eda8420803abc4547f3897e868eec1b92dd1d9ea11",
+      "f6-loading.json": "eba48f05b15c90a953a06f3a142d74833003a93b1ac9f815011d882459363d81",
+      "f6-records.json": "cac6dde0362670ec45761679f1d0478c86fe624e743daef59d6dc9f6f49af884",
+      "f6-recordszoom.json": "d9bf8a63caba3b29fe7a230c88e139ad421a3159280557b8128196fd7cfff85b",
+      "f6-schedule.json": "ebee162983fb05363e4f06829482013f1022cfb531e5338e6cb71896c8db257b",
+      "f6-workflows.json": "d02c06787c0120d51ae87397180aec10cc509830c88bda8cc9b49d0903bf6860",
+      "f6-zoom.json": "c0fcb0f6f237bdc9200a1cb415d6338922cd2d2ef3cd881a318ebc8f0905908e",
+      "f7-journey.json": "d2a113846eefd4a8ae386d679936c0faa0fbff7911d362c585b96db6d41f99a6",
+      "fast_track_f1.json": "b2da35a6549f41e3ba7c49c56fcbadec3b547dce5cebe89357eaee14aed7004f",
+      "fast_track_f2.json": "bee347b25812ef821ffd5efb4d8dee59fad66caf220745d297eb74ac8814f136",
+      "fast_track_f3.json": "f44f1181fe68b808f5d8967a6d9436d5dee0b3c217e98f3a14253b91074592ac",
+      "fast_track_f4.json": "befca0fc19578aa3d29d5058f7cc77027da8fa2fc1c8f4151eb1bd0f12ef6750",
+      "fast_track_f5.json": "8234c684b819d717a639ad34916fea4f39febc9d786b7c9ea402ff59a458a067",
+      "history-navigation.json": "1652d8d6052f4a908bf70e8a64c8970ac4874e9410bafd3fa8b7b5a54d27b133",
+      "history-unknownDenial.json": "af94fa7a68da0eb8f72efba472be0b2f9bb32318a231144e9275edbf8dca816b",
+      "i4-create.json": "65bcd68584a7f6e534ad65d4536183d73e6ced9e8fdb37180518c8f1ee070923",
+      "i4-errors.json": "04b72dbc5d1f1d38a8de964b2bc7934f165cc46a876e62b6d8394dcc933abe5c",
+      "i4-workflows.json": "1710a651186345c7d35edfa85296401010c073f66e4fc79c0a7293079b02ee77",
+      "i4-zoom.json": "2f25f96ead6ba9a40b0ac7215e9b4ba0a2bd593bdf0597ad2204d1a1fe214212",
+      "notifications-fix1.json": "e107cb490a0ca7cddfb6975713e62a4aacc9940970a4df4bb441cb923fbba0af"
+    }
+  }
+}

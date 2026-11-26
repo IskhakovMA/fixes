@@ -1,0 +1,554 @@
+diff --git a/F7_CHAIR_VERSION_PROPOSAL.md b/F7_CHAIR_VERSION_PROPOSAL.md
+new file mode 100644
+index 0000000..76565cd
+--- /dev/null
++++ b/F7_CHAIR_VERSION_PROPOSAL.md
+@@ -0,0 +1,25 @@
++# PROPOSED — NOT APPROVED — NOT FOR MERGE
++
++Статус: **AWAITING OWNER APPROVAL**. База — принятый F6
++`67001b50bfc28410b7bb4e290c46b876fda2f96f`. Ветка изолирована от продукта F7.
++
++Три операции председателя принимают обязательную ожидаемую версию. В одной
++транзакции проверяются свежие полномочия, наличие объекта в разрешенной области,
++версия и допустимость перехода. Медицинская запись, история раундов, обязательный
++аудит и построение ответа входят в ту же транзакцию. Используется уже действующий
++`consilium_version_conflict`. Отказ по состоянию и нейтральный объектный отказ
++сохраняют самостоятельную семантику. Правила неизменности подписанного снимка,
++схема SQLite и роли остаются прежними.
++
++Исходный разрыв проверен статически. Адресные тесты относятся только к защищенному
++кандидату и используют синтетическую SQLite. В них проверяются версия, CSRF, права,
++конкурентность переходов, обязательный аудит, откат, занятая SQLite и чтение после
++неопределенного ответа. Адресный результат публикуется отдельно от CI продукта.
++
++## Решения владельца
++
++- Утвердить обязательное поле `version` в `review`, `return` и `sign`.
++- Согласовать переход всех клиентов. Старый запрос без поля получит 422.
++- Перед включением обновить существующие клиентские и серверные тесты нового
++  контракта и пройти полный интеграционный CI. Согласовать порядок выкладки
++  клиента и сервера. Отдельной миграции базы для этого предложения нет.
+diff --git a/backend/app/models.py b/backend/app/models.py
+index df1c38b..25ee024 100644
+--- a/backend/app/models.py
++++ b/backend/app/models.py
+@@ -617,7 +617,7 @@ class ConsiliumAppointmentUpdateIn(ConsiliumAppointmentIn):
+ 
+ 
+ class ConsiliumVersionIn(StrictRequestModel):
+-    """Версия записи для архивирования, восстановления и повторной подачи."""
++    """Ожидаемая версия записи консилиума для серверной проверки."""
+     version: int = Field(..., ge=1, le=2**63 - 1)
+ 
+ 
+@@ -678,7 +678,7 @@ class ConsiliumBackdatedAppointmentIn(ConsiliumAppointmentIn):
+         return _backdating_reason(v)
+ 
+ 
+-class ConsiliumDecisionIn(StrictRequestModel):
++class ConsiliumDecisionIn(ConsiliumVersionIn):
+     treatmentType: ConsiliumTreatmentType
+     treatmentScheme: str = Field("", max_length=1000)
+     treatmentSchemeCode: str = Field("", max_length=32)
+@@ -700,7 +700,7 @@ class ConsiliumDecisionIn(StrictRequestModel):
+         return self
+ 
+ 
+-class ConsiliumRevisionIn(StrictRequestModel):
++class ConsiliumRevisionIn(ConsiliumVersionIn):
+     comment: str = Field(..., min_length=1, max_length=4000)
+ 
+     @field_validator("comment")
+diff --git a/backend/app/routes/consilium.py b/backend/app/routes/consilium.py
+index 8451e74..ff1ae3f 100644
+--- a/backend/app/routes/consilium.py
++++ b/backend/app/routes/consilium.py
+@@ -6,7 +6,7 @@ import sqlite3
+ from fastapi import APIRouter, Depends, HTTPException, Query, status
+ from fastapi.responses import JSONResponse, Response
+ 
+-from .. import audit, config, policy
++from .. import audit, config, policy, session_context
+ from ..deps import abuse_rate_limit, get_db, require_active_password, require_csrf
+ from ..models import (
+     ConsiliumAppointmentIn,
+@@ -525,13 +525,19 @@ def resubmit_consilium_appointment(
+ @router.post("/appointments/{appointment_id}/review", dependencies=[Depends(require_csrf), _DECISION_LIMIT])
+ def start_consilium_review(
+     appointment_id: str,
++    body: ConsiliumVersionIn,
+     conn: sqlite3.Connection = Depends(get_db),
+     user: policy.CurrentUser = Depends(require_active_password),
+ ):
+     _require_decision(conn, user)
+     try:
+         appointment = consilium.start_review(
+-            conn, appointment_id, audit_hook=_required_audit(conn, user, audit.CONSILIUM_REVIEW_STARTED))
++            conn, user, appointment_id, body.version,
++            audit_hook=_required_audit(conn, user, audit.CONSILIUM_REVIEW_STARTED))
++    except consilium.ConsiliumAccessLost:
++        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
++    except consilium.ConsiliumVersionConflict as exc:
++        return _version_conflict(exc)
+     except consilium.ConsiliumStateError as exc:
+         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+     except audit.AuditWriteFailed:
+@@ -553,10 +559,14 @@ def sign_consilium(
+     _require_decision(conn, user)
+     try:
+         appointment = consilium.sign(
+-            conn, user, appointment_id, body.treatmentType, body.treatmentScheme,
++            conn, user, appointment_id, body.version, body.treatmentType, body.treatmentScheme,
+             body.treatmentSchemeCode, body.goc, body.goc65Plus,
+             audit_hook=_required_audit(conn, user, audit.CONSILIUM_SIGNED),
+         )
++    except consilium.ConsiliumAccessLost:
++        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
++    except consilium.ConsiliumVersionConflict as exc:
++        return _version_conflict(exc)
+     except consilium.ConsiliumStateError as exc:
+         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+     except audit.AuditWriteFailed:
+@@ -579,10 +589,14 @@ def return_consilium_for_revision(
+     try:
+         # Текст комментария в аудит не пишется: он может содержать сведения о пациенте.
+         appointment = consilium.return_for_revision(
+-            conn, user, appointment_id, body.comment,
++            conn, user, appointment_id, body.version, body.comment,
+             audit_hook=_required_audit(conn, user, audit.CONSILIUM_RETURNED, with_round=True))
+     except consilium.ConsiliumCommentError as exc:
+         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
++    except consilium.ConsiliumAccessLost:
++        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
++    except consilium.ConsiliumVersionConflict as exc:
++        return _version_conflict(exc)
+     except consilium.ConsiliumStateError as exc:
+         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+     except audit.AuditWriteFailed:
+diff --git a/backend/app/services/consilium.py b/backend/app/services/consilium.py
+index c0bf22c..fef6287 100644
+--- a/backend/app/services/consilium.py
++++ b/backend/app/services/consilium.py
+@@ -44,9 +44,7 @@ class ConsiliumStateError(ValueError):
+ 
+ 
+ class ConsiliumAccessLost(Exception):
+-    """Inside the write transaction the patient is no longer in the user's
+-    scope (treating doctor or departments changed meanwhile). Routes answer as
+-    for an invisible record, without revealing anything about it."""
++    """The current user no longer has authority to perform the operation."""
+ 
+ 
+ VERSION_CONFLICT_CODE = "consilium_version_conflict"
+@@ -452,33 +450,38 @@ def create(
+     return result
+ 
+ 
+-def _transition(conn: sqlite3.Connection, appointment_id: str, sql: str, params: tuple, refusal: str,
+-                audit_hook=None) -> dict | None:
+-    """Apply a guarded UPDATE; the WHERE clause is the transition rule.
+-
+-    The status check and the write happen in one statement, so a concurrent
+-    request cannot slip between them. Nothing is written when it is refused.
+-    audit_hook writes the required audit row in the same transaction: if it
+-    fails, the transition is rolled back and the record keeps its state.
+-    """
+-    if get_for_management(conn, appointment_id) is None:
+-        return None
+-    with conn:
++def _chair_record(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str,
++                  expected_version: int) -> dict | None:
++    """Recheck authority and the version under the same lock as the write."""
++    fresh = _locked_user(conn, user)
++    if fresh is None or fresh.must_change_password or not policy.can_decide_consilium(fresh):
++        raise ConsiliumAccessLost()
++    # The chair has the existing institution-wide consilium scope.
++    record = get_for_management(conn, appointment_id)
++    if record is not None:
++        _require_version(record, expected_version)
++    return record
++
++
++def _transition(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
++                sql: str, params: tuple, refusal: str, audit_hook=None) -> dict | None:
++    """Compare the version, apply the state transition, and record required audit together."""
++    with transaction(conn):
++        if _chair_record(conn, user, appointment_id, expected_version) is None:
++            return None
+         cursor = conn.execute(sql, params)
+-        if cursor.rowcount == 1 and audit_hook is not None:
++        if cursor.rowcount != 1:
++            raise ConsiliumStateError(refusal)
++        if audit_hook is not None:
+             audit_hook(appointment_id)
+-        # Ответ — в той же транзакции, что и переход (B2-01): после коммита
+-        # запись могли бы изменить или удалить, и успех превратился бы в 404.
+-        result = get_for_management(conn, appointment_id) if cursor.rowcount == 1 else None
+-    if cursor.rowcount == 0:
+-        raise ConsiliumStateError(refusal)
+-    return result
++        return get_for_management(conn, appointment_id)
+ 
+ 
+-def start_review(conn: sqlite3.Connection, appointment_id: str, *, audit_hook=None) -> dict | None:
++def start_review(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
++                 *, audit_hook=None) -> dict | None:
+     now = now_iso()
+     return _transition(
+-        conn, appointment_id,
++        conn, user, appointment_id, expected_version,
+         f"""UPDATE oncology_consilium_appointments
+             SET status = 'in_review', review_started_at = ?, updated_at = ?
+             WHERE id = ? AND {_AWAITING_CHAIR}""",
+@@ -492,6 +495,7 @@ def sign(
+     conn: sqlite3.Connection,
+     user: policy.CurrentUser,
+     appointment_id: str,
++    expected_version: int,
+     treatment_type: str,
+     treatment_scheme: str,
+     treatment_scheme_code: str,
+@@ -502,7 +506,7 @@ def sign(
+ ) -> dict | None:
+     now = now_iso()
+     return _transition(
+-        conn, appointment_id,
++        conn, user, appointment_id, expected_version,
+         """UPDATE oncology_consilium_appointments
+            SET status = 'signed', treatment_type = ?, treatment_scheme = ?, treatment_scheme_code = ?,
+                goc = ?, goc_65_plus = ?,
+@@ -544,25 +548,17 @@ class ConsiliumCommentError(ValueError):
+ 
+ 
+ def return_for_revision(
+-    conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, comment: str, *, audit_hook=None
++    conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
++    comment: str, *, audit_hook=None,
+ ) -> dict | None:
+-    """Return a record under review to its author with a new comment.
+-
+-    Only from in_review: the chair returns what they are reviewing, and a
+-    resubmitted record has to be reviewed again before a second return. The
+-    comment is required (model) and must differ from the previous one, so
+-    each round leaves its own instruction for the doctor.
+-    """
+-    existing = conn.execute(
+-        "SELECT status, revision_comment FROM oncology_consilium_appointments WHERE id = ? AND deleted_at IS NULL",
+-        (appointment_id,),
+-    ).fetchone()
+-    if existing is not None and existing["status"] == "in_review" and existing["revision_comment"] == comment:
+-        raise ConsiliumCommentError("Комментарий должен отличаться от предыдущего возврата")
+-    if existing is None:
+-        return None
++    """Return a record under review and preserve its reason as one audited round."""
+     now = now_iso()
+-    with conn:
++    with transaction(conn):
++        existing = _chair_record(conn, user, appointment_id, expected_version)
++        if existing is None:
++            return None
++        if existing["status"] == "in_review" and existing["revisionComment"] == comment:
++            raise ConsiliumCommentError("Комментарий должен отличаться от предыдущего возврата")
+         cursor = conn.execute(
+             """UPDATE oncology_consilium_appointments
+                SET status = 'recorded', revision_comment = ?, revision_submitted_at = NULL,
+@@ -570,23 +566,19 @@ def return_for_revision(
+                WHERE id = ? AND status = 'in_review' AND archived_at IS NULL AND deleted_at IS NULL""",
+             (comment, now, appointment_id),
+         )
+-        if cursor.rowcount:
+-            # В той же транзакции: раунд и его текст сохраняются навсегда.
+-            conn.execute(
+-                """INSERT INTO consilium_revision_history
+-                       (id, appointment_id, round, comment, returned_by_user_id, returned_at)
+-                   SELECT ?, id, revision_count, ?, ?, ? FROM oncology_consilium_appointments WHERE id = ?""",
+-                (uuid.uuid4().hex, comment, user.id, now, appointment_id),
+-            )
+-            # Обязательный аудит возврата — в той же транзакции, что и раунд доработки.
+-            if audit_hook is not None:
+-                audit_hook(appointment_id)
+-        # Ответ — в той же транзакции (B2-01): возвращенную запись врач может
+-        # сразу отменить, и повторное чтение после коммита дало бы 404.
+-        result = get_for_management(conn, appointment_id) if cursor.rowcount else None
+-    if cursor.rowcount == 0:
+-        raise ConsiliumStateError("Вернуть на доработку можно только запись, рассмотрение которой начато")
+-    return result
++        if cursor.rowcount != 1:
++            raise ConsiliumStateError("Вернуть на доработку можно только запись, рассмотрение которой начато")
++        # Раунд, причина, автор и обязательный аудит входят в транзакцию возврата.
++        conn.execute(
++            """INSERT INTO consilium_revision_history
++                   (id, appointment_id, round, comment, returned_by_user_id, returned_at)
++               SELECT ?, id, revision_count, ?, ?, ? FROM oncology_consilium_appointments WHERE id = ?""",
++            (uuid.uuid4().hex, comment, user.id, now, appointment_id),
++        )
++        if audit_hook is not None:
++            audit_hook(appointment_id)
++        return get_for_management(conn, appointment_id)
++
+ 
+ 
+ def resubmit(
+diff --git a/backend/tests/test_f7_chair_version_guard.py b/backend/tests/test_f7_chair_version_guard.py
+new file mode 100644
+index 0000000..e8949a4
+--- /dev/null
++++ b/backend/tests/test_f7_chair_version_guard.py
+@@ -0,0 +1,231 @@
++"""Defense checks for the isolated F7 proposal, using only synthetic fixtures."""
++import sqlite3
++from concurrent.futures import ThreadPoolExecutor
++from contextlib import closing
++from threading import Barrier
++
++import httpx
++import pytest
++from fastapi.testclient import TestClient
++
++from .conftest import DEV_USERNAME, consilium_grid, create_account, get_conn, login
++from .test_consilium_appointments import appointment_payload, create_patient
++
++
++DAY = '2026-11-12'
++PATH = '/api/consilium/appointments'
++ACTIONS = {
++    'review': {},
++    'sign': {'treatmentType': 'surgery'},
++    'return': {'comment': 'Синтетическая доработка F7'},
++}
++AUDIT = {
++    'review': 'consilium_review_started',
++    'sign': 'consilium_signed',
++    'return': 'consilium_returned_for_revision',
++}
++VERSION_CONFLICT = 'consilium_version_conflict'
++
++
++@pytest.fixture
++def record(client):
++    create_account(DEV_USERNAME, 'developer')
++    create_account('chair.f7.one', 'consilium_chair')
++    create_account('chair.f7.two', 'consilium_chair')
++    login(client, DEV_USERNAME)
++    patient = create_patient(client, name='Синтетический Пациент F7')
++    consilium_grid((DAY,), times=('10:30',), groups=('thoracic',))
++    response = client.post(PATH, json=appointment_payload(patient['id']), headers=client.csrf)
++    assert response.status_code == 201
++    login(client, 'chair.f7.one')
++    return response.json()
++
++
++def act(client, record, action, *, with_version=True, with_csrf=True):
++    body = dict(ACTIONS[action])
++    if with_version:
++        body['version'] = record['version']
++    return client.post(f'{PATH}/{record["id"]}/{action}', json=body, headers=client.csrf if with_csrf else {})
++
++
++def under_review(client, record):
++    response = act(client, record, 'review')
++    assert response.status_code == 200
++    fresh = response.json()
++    assert fresh['status'] == 'in_review' and fresh['version'] == record['version'] + 1
++    return fresh
++
++
++def persisted(record):
++    conn = get_conn()
++    row = conn.execute(
++        '''SELECT a.*, p.stage AS current_patient_stage FROM oncology_consilium_appointments a
++           JOIN patients p ON p.id = a.patient_id WHERE a.id = ?''', (record['id'],),
++    ).fetchone()
++    history = conn.execute(
++        '''SELECT * FROM consilium_revision_history WHERE appointment_id = ? ORDER BY round''', (record['id'],),
++    ).fetchall()
++    audit = conn.execute(
++        '''SELECT event_type, actor_user_id, detail FROM audit_events WHERE patient_id = ?
++           AND event_type IN ('consilium_review_started', 'consilium_signed', 'consilium_returned_for_revision')
++           ORDER BY id''', (record['patientId'],),
++    ).fetchall()
++    return dict(row), list(map(dict, history)), list(map(dict, audit))
++
++
++@pytest.mark.parametrize('action', ACTIONS)
++def test_version_required_and_csrf_unchanged(client, record, action):
++    if action != 'review':
++        record = under_review(client, record)
++    before = persisted(record)
++    assert act(client, record, action, with_version=False).status_code == 422
++    assert act(client, record, action, with_csrf=False).status_code == 403
++    assert persisted(record) == before
++
++
++@pytest.mark.parametrize('action', ACTIONS)
++def test_version_mismatch_does_not_change_state(client, record, action):
++    if action != 'review':
++        record = under_review(client, record)
++    before = persisted(record)
++    response = act(client, {**record, 'version': record['version'] + 1}, action)
++    assert response.status_code == 409 and response.json()['code'] == VERSION_CONFLICT
++    assert persisted(record) == before
++
++
++def test_same_status_update_requires_new_version(client, record):
++    login(client, DEV_USERNAME)
++    response = client.put(f'{PATH}/{record["id"]}', json=appointment_payload(
++        record['patientId'], version=record['version'], comment='Синтетическая корректировка F7',
++    ), headers=client.csrf)
++    assert response.status_code == 200
++    assert response.json()['status'] == record['status']
++    assert response.json()['version'] == record['version'] + 1
++    login(client, 'chair.f7.one')
++    before = persisted(record)
++    response = act(client, record, 'review')
++    assert response.status_code == 409 and response.json()['code'] == VERSION_CONFLICT
++    assert persisted(record) == before
++
++
++def test_matching_version_with_illegal_state_is_a_distinct_conflict(client, record):
++    before = persisted(record)
++    response = act(client, record, 'sign')
++    assert response.status_code == 409 and 'code' not in response.json()
++    assert persisted(record) == before
++
++
++def test_unknown_object_is_neutral_and_role_is_checked(client, record):
++    before = persisted(record)
++    response = act(client, {**record, 'id': 'absent-synthetic-record'}, 'review')
++    assert response.status_code == 404 and response.json() == {'detail': 'Appointment not found'}
++    login(client, DEV_USERNAME)
++    assert act(client, record, 'review').status_code == 403
++    assert persisted(record) == before
++
++
++def test_changed_role_is_rechecked_inside_transaction(client, record, monkeypatch):
++    from backend.app import config, policy
++    from backend.app.services import consilium
++
++    perform = consilium.start_review
++    entered = []
++
++    def with_changed_role(conn, actor, *args, **kwargs):
++        # Synthetic lifecycle fixture. Only the proposal's transaction is exercised.
++        with sqlite3.connect(config.DB_PATH) as fixture:
++            fixture.execute("UPDATE users SET role_id = 'developer' WHERE id = ?", (actor.id,))
++        entered.append(policy.ROLE_CONSILIUM_CHAIR == actor.role_id)
++        return perform(conn, actor, *args, **kwargs)
++
++    monkeypatch.setattr(consilium, 'start_review', with_changed_role)
++    before = persisted(record)
++    response = act(client, record, 'review')
++    assert entered == [True]
++    assert response.status_code == 409
++    assert response.json()['code'] == 'ACCESS_CONTEXT_CHANGED'
++    assert persisted(record) == before
++
++
++@pytest.mark.parametrize('actions', [('review', 'review'), ('return', 'return'), ('sign', 'return')])
++def test_two_chair_actions_with_same_version_commit_once(client, record, actions):
++    if actions[0] != 'review':
++        record = under_review(client, record)
++    before = persisted(record)
++    start = Barrier(2, timeout=10)
++    # Share the already running app while keeping an independent cookie jar.
++    with closing(TestClient(client.app, base_url='http://127.0.0.1', raise_server_exceptions=False)) as second:
++        login(second, 'chair.f7.two')
++
++        def perform(actor, action):
++            start.wait()
++            return act(actor, record, action)
++
++        with ThreadPoolExecutor(max_workers=2) as pool:
++            futures = [pool.submit(perform, actor, action) for actor, action in zip((client, second), actions)]
++            responses = [future.result(timeout=15) for future in futures]
++    assert sorted(response.status_code for response in responses) == [200, 409]
++    succeeded, refused = sorted(responses, key=lambda response: response.status_code)
++    assert refused.json()['code'] == VERSION_CONFLICT
++    result = succeeded.json()
++    assert result['version'] == record['version'] + 1
++    after = persisted(record)
++    assert after[0]['version'] == result['version']
++    assert after[0]['current_patient_stage'] == before[0]['current_patient_stage']
++    assert len(after[2]) == len(before[2]) + 1
++    assert len(after[1]) - len(before[1]) == int(result['status'] == 'needs_revision')
++
++
++@pytest.mark.parametrize('action', ACTIONS)
++def test_mandatory_audit_outage_rolls_back_transition(client, record, monkeypatch, action):
++    from backend.app import audit
++
++    if action != 'review':
++        record = under_review(client, record)
++    before = persisted(record)
++    write = audit.record_required_or_fail
++
++    def fail_for_action(conn, event, **kwargs):
++        if event == AUDIT[action]:
++            raise audit.AuditWriteFailed()
++        return write(conn, event, **kwargs)
++
++    monkeypatch.setattr(audit, 'record_required_or_fail', fail_for_action)
++    assert act(client, record, action).status_code == 503
++    assert persisted(record) == before
++
++
++def test_busy_transaction_refuses_without_state_change(client, record):
++    from backend.app import config
++
++    before = persisted(record)
++    with sqlite3.connect(config.DB_PATH) as lock:
++        lock.execute('BEGIN IMMEDIATE')
++        response = act(client, record, 'review')
++    assert response.status_code == 503 and 'занята' in response.json()['detail']
++    assert persisted(record) == before
++
++
++def test_sign_once_and_reconcile_an_unknown_response_by_reading(client, record):
++    record = under_review(client, record)
++    before = persisted(record)
++
++    def lose_client_response():
++        response = act(client, record, 'sign')
++        assert response.status_code == 200  # The synthetic transport drops this after commit.
++        raise httpx.ReadError('Synthetic loss after commit')
++
++    with pytest.raises(httpx.ReadError):
++        lose_client_response()
++    response = client.get(PATH)
++    assert response.status_code == 200
++    fresh = next(item for item in response.json()['appointments'] if item['id'] == record['id'])
++    assert fresh['status'] == 'signed' and fresh['version'] == record['version'] + 1
++    signed = persisted(record)
++    assert signed[0]['signed_at'] and signed[0]['current_patient_stage'] == before[0]['current_patient_stage']
++    assert signed[2][-1]['event_type'] == AUDIT['sign']
++    assert len(signed[2]) == len(before[2]) + 1
++    repeat = act(client, record, 'sign')
++    assert repeat.status_code == 409 and repeat.json()['code'] == VERSION_CONFLICT
++    assert act(client, fresh, 'sign').status_code == 409
++    assert persisted(record) == signed
+diff --git a/static/app.js b/static/app.js
+index c3c9d4d..ca6660c 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -10900,7 +10900,7 @@ const app = {
+         const ctx=this.consilium.decisionContext;ctx.busy=true;ctx.action=action;this.syncConsiliumReviewState(ctx.record);
+         const errorId=action==='return'?'consiliumRevisionError':'consiliumDecisionError';
+         try {
+-            // The existing chair API atomically checks the source state, but accepts no version field.
++            // Preserve the displayed version for the server check, even after a fresh read.
+             const fresh = await this.readConsiliumRecord(ctx.id);
+             if (ctx !== this.consilium.decisionContext || ctx.epoch !== this.sessionEpoch ||
+                 !this.can('decideConsilium') || !this.consiliumGridReady(ctx.generation)) return;
+@@ -10912,7 +10912,10 @@ const app = {
+                 }
+                 throw new Error('Запись изменилась. Обновите данные.');
+             }
+-            const record=await apiPost(path || `/api/consilium/appointments/${encodeURIComponent(ctx.id)}/${action}`,payload);
++            const record = await apiPost(
++                path || `/api/consilium/appointments/${encodeURIComponent(ctx.id)}/${action}`,
++                {...payload, version: ctx.record.version},
++            );
+             if(ctx!==this.consilium.decisionContext || ctx.epoch!==this.sessionEpoch)return;
+             ctx.record=record;ctx.blocked=action!=='review';
+             $(errorId).classList.add('is-hidden');

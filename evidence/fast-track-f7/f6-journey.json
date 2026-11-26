@@ -1,0 +1,92 @@
+{
+  "suite": "journey",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "switching booked patient clears prior clinical fields and blocks writes until a fresh successful object read",
+    "saved free slot, masked foreign occupation, one real booking COMMIT with dropped reply, retained input until explicit authorized reconciliation",
+    "fresh authorized detail with keyboard focus trap and restoration; one versioned transfer preserving patient and group",
+    "real review, one return round with reason, doctor observed versioned correction and explicit resubmit",
+    "patient overview opens authorized signed snapshot by stable patient ID, no mutation controls and Escape restores exact link focus",
+    "second review and explicit confirm; cancel causes no write, one sign only, signed state immutable, 403 for doctor and 409 for repeat chair, patient stage unchanged",
+    "both approved themes at 320/375/768/1440, full-document axe A/AA, no horizontal page overflow, title remains visible"
+  ],
+  "axe": [
+    {
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    }
+  ],
+  "transportFaults": [
+    "browser connection reset after actual FastAPI 201 and COMMIT"
+  ],
+  "requests": {
+    "medicalWrites": 8,
+    "unexpectedMedicalWrites": 0
+  },
+  "pageErrors": 0,
+  "database": {
+    "schema": 33,
+    "signatureCount": 1,
+    "revisionRounds": 1,
+    "exactWrites": 8,
+    "readManifestHashes": 9,
+    "unchangedPatientStage": true
+  },
+  "cleanup": {
+    "cleanExit": true,
+    "listenerClosed": true,
+    "databaseRemoved": true
+  },
+  "candidateSha": "071959f405323c1a01ea2c2f4ddf90061a47725d",
+  "candidateTree": "2702c7364b1265ca42dd138ed16d6f2dfd4a2841",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "screenshots": {
+    "f6-consilium-dark-375.png": "06134dc417369457b7154a1f65e2912ad680dacfbdededa81339e4573684ac8b",
+    "f6-consilium-light-1440.png": "d80723c242d86e8d94306b28589bbc0e2c43c0da2165e9a68cde280c5cc8e2b8"
+  }
+}

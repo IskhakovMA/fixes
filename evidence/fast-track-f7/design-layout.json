@@ -1,0 +1,352 @@
+{
+  "realBackend": true,
+  "syntheticOnly": true,
+  "checks": [
+    {
+      "state": "empty",
+      "theme": "light",
+      "width": 320,
+      "contentWidth": 320,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "light",
+      "width": 375,
+      "contentWidth": 375,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "light",
+      "width": 768,
+      "contentWidth": 768,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "light",
+      "width": 1024,
+      "contentWidth": 1024,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "light",
+      "width": 1440,
+      "contentWidth": 1440,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "dark",
+      "width": 320,
+      "contentWidth": 320,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "dark",
+      "width": 375,
+      "contentWidth": 375,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "dark",
+      "width": 768,
+      "contentWidth": 768,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "dark",
+      "width": 1024,
+      "contentWidth": 1024,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "empty",
+      "theme": "dark",
+      "width": 1440,
+      "contentWidth": 1440,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "light",
+      "width": 320,
+      "contentWidth": 320,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "light",
+      "width": 375,
+      "contentWidth": 375,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "light",
+      "width": 768,
+      "contentWidth": 768,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "light",
+      "width": 1024,
+      "contentWidth": 1024,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "light",
+      "width": 1440,
+      "contentWidth": 1440,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "dark",
+      "width": 320,
+      "contentWidth": 320,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "dark",
+      "width": 375,
+      "contentWidth": 375,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "dark",
+      "width": 768,
+      "contentWidth": 768,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "dark",
+      "width": 1024,
+      "contentWidth": 1024,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    },
+    {
+      "state": "long-form",
+      "theme": "dark",
+      "width": 1440,
+      "contentWidth": 1440,
+      "fieldGroups": [
+        "Личные данные",
+        "Диагноз",
+        "Маршрут",
+        "Ответственные и приоритет",
+        "Дополнительно"
+      ],
+      "buttonMode": "sticky",
+      "violations": []
+    }
+  ],
+  "keyboard": [
+    {
+      "width": 320,
+      "height": 880,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    },
+    {
+      "width": 375,
+      "height": 680,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    },
+    {
+      "width": 768,
+      "height": 740,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    },
+    {
+      "width": 320,
+      "height": 260,
+      "tabStops": 26,
+      "blocked": 0,
+      "blockedIds": []
+    }
+  ],
+  "previewRendered": true,
+  "medicalWrites": 0
+}

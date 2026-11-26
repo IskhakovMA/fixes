@@ -1,0 +1,144 @@
+{
+  "checks": [
+    "passive same-user session recheck reloads real scoped dashboard and page two, restoring exact row focus and stage without writes",
+    "head Pulse, supported stage, full server pagination and event units, audited card, Back and Forward, fresh explicit return and real scoped CSV",
+    "doctor My Day, personal server scope including empty and foreign filters, real 404 and 403, only explicit versioned write, fresh aggregate drops one event",
+    "authorized reassignment causes real object 404 and removes stale patient actions; live session revoke returns 401 and held real 200 cannot restore data",
+    "anonymous real 401 on dashboard, details and CSV; failed export delivers no file",
+    "keyboard actions, light and dark responsive axe states and real Chrome native zoom at 100, 200 and 400 percent"
+  ],
+  "axe": [
+    {
+      "view": "analytics",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    }
+  ],
+  "nativeZoom": [
+    {
+      "view": "analytics",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "analytics",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "analytics",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "analytics",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320
+    }
+  ],
+  "injectedTransportFaults": [],
+  "pageErrors": 0,
+  "unexpectedClinicalWrites": 0,
+  "legacyRegistryRequests": 0,
+  "chromium": "151.0.7922.34",
+  "csv": {
+    "rows": 7,
+    "detailCodes": 4,
+    "exactDownloadBytes": true,
+    "sha256": "36262b4ad46894101e57cd57a7c9429951469a1297f8d9ed6c84f19217d6a766",
+    "bom": true,
+    "authControl": 403,
+    "anonymous": 401
+  },
+  "candidateSha": "071959f405323c1a01ea2c2f4ddf90061a47725d",
+  "candidateTree": "2702c7364b1265ca42dd138ed16d6f2dfd4a2841",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "syntheticPatients": 10,
+  "schemaVersion": 33,
+  "audit": {
+    "matchedExactResponseDigests": 16,
+    "authorizedReads": 62,
+    "authorizedReadManifests": 62,
+    "matchedWriteAudit": 1,
+    "recordedFacts": 1,
+    "matchedExportAudit": 1,
+    "matchedScopeControlAudit": 1,
+    "matchedExactCsvDigest": true,
+    "authorizedCsvManifestObjects": 9,
+    "deniedExportsGeneratedNoAuditOrFile": true,
+    "allOtherClinicalRowsUnchanged": true
+  },
+  "cleanup": {
+    "cleanExit": true,
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}

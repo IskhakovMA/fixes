@@ -1,0 +1,1330 @@
+diff --git a/.github/workflows/fast-track-f7-browser.yml b/.github/workflows/fast-track-f7-browser.yml
+new file mode 100644
+index 0000000..7e90984
+--- /dev/null
++++ b/.github/workflows/fast-track-f7-browser.yml
+@@ -0,0 +1,201 @@
++name: Fast Track F7 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f7-patient-intake]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f7-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F6_SHA: 67001b50bfc28410b7bb4e290c46b876fda2f96f
++  F6_TREE: bc26b4164c7322881e6943d3c0a82c0714c39273
++
++jobs:
++  f7-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 30
++    steps:
++      - name: Checkout exact F7 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F6_SHA^{tree}")" = "$F6_TREE"
++          git merge-base --is-ancestor "$F6_SHA" HEAD
++          test -z "$(git rev-list --merges "$F6_SHA..HEAD")"
++          git diff --exit-code "$F6_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml .github/workflows/fast-track-f2-browser.yml .github/workflows/fast-track-f3-browser.yml .github/workflows/fast-track-f4-browser.yml .github/workflows/fast-track-f5-browser.yml .github/workflows/fast-track-f6-browser.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f7-browser.yml|backend/tests/test_frontend_csp.py|backend/tests/test_wp24a_patient_create.py|backend/tests/test_wp24b_idempotency.py|backend/tests/test_wp24c_duplicates.py|index.html|static/app.js|static/styles.css|tools/tests/fast_track_f7/journey.cjs|tools/tests/fast_track_f7/run.py|tools/tests/wp_i_create/create.cjs) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F6_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F7_CANDIDATE=$GITHUB_SHA"
++          echo "F7_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F7 and affected browser regressions
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          mkdir -m 700 "$RUNNER_TEMP/f7-public"
++          receipt="$RUNNER_TEMP/f7-journey"
++          if ! python -B tools/tests/fast_track_f7/run.py --out "$receipt"; then
++            if test -f "$receipt/browser.local.log"; then
++              grep -Eo 'fast_track_f7/[a-z_-]+\.(cjs|py):[0-9]+(:[0-9]+)?' "$receipt/browser.local.log" | head -12 || true
++            fi
++            exit 1
++          fi
++          python - "$receipt/public.json" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert receipt["candidateTree"] == sys.argv[2]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          PYTHON
++          cp "$receipt/public.json" "$RUNNER_TEMP/f7-public/f7-journey.json"
++          for suite in create errors workflows zoom; do
++            receipt="$RUNNER_TEMP/f7-i4-$suite"
++            if ! python -B tools/tests/wp_i_create/run.py --suite "$suite" --out "$receipt"; then
++              if test -f "$receipt/card.log"; then
++                grep -Eo 'wp_i_create/[a-z_-]+\.(cjs|py):[0-9]+(:[0-9]+)?' "$receipt/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$suite" "$RUNNER_TEMP/f7-public/i4-$suite.json" <<'PYTHON'
++          import json
++          import os
++          import sys
++          from pathlib import Path
++
++          Path(sys.argv[2]).write_text(json.dumps({
++              "suite": sys.argv[1], "result": "PASS", "candidateSha": os.environ["GITHUB_SHA"],
++          }) + "\n")
++          PYTHON
++          done
++          for suite in journey schedule workflows loading decisions records zoom decisionzoom recordszoom; do
++            receipt="$RUNNER_TEMP/f6-$suite"
++            printf 'F6_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B tools/tests/fast_track_f6/run.py --suite "$suite" --out "$receipt"; then
++              for log in "$receipt/browser.local.log" "$receipt/card.log"; do
++                if test -f "$log"; then
++                  grep -Eo '(fast_track_f6|wp_i_consilium)/[a-z_-]+\.(cjs|py):[0-9]+(:[0-9]+)?' "$log" | head -12 || true
++                fi
++              done
++              exit 1
++            fi
++            python - "$receipt/public.json" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert receipt["candidateTree"] == sys.argv[2]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f7-public/f6-$suite.json"
++          done
++          for suite in fast_track_f5 fast_track_f4 fast_track_f3 fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F6_REGRESSION_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[12345]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] in {"fast_track_f2", "fast_track_f3", "fast_track_f4", "fast_track_f5"}:
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f7-public/$suite.json"
++          done
++          for scenario in navigation unknownDenial; do
++            out="$RUNNER_TEMP/history-$scenario"
++            if ! HISTORY_SCENARIO="$scenario" python -B tools/tests/wp_i_card/run.py --suite history --out "$out"; then
++              if test -f "$out/card.log"; then
++                grep -Eo 'history\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$out/history-results.json" "$scenario" "$RUNNER_TEMP/f7-public/history-$scenario.json" <<'PYTHON'
++          import json
++          from pathlib import Path
++          import sys
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          expected = {"navigation": 6, "unknownDenial": 1}[sys.argv[2]]
++          assert result["syntheticOnly"] is True and result["realBackend"] is True
++          assert result["phase"] == "complete" and len(result["check"]) == expected
++          Path(sys.argv[3]).write_text(json.dumps({"scenario": sys.argv[2], "groups": expected, "result": "PASS"}) + "\n")
++          PYTHON
++          done
++          out="$RUNNER_TEMP/inbox-fix1"
++          if ! python -B tools/tests/wp_i_notifications/run.py --suite fix1 --count 1000 --out "$out"; then
++            if test -f "$out/card.log"; then grep -Eo 'fix1\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true; fi
++            exit 1
++          fi
++          python - "$out/results.json" "$RUNNER_TEMP/f7-public/notifications-fix1.json" <<'PYTHON'
++          import json
++          import sys
++          from pathlib import Path
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          assert result["realBackend"] and len(result["checks"]) == 12
++          Path(sys.argv[2]).write_text(json.dumps({"groups": 12, "result": "PASS"}) + "\n")
++          PYTHON
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f7-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f7-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index ea6a872..bbd0a4f 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,9 +138,9 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6-fast-track-f7">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f6"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f7"></script>' in body
+     for path in F1_SCRIPTS:
+         source = f'<script src="/static/{path.name}?v=fast-track-f5"></script>'
+         assert source in body
+diff --git a/backend/tests/test_wp24a_patient_create.py b/backend/tests/test_wp24a_patient_create.py
+index 7ec7d8b..4020e41 100644
+--- a/backend/tests/test_wp24a_patient_create.py
++++ b/backend/tests/test_wp24a_patient_create.py
+@@ -667,6 +667,7 @@ def test_static_client_guards_double_submission():
+     assert "if (this.addPatientPending) return;" in block
+     # WP2.4-B: запрос создания отправляется с ключом идемпотентности (apiPostIdempotent).
+     assert block.index("this.setAddPatientPending(true)") < block.index("apiPostIdempotent('/api/patients'")
++    assert "{retryTransport: false}" in block
+     # Ошибка: кнопка снова доступна, введенные поля не сбрасываются (форма не закрывается и не очищается).
+     error_branch = block[block.index("} catch (e) {"):block.index("return;", block.index("} catch (e) {"))]
+     assert "setAddPatientPending(false)" in error_branch and "reset()" not in error_branch
+diff --git a/backend/tests/test_wp24b_idempotency.py b/backend/tests/test_wp24b_idempotency.py
+index 599a120..84baf63 100644
+--- a/backend/tests/test_wp24b_idempotency.py
++++ b/backend/tests/test_wp24b_idempotency.py
+@@ -760,7 +760,7 @@ def test_static_contract():
+     helper = js[js.index("async function apiPostIdempotent"):]
+     helper = helper[:helper.index("\n}\n")]
+     assert "headers: { 'Idempotency-Key': key }" in helper and "console." not in helper and "?" not in helper.split("apiFetch(path")[1][:5]
+-    for call in ("apiPostIdempotent('/api/patients', payload, this.addPatientKey)",
++    for call in ("apiPostIdempotent('/api/patients', payload, this.addPatientKey, {retryTransport: false})",
+                  "apiPostIdempotent('/api/import/commit', body, this.importCommitKey)",
+                  "apiPostIdempotent('/api/migrate/localstorage/commit', body, this.migrationKey)"):
+         assert call in js, call
+diff --git a/backend/tests/test_wp24c_duplicates.py b/backend/tests/test_wp24c_duplicates.py
+index e12c8d6..2ba0a56 100644
+--- a/backend/tests/test_wp24c_duplicates.py
++++ b/backend/tests/test_wp24c_duplicates.py
+@@ -888,7 +888,7 @@ const sent = [], errors = [], asked = [], opened = [];
+ let keyCounter = 0;
+ const elements = {};
+ function $(id) {
+-  if (!elements[id]) elements[id] = { value: '', selectedOptions: [], reset() {},
++  if (!elements[id]) elements[id] = { value: '', selectedOptions: [], reset() {}, replaceChildren() {},
+     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } } };
+   return elements[id];
+ }
+@@ -899,7 +899,8 @@ Object.assign($('diagnosis'), { value: 'C34.1' });
+ Object.assign($('policyNumber'), { value: '7700000000031001' });
+ const ui = { toast() {}, closeModal() {}, openModal() {} };
+ function newIdempotencyKey() { keyCounter += 1; return 'key-' + keyCounter; }
+-async function apiPostIdempotent(path, body, key) {
++async function apiPostIdempotent(path, body, key, options) {
++  if (path !== '/api/patients' || options?.retryTransport !== false) throw new Error('Expected explicit patient replay only');
+   sent.push({ key, body: JSON.parse(JSON.stringify(body)) });
+   const kind = responses.shift();
+   if (kind === 'network') { const e = new Error('Нет ответа от сервера.'); e.network = true; throw e; }
+diff --git a/index.html b/index.html
+index eaaf764..629772e 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6-fast-track-f7">
+ </head>
+ <body>
+ 
+@@ -496,14 +496,17 @@
+ <div class="create-patient" id="addModal" hidden>
+     <div class="create-patient__box">
+         <div class="pagehead">
+-            <div><h1 id="addModalTitle" tabindex="-1">Новый пациент</h1><p class="pagehead__sub">Заполните данные пациента. Поля со звездочкой обязательны.</p></div>
++            <div><h1 class="pagehead__title" id="addModalTitle" tabindex="-1">Новый пациент</h1><p class="pagehead__subtitle">Заполните данные пациента. Поля со звездочкой обязательны.</p></div>
+             <button type="button" class="btn btn--icon" id="closeAddIconBtn" aria-label="Закрыть">
+                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+             </button>
+         </div>
+ 
+         <div class="create-patient__layout"><form class="form create-patient__form" id="addForm">
+-            <p class="alert alert--danger is-hidden" id="addFormError" role="alert" tabindex="-1"></p>
++            <div class="alert alert--danger create-patient__error is-hidden" id="addFormError" role="alert" tabindex="-1">
++                <p id="createErrorSummaryText"></p>
++                <ul id="createErrorSummaryList"></ul>
++            </div>
+ 
+             <fieldset class="fieldset">
+                 <legend class="fieldset__legend">Личные данные</legend>
+@@ -514,7 +517,8 @@
+                 <div class="grid-2">
+                     <div class="field">
+                         <label class="field__label" for="age">Возраст</label>
+-                        <input class="input" type="number" id="age" min="0" max="150">
++                        <input class="input" type="number" id="age" min="0" max="150" aria-describedby="createAgeHint">
++                        <p class="field__hint" id="createAgeHint">Возраст в полных годах.</p>
+                     </div>
+                     <div class="field">
+                         <label class="field__label" for="phone">Телефон</label>
+@@ -523,7 +527,8 @@
+                 </div>
+                 <div class="field">
+                     <label class="field__label" for="policyNumber">Номер полиса ОМС</label>
+-                    <input class="input" type="text" id="policyNumber" inputmode="numeric" maxlength="64" autocomplete="off" placeholder="7700000000000001">
++                    <input class="input" type="text" id="policyNumber" inputmode="numeric" maxlength="64" autocomplete="off" placeholder="7700000000000001" aria-describedby="createPolicyHint">
++                    <p class="field__hint" id="createPolicyHint">Пробелы и дефисы будут убраны при сохранении.</p>
+                 </div>
+             </fieldset>
+ 
+@@ -531,17 +536,17 @@
+                 <legend class="fieldset__legend">Диагноз</legend>
+                 <div class="field">
+                     <label class="field__label" for="diagnosisLocalization">Локализация <span class="req">*</span></label>
+-                    <select class="select" id="diagnosisLocalization"></select>
++                    <select class="select" id="diagnosisLocalization" aria-required="true"></select>
+                 </div>
+                 <div class="field">
+                     <label class="field__label" for="diagnosisSearch">Диагноз <span class="req">*</span></label>
+                     <div class="diagnosis-combobox">
+                         <input class="input" type="search" id="diagnosisSearch" autocomplete="off" placeholder="Код или название, например D48.6 или молочная"
+-                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="diagnosisOptions" aria-describedby="diagnosisHint">
++                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="diagnosisOptions" aria-describedby="diagnosisHint" aria-required="true">
+                         <input type="hidden" id="diagnosis">
+                         <div class="diagnosis-combobox__list is-hidden" id="diagnosisOptions" role="listbox" aria-label="Варианты диагнозов"></div>
+                     </div>
+-                    <p class="field__hint" id="diagnosisHint">Список ограничен выбранной локализацией.</p>
++                    <p class="field__hint" id="diagnosisHint">Выберите диагноз МКБ-10 из списка по указанной локализации.</p>
+                 </div>
+                 <div class="client-path-status" id="clientPathStatus" role="status"></div>
+             </fieldset>
+@@ -556,7 +561,7 @@
+                 <div class="field is-hidden" id="primaryAppointmentGroup">
+                     <label class="field__label" for="primaryAppointmentDate">Дата фактического первичного приёма <span class="req">*</span></label>
+                     <div class="grid-2">
+-                        <input class="input" type="date" id="primaryAppointmentDate">
++                        <input class="input" type="date" id="primaryAppointmentDate" aria-required="true">
+                         <input class="input" type="time" id="primaryAppointmentTime" aria-label="Время первичного приёма">
+                     </div>
+                 </div>
+@@ -597,6 +602,7 @@
+                     </div>
+                 </div>
+ 
++                <div class="create-patient__event-preview field__hint" id="createEventPreview" role="status" aria-atomic="true"></div>
+             </fieldset>
+             <fieldset class="fieldset"><legend class="fieldset__legend">Ответственные и приоритет</legend>
+                 <div class="grid-2">
+@@ -610,7 +616,7 @@
+                     </div>
+                     <div class="field">
+                         <label class="field__label" for="doctor">Лечащий врач</label>
+-                        <select class="select" id="doctor"></select>
++                        <select class="select" id="doctor" aria-describedby="doctorHint"></select>
+                         <p class="field__hint is-hidden" id="doctorHint"></p>
+                     </div>
+                 </div>
+@@ -642,7 +648,7 @@
+                 </div>
+             </fieldset>
+             <p id="createSaveStatus" class="field__hint" role="status"></p>
+-        </form><aside class="create-patient__aside panel panel--pad" aria-label="Перед сохранением"><h2>Перед сохранением</h2><p>Проверьте ФИО, диагноз и ответственного врача.</p><p>Начальные события относятся к выбранному этапу лечения.</p><p>Если найден возможный дубль, система предложит проверить совпадения перед созданием.</p></aside></div>
++        </form><aside class="create-patient__aside panel panel--pad" aria-label="Перед сохранением"><h2>Перед сохранением</h2><p>Проверьте ФИО, диагноз и ответственного врача.</p><p>Если найден возможный дубль, система предложит проверить совпадения перед созданием.</p></aside></div>
+ 
+         <div class="create-patient__actions">
+             <button type="button" class="btn btn--ghost" id="closeAddBtn">Отмена</button>
+@@ -1948,6 +1954,6 @@
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+ <script src="/static/f1-management.js?v=fast-track-f5"></script>
+ <script src="/static/f1-doctor.js?v=fast-track-f5"></script>
+-<script src="/static/app.js?v=fast-track-f6"></script>
++<script src="/static/app.js?v=fast-track-f7"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index c3c9d4d..28dbee2 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -247,13 +247,13 @@ function newIdempotencyKey() {
+ const IDEMPOTENT_TIMEOUT_MS = 30000;
+ const NETWORK_FAILURE_MESSAGE = 'Нет ответа от сервера. Повторите отправку: повтор с теми же данными безопасен и не создаст копию.';
+ 
+-// POST с ключом идемпотентности. Если ответ не получен (сеть, таймаут), запрос
+-// один раз повторяется с тем же ключом: сервер вернет результат первого
+-// выполнения, а не выполнит операцию снова. Ответ сервера с ошибкой не повторяется.
+-async function apiPostIdempotent(path, body, key) {
++// Для импорта разрешен один сетевой повтор. Создание карточки выполняет
++// один POST за явное действие и сохраняет прежний ключ до проверки результата.
++async function apiPostIdempotent(path, body, key, {retryTransport = true} = {}) {
+     const text = JSON.stringify(body === undefined ? {} : body);
++    const attempts = retryTransport ? 2 : 1;
+     let lastError = null;
+-    for (let attempt = 0; attempt < 2; attempt++) {
++    for (let attempt = 0; attempt < attempts; attempt++) {
+         const controller = new AbortController();
+         const timer = setTimeout(() => controller.abort(), IDEMPOTENT_TIMEOUT_MS);
+         try {
+@@ -262,7 +262,7 @@ async function apiPostIdempotent(path, body, key) {
+         } catch (err) {
+             if (err && err.status) throw err;          // сервер ответил: повтор не нужен
+             lastError = err;
+-            if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1000));
++            if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 1000));
+         } finally {
+             clearTimeout(timer);
+         }
+@@ -3892,10 +3892,44 @@ const app = {
+         });
+         return el('section', {class: 'panel panel--pad', 'aria-labelledby': 'patientConsiliumTitle'}, [
+             el('h2', {id: 'patientConsiliumTitle', class: 'section-title', text: 'Онкологический консилиум'}),
++            this.can('bookConsilium') ? el('button', {
++                id: 'bookPatientConsiliumBtn', type: 'button', class: 'btn btn--primary btn--sm',
++                text: 'Записать на консилиум',
++                on: {click: event => this.openPatientConsiliumBooking(patientId, event.currentTarget)},
++            }) : null,
+             load, results,
+         ]);
+     },
+ 
++    async openPatientConsiliumBooking(patientId, trigger) {
++        if (trigger.getAttribute('aria-busy') === 'true' || this.sessionExpired || !this.can('bookConsilium')) return;
++        const epoch = this.sessionEpoch;
++        const current = () => trigger.isConnected && this.currentView === 'patient' && this.currentTab === 'overview' &&
++            this.currentPatientId === patientId && this.sessionEpoch === epoch && !this.sessionExpired && this.can('bookConsilium');
++        if (!current()) return;
++        trigger.setAttribute('aria-busy', 'true');
++        try {
++            const patient = await apiGetJson('/api/patients/' + encodeURIComponent(patientId));
++            if (!current() || patient?.id !== patientId) return;
++            await this.loadConsilium();
++            if (!current()) return;
++            const group = this.consiliumGroupForDiagnosis(patient.diagnosis);
++            if (this.consilium.blockedPatientIds.includes(patientId)) {
++                ui.toast('У пациента уже есть незавершенная запись.', 'warning');
++                return;
++            }
++            if (!group || !this.consilium.schedule.some(slot => slot.consiliumGroup === group && slot.bookable && !slot.occupied)) {
++                ui.toast('Для пациента нет доступного свободного времени.', 'warning');
++                return;
++            }
++            await this.openConsiliumModal(null, null, {patient, current});
++        } catch {
++            if (current()) ui.toast('Не удалось проверить карточку и расписание.', 'warning');
++        } finally {
++            trigger.removeAttribute('aria-busy');
++        }
++    },
++
+     async loadPatientConsiliumRecords(patientId, results, load) {
+         if (load.disabled || !this.can('accessConsilium') || this.sessionExpired) return;
+         const epoch = this.sessionEpoch;
+@@ -8253,6 +8287,7 @@ const app = {
+         $('addForm').reset();
+         this.clearCreateFieldErrors();
+         $('addFormError').classList.add('is-hidden');
++        $('createErrorSummaryList').replaceChildren();
+         this.clearPgiResultDateError();
+         this.resetDiagnosisSelect();
+         this.updateClientPathStatus();
+@@ -8359,6 +8394,7 @@ const app = {
+         $('diagnosis').value = item.code;
+         $('diagnosisSearch').value = `${item.code} — ${item.label}`;
+         this.setDiagnosisComboboxOpen(false);
++        this.clearCorrectedCreateError($('diagnosisSearch'));
+     },
+ 
+     onDiagnosisSearchInput() {
+@@ -8405,6 +8441,7 @@ const app = {
+         for (const [id, visible] of Object.entries(groups)) {
+             $(id).classList.toggle('is-hidden', !visible);
+         }
++        this.updateCreateEventPreview();
+     },
+ 
+     buildEventsFromForm(stage) {
+@@ -8425,11 +8462,59 @@ const app = {
+         return [{ date, time, treatmentType }];
+     },
+ 
+-    showFormError(message) {
++    updateCreateEventPreview() {
++        const stage = $('stage').value;
++        const event = this.buildEventsFromForm(stage)[0];
++        const preview = $('createEventPreview');
++        if (!event) {
++            preview.textContent = 'Начальное событие не добавлено.';
++            return;
++        }
++        const facts = [
++            event.actualDate && 'фактическая дата ' + event.actualDate.split('-').reverse().join('.'),
++            event.date && 'плановая дата ' + event.date.split('-').reverse().join('.'),
++            (event.actualTime || event.time) && 'время ' + (event.actualTime || event.time),
++            this.TREATMENT_LABELS[event.treatmentType],
++        ].filter(Boolean);
++        preview.textContent = 'Начальное событие для этапа «' + this.stageNames[stage] + '»: ' + facts.join(', ') + '.';
++    },
++
++    refreshCreateErrorLinks() {
++        const list = $('createErrorSummaryList');
++        const previousCount = list.childElementCount;
++        const fields = [...$('addForm').querySelectorAll('input,select,textarea')].filter(field =>
++            !field.disabled && !field.closest('.is-hidden,[hidden]') &&
++            (field.getAttribute('aria-invalid') === 'true' || !field.validity.valid));
++        list.replaceChildren(...fields.map(field => el('li', {}, el('button', {
++            type: 'button', class: 'btn btn--ghost btn--sm',
++            text: field.labels?.[0]?.textContent.trim() || field.getAttribute('aria-label') || 'Проверить поле',
++            on: {click: () => field.focus()},
++        }))));
++        return previousCount > 0 && fields.length === 0;
++    },
++
++    clearCorrectedCreateError(field) {
++        const id = field.id === 'diagnosisSearch' ? 'diagnosis' : field.id;
++        const source = $(id);
++        const message = $(id + 'CreateError');
++        if (message && source?.value.trim() && field.validity.valid) {
++            message.remove();
++            field.removeAttribute('aria-invalid');
++            const described = (field.getAttribute('aria-describedby') || '').split(' ').filter(part => part && part !== message.id);
++            if (described.length) field.setAttribute('aria-describedby', described.join(' '));
++            else field.removeAttribute('aria-describedby');
++        }
++        if (!$('addFormError').classList.contains('is-hidden') && this.refreshCreateErrorLinks()) {
++            $('addFormError').classList.add('is-hidden');
++        }
++    },
++
++    showFormError(message, {focus = true} = {}) {
+         const box = $('addFormError');
+-        box.textContent = message;
++        $('createErrorSummaryText').textContent = message;
++        this.refreshCreateErrorLinks();
+         box.classList.remove('is-hidden');
+-        box.focus();
++        if (focus) box.focus();
+     },
+ 
+     clearPgiResultDateError() {
+@@ -8472,24 +8557,25 @@ const app = {
+         if (this.addPatientPending) return;
+         if (!this.can('createPatients') || this.sessionExpired) return;
+         this.clearCreateFieldErrors();
++        $('addFormError').classList.add('is-hidden');
+         const fio = $('fio').value.trim();
+         const stage = $('stage').value;
+         const head = $('head').value;
+         const diagnosis = $('diagnosis').value;
+ 
+-        if (!fio) return this.showFormError('Укажите ФИО пациента.');
+-        if (!diagnosis) return this.showFormError('Выберите локализацию и диагноз (код МКБ-10).');
+-        if (!stage) return this.showFormError('Выберите текущий этап лечения.');
+-        if (!head) return this.showFormError('Выберите заведующего.');
++        const required = [
++            [fio, 'fio'], [diagnosis, 'diagnosis'], [stage, 'stage'], [head, 'head'],
++            [stage !== 'primary-appointment' || $('primaryAppointmentDate').value, 'primaryAppointmentDate'],
++        ].filter(([value]) => !value);
++        if (required.length) {
++            for (const [,id] of required) this.showCreateFieldError(id);
++            return this.showFormError('Заполните обязательные поля.');
++        }
+         if ($('pgiResult').value && !$('pgiResultDate').value) {
+-            this.showFormError('Проверьте дату результата ПГИ.');
+             this.showPgiResultDateError('Укажите дату результата ПГИ.');
++            this.showFormError('Проверьте дату результата ПГИ.', {focus: false});
+             return;
+         }
+-        if (stage === 'primary-appointment' && !$('primaryAppointmentDate').value) {
+-            return this.showFormError('Для первичного приёма укажите фактическую дату — это обязательное поле.');
+-        }
+-
+         const doctorSelect = $('doctor');
+         const doctorUserId = doctorSelect.value || null;
+         const doctorLabel = doctorSelect.selectedOptions.length
+@@ -8518,6 +8604,7 @@ const app = {
+         if (this.addPatientDuplicateConfirmation) payload.duplicateConfirmation = this.addPatientDuplicateConfirmation;
+ 
+         if (this.addPatientUncertain && this.addPatientSentBody) payload=JSON.parse(this.addPatientSentBody);
++        const owner = this.user, epoch = this.sessionEpoch;
+         let created;
+         for (;;) {
+             // Изменились отправляемые данные — это новая операция и новый ключ
+@@ -8529,7 +8616,7 @@ const app = {
+             this.addPatientSentBody = payloadText;
+             this.setAddPatientPending(true);
+             try {
+-                created = await apiPostIdempotent('/api/patients', payload, this.addPatientKey);
++                created = await apiPostIdempotent('/api/patients', payload, this.addPatientKey, {retryTransport: false});
+                 break;
+             } catch (e) {
+                 // Unknown outcomes freeze the exact body/key; only an explicit replay is permitted.
+@@ -8546,6 +8633,7 @@ const app = {
+                         title: 'Возможный дубль пациента', confirmLabel: 'Создать новую карточку',
+                         reasonLabel: 'Причина, по которой нужна отдельная карточка',
+                     });
++                    if (this.user !== owner || this.sessionEpoch !== epoch || this.sessionExpired) return;
+                     if (!answer) {
+                         this.showFormError('Карточка не создана: в вашей области уже есть карточка с таким номером полиса ОМС.');
+                         return;
+@@ -8572,7 +8660,7 @@ const app = {
+             await this.loadActivity();
+             this.fillStaticSelects();
+         } catch (e) { /* карточка уже создана; обновление сводок не критично */ }
+-        this.openPatient(created.id);
++        if (this.user === owner && this.sessionEpoch === epoch && !this.sessionExpired) this.openPatient(created.id);
+     },
+ 
+     /* ========================================= ВОЗМОЖНЫЕ ДУБЛИ ПАЦИЕНТОВ */
+@@ -10167,6 +10255,7 @@ const app = {
+     },
+ 
+     async fillConsiliumPatientsForGroup(record = null, cursor = null, restarted = false) {
++        if (!record && this.consilium.bookingPatientId) return [];
+         const version=this.beginRead('consilium-candidates');
+         const group=this.consiliumGroupKey();
+         const known=(this.consilium.meta?.groups||[]).some(g=>g.value===group);
+@@ -10209,7 +10298,8 @@ const app = {
+     },
+ 
+     async openConsiliumModal(appointmentId = null, selectedSlot = null, options = {}) {
+-        if (this.sessionExpired || this.consilium.loading) return;
++        if (this.sessionExpired || this.consilium.loading || (options.current && !options.current())) return;
++        const patient = options.patient;
+         if (selectedSlot) {
+             if (!this.consiliumGridReady()) return;
+             const fresh=this.consilium.schedule.find(slot=>slot.id===selectedSlot.id
+@@ -10226,6 +10316,8 @@ const app = {
+         }
+         const prepareEpoch=this.sessionEpoch,prepareVersion=this.readVersions['consilium-load'];
+         this.consilium.editingId = appointmentId;
++        this.consilium.bookingPatientId = patient?.id || null;
++        $('consiliumPatientSearch').disabled = Boolean(patient);
+         const record = appointmentId
+             ? this.consilium.appointments.find(item => item.id === appointmentId)
+             : null;
+@@ -10245,24 +10337,34 @@ const app = {
+ 
+         const today = this.consiliumToday();
+         $('consiliumDate').min = today;
+-        const firstFree = !record ? (selectedSlot || (this.consilium.schedule || []).find(slot => slot.bookable)) : null;
++        const group = patient ? this.consiliumGroupForDiagnosis(patient.diagnosis) : '';
++        const firstFree = !record ? (selectedSlot || this.consilium.schedule.find(slot =>
++            slot.bookable && !slot.occupied && (!patient || slot.consiliumGroup === group))) : null;
++        if (patient && !firstFree) return;
+         $('consiliumDate').value = record ? record.scheduledDate : (firstFree ? firstFree.scheduledDate : today);
+-        $('consiliumDate').disabled = !record;
+-        $('consiliumTime').disabled = !record;
++        $('consiliumDate').disabled = !record && !patient;
++        $('consiliumTime').disabled = !record && !patient;
+         $('consiliumDoctor').value = (this.user && this.user.fullName) || '';
+         $('consiliumBenefit').value = record && record.hasBenefit ? 'yes' : 'no';
+         $('consiliumPolicyNumber').value = record ? record.policyNumber : '';
+         $('consiliumGroup').value = record
+             ? record.consiliumGroupLabel
+             : (firstFree ? firstFree.consiliumGroupLabel : '');
+-        const patients = await this.fillConsiliumPatientsForGroup(record);
++        let patients;
++        if (patient) {
++            patients = [patient];
++            $('consiliumPatient').replaceChildren(option(patient.id, patient.name, true));
++            $('consiliumPatientHint').textContent = 'Пациент выбран из открытой карточки.';
++            $('consiliumCandidatePager')?.replaceChildren();
++        } else patients = await this.fillConsiliumPatientsForGroup(record);
++        if (options.current && !options.current()) return;
+         if (prepareEpoch!==this.sessionEpoch || this.sessionExpired || this.consilium.loading || !this.consilium.loaded
+             ||prepareVersion!==this.readVersions['consilium-load']) return;
+         for (const notice of $('consiliumModal').querySelectorAll('[data-consilium-read-notice]')) notice.remove();
+-        $('consiliumPatient').disabled = !!record;
+-        $('consiliumGroup').readOnly = !!record;
++        $('consiliumPatient').disabled = Boolean(record || patient);
++        $('consiliumGroup').readOnly = Boolean(record || patient);
+         this.updateConsiliumAvailableSlots(record);
+-        if (!record && firstFree) $('consiliumTime').value = firstFree.scheduledTime;
++        if (!record && firstFree && !patient) $('consiliumTime').value = firstFree.scheduledTime;
+         $('consiliumLocalization').value = record ? record.diagnosisLocalization : '';
+         $('consiliumPrimaryDiagnosis').value = record ? record.primaryDiagnosis : '';
+         $('consiliumAdditionalDiagnosis').value = record ? record.additionalDiagnosis : '';
+@@ -10652,6 +10754,10 @@ const app = {
+             needsRadiotherapist: $('consiliumNeedsRadiotherapist').value === 'yes',
+             uvRuv: $('consiliumUvRuv').checked,
+         };
++        if (this.consilium.bookingPatientId && payload.patientId !== this.consilium.bookingPatientId) {
++            this.showConsiliumFormError('Пациент в форме изменился. Откройте запись из карточки заново.');
++            return null;
++        }
+         if (!payload.patientId || !payload.scheduledDate || !payload.scheduledTime || !payload.consiliumGroup || !payload.diagnosisLocalization) {
+             this.showConsiliumFormError('Заполните пациента, группу, дату, свободный слот и локализацию.');
+             return null;
+@@ -10710,13 +10816,22 @@ const app = {
+             ui.closeModal('consiliumModal',{force:true});
+             ui.toast(this.consilium.editingId ? 'Запись обновлена.'
+                 : (backdated ? 'Консилиум оформлен задним числом.' : 'Пациент записан на консилиум.'), 'good');
++            const bookedFromCard = formOwner.bookingPatientId;
+             this.consilium.editingId = null;
+             this.consilium.loaded = false;
+-            await this.renderConsilium();
++            formOwner.bookingPatientId = null;
++            if (bookedFromCard && this.currentView === 'patient' && this.currentPatientId === bookedFromCard &&
++                $('patientConsiliumRecords') && $('loadPatientConsiliumBtn')) {
++                await this.loadPatientConsiliumRecords(bookedFromCard, $('patientConsiliumRecords'), $('loadPatientConsiliumBtn'));
++            } else await this.renderConsilium();
+         } catch (error) {
+             if (this.isConsiliumVersionConflict(error)) return this.showConsiliumConflict(error);
+             if(epoch!==this.sessionEpoch || this.sessionExpired)return;
+-            if (!error.status || error.status >= 500) {
++            if (error.status === 409 && booking && formOwner.bookingPatientId) {
++                this.showConsiliumConflict({message: error.message + ' Проверьте расписание перед новой отправкой.'});
++                const {patientId, scheduledDate, scheduledTime, consiliumGroup} = booking;
++                formOwner.unconfirmedBooking = {patientId, scheduledDate, scheduledTime, consiliumGroup};
++            } else if (!error.status || error.status >= 500) {
+                 if (booking) {
+                     const {patientId, scheduledDate, scheduledTime, consiliumGroup, backdated} = booking;
+                     formOwner.unconfirmedBooking = {patientId, scheduledDate, scheduledTime, consiliumGroup, backdated};
+@@ -12595,7 +12710,18 @@ const app = {
+         on('pgiResultDate', 'change', () => {
+             if ($('pgiResultDate').value) this.clearPgiResultDateError();
+         });
++        $('addForm').addEventListener('invalid', event => {
++            if (event.target.closest('.is-hidden,[hidden]')) return;
++            this.showCreateFieldError(event.target.id);
++            this.showFormError('Проверьте выделенные поля.', {focus: false});
++        }, true);
++        for (const id of ['primaryAppointmentDate', 'primaryAppointmentTime', 'examDate', 'examTime',
++            'appointmentDate', 'appointmentTime', 'consultDate', 'consultTime', 'treatmentDate',
++            'treatmentTime', 'treatmentType']) on(id, 'input', () => this.updateCreateEventPreview());
+         on('stage', 'change', () => this.updateStageFields());
++        for (const eventName of ['input', 'change']) $('addForm').addEventListener(eventName, event => {
++            if (event.target.matches('input,select,textarea')) this.clearCorrectedCreateError(event.target);
++        });
+ 
+         // Пациент требует внимания
+         on('closeAttentionIconBtn', 'click', () => ui.closeModal('attentionModal'));
+diff --git a/static/styles.css b/static/styles.css
+index 9317438..d35a53d 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -3132,10 +3132,19 @@ html[data-theme="light"] :is(.patient-workspace, .f1-workspace, .registry) .chip
+ .create-patient__form .fieldset__legend { font-size:var(--text-lg);text-transform:none;letter-spacing:normal;color:var(--text); }
+ .create-patient__aside h2 { font-size:var(--text-lg);margin:0 0 var(--sp-3); }
+ .create-patient__aside p { color:var(--text-2);line-height:1.6; }
+-.create-patient__actions { display:flex;gap:var(--sp-3);justify-content:flex-end;padding:var(--sp-4) 0;border-top:1px solid var(--border); }
++.create-patient__actions { position:sticky;bottom:0;z-index:5;display:flex;gap:var(--sp-3);justify-content:flex-end;padding:var(--sp-4) 0;border-top:1px solid var(--border);background:var(--bg); }
+ .create-patient input,.create-patient select,.create-patient textarea { min-width:0;max-width:100%; }
++.create-patient__form :is(input, select, textarea, button) { scroll-margin-block-end: 6rem; }
++.create-patient__error,
++.create-patient__event-preview { overflow-wrap:anywhere; }
++.create-patient__error ul { margin:var(--sp-2) 0 0; padding-inline-start:var(--sp-5); }
++.create-patient__error ul:empty { display:none; }
++.create-patient__error button { min-height:32px; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:start; text-decoration:underline; cursor:pointer; }
++.create-patient__event-preview { margin-top:var(--sp-3); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-md); background:var(--surface-2); color:var(--text-2); }
++.create-patient__event-preview:empty { margin:0; padding:0; }
+ @media(max-width:1000px){.create-patient__layout{grid-template-columns:minmax(0,1fr);}.create-patient__aside{grid-row:2;}}
+ @media(max-width:600px){.create-patient__form .grid-2{grid-template-columns:minmax(0,1fr);}.create-patient__form .fieldset{padding:var(--sp-4);}.create-patient__actions{flex-wrap:wrap;}.create-patient__actions .btn{flex:1 1 140px;}}
++@media(max-height:470px){.create-patient__actions{position:static;}}
+ 
+ /* Error text must retain AA contrast on the light creation surface. */
+ html[data-theme="light"] .create-patient .alert--danger { color: #b91c1c; }
+diff --git a/tools/tests/fast_track_f7/journey.cjs b/tools/tests/fast_track_f7/journey.cjs
+new file mode 100644
+index 0000000..3675f53
+--- /dev/null
++++ b/tools/tests/fast_track_f7/journey.cjs
+@@ -0,0 +1,407 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const {createHash, randomUUID} = require('node:crypto');
++const fs = require('node:fs');
++const path = require('node:path');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE);
++const {setup, login, password} = require('../wp_i_consilium/fixtures.cjs');
++
++const origin = process.env.WP_H_ORIGIN;
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++const patients = '/api/patients';
++const appointments = '/api/consilium/appointments';
++const schedule = '/api/consilium/schedule';
++const dashboard = '/api/analytics/dashboard';
++const checks = [];
++const widths = [320, 375, 768, 1024, 1440];
++const axe = [];
++const readHashes = [];
++const writes = [];
++const transportFaults = [];
++let phase = 'startup';
++let pageErrors = 0;
++let legacyReads = 0;
++
++function response(page, method, pathname, filter = () => true) {
++    return page.waitForResponse(r => {
++        const url = new URL(r.url());
++        return r.request().method() === method && url.pathname === pathname && filter(r, url);
++    });
++}
++
++async function keyboard(control) {
++    await control.and(control.page().locator(':not(:disabled)')).waitFor();
++    await control.focus();
++    assert(await control.evaluate(node => node === document.activeElement && !node.disabled));
++    await control.press('Enter');
++}
++
++async function navigate(page, key) {
++    await keyboard(page.locator('[data-view="' + key + '"]').first());
++    await page.locator('#view-' + key).waitFor();
++}
++
++async function protectedRead(res) {
++    assert.equal(res.status(), 200);
++    const body = await res.body();
++    readHashes.push(createHash('sha256').update(body).digest('hex'));
++    return JSON.parse(body);
++}
++
++async function session(browser, f, role, viewport = {width:1440,height:1000}) {
++    const context = await browser.newContext({reducedMotion: 'reduce', viewport});
++    await context.route('**/*', route => new URL(route.request().url()).origin === origin
++        ? route.continue() : route.abort('blockedbyclient'));
++    const page = await context.newPage();
++    page.on('pageerror', () => { pageErrors++; });
++    page.on('request', request => {
++        const url = new URL(request.url());
++        const method = request.method();
++        if (url.pathname === patients && method === 'GET' && url.searchParams.get('view') !== 'page') legacyReads++;
++        if ((url.pathname.startsWith(patients) || url.pathname.startsWith(appointments)) && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
++            writes.push({role, pathname: url.pathname, method, body: request.postData(), key: request.headers()['idempotency-key']});
++        }
++    });
++    await login(page, origin, f.roles[role].username);
++    return {context,page};
++}
++
++async function openForm(page) {
++    await keyboard(page.locator('#openAddBtn'));
++    await page.locator('#addModal').waitFor();
++    assert.equal(await page.evaluate(() => document.activeElement.id), 'addModalTitle');
++}
++
++async function fill(page, doctor, name, day = '', policy = '') {
++    await page.locator('#fio').fill(name);
++    await page.locator('#age').fill('51');
++    await page.locator('#phone').fill('+70000000123');
++    await page.locator('#policyNumber').fill(policy);
++    await page.locator('#diagnosisLocalization').selectOption('respiratory_thoracic');
++    const diagnosis = page.locator('#diagnosisSearch');
++    await diagnosis.fill('C34.1');
++    await page.getByRole('option', {name: /C34.1/}).first().waitFor();
++    await diagnosis.press('Enter');
++    assert.equal(await page.locator('#diagnosis').inputValue(), 'C34.1');
++    await page.locator('#stage').selectOption('exam');
++    assert.equal(await page.locator('#doctor').isDisabled(), true);
++    assert.equal(await page.locator('#doctor').inputValue(), doctor);
++    await page.locator('#head').selectOption(await page.locator('#head option').evaluateAll(nodes => nodes.find(node => node.value)?.value));
++    if (day) {
++        await page.locator('#examDate').fill(day);
++        await page.locator('#examTime').fill('13:15');
++    }
++}
++
++async function responsive(page) {
++    await page.evaluate(fs.readFileSync(process.env.AXE_SOURCE, 'utf8'));
++    for (const theme of ['light', 'dark']) {
++        if ((await page.locator('html').getAttribute('data-theme')) !== theme) await page.locator('#themeToggle').click();
++        assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
++        for (const width of widths) {
++            await page.setViewportSize({width, height:1000});
++            const geometry = await page.locator('#addModalTitle').evaluate(title => {
++                window.scrollTo(0, 0);
++                const box = title.getBoundingClientRect();
++                const hit = document.elementFromPoint(box.left + 12, box.top + box.height / 2);
++                return {width:innerWidth, overflow:document.documentElement.scrollWidth > innerWidth,
++                    titleVisible:hit === title || title.contains(hit)};
++            });
++            assert.deepEqual(geometry, {width, overflow:false, titleVisible:true});
++            const violations = await page.evaluate(async () => (await window.axe.run(document, {
++                runOnly: {type:'tag', values:['wcag2a','wcag2aa','wcag21a','wcag21aa']},
++            })).violations.map(rule => ({id:rule.id, targets:rule.nodes.map(node => node.target)})));
++            assert.deepEqual(violations, [], theme + ' ' + width);
++            axe.push({theme,width,violations:0,titleVisible:true});
++            if (theme === 'light' && width === 1440 || theme === 'dark' && width === 375) {
++                await page.screenshot({path:path.join(process.env.OUT, `f7-intake-${theme}-${width}.png`),animations:'disabled'});
++            }
++        }
++    }
++}
++
++async function freshCard(page, id) {
++    const res = await page.waitForResponse(r => new URL(r.url()).pathname === patients + '/' + id &&
++        r.request().method() === 'GET');
++    const card = await protectedRead(res);
++    assert.equal(card.id, id);
++    await page.waitForFunction(id => app.currentView === 'patient' && app.currentPatientId === id, id);
++    return card;
++}
++
++async function post(page, pathname, request, status) {
++    const [result] = await Promise.all([response(page, 'POST', pathname), keyboard(request)]);
++    assert.equal(result.status(), status);
++    return result;
++}
++
++async function exactCreate(page, name) {
++    const loaded = page.waitForResponse(r => r.request().method() === 'GET' &&
++        /^\/api\/patients\/[a-f0-9-]+$/i.test(new URL(r.url()).pathname));
++    const created = await post(page, patients, page.locator('#submitAddBtn'), 201);
++    const card = await created.json();
++    assert(card.id && card.name === name);
++    const confirmed = await protectedRead(await loaded);
++    assert.equal(confirmed.id, card.id);
++    assert.equal(confirmed.name, name);
++    await page.waitForFunction(id => app.currentView === 'patient' && app.currentPatientId === id, card.id);
++    return confirmed;
++}
++
++async function registry(page, card) {
++    await page.locator('#view-patients').waitFor();
++    const query = page.locator('#searchInput');
++    const searched = response(page, 'GET', patients, (_, url) =>
++        url.searchParams.get('view') === 'page' && url.searchParams.get('q') === card.name);
++    await query.fill(card.name);
++    const result = await protectedRead(await searched);
++    assert.equal(result.page.total, 1);
++    assert.deepEqual(result.patients.map(p => p.id), [card.id]);
++    const item = page.getByRole('button', {name:'Открыть карточку: ' + card.name, exact:true});
++    const ready = freshCard(page, card.id);
++    await keyboard(item);
++    return ready;
++}
++
++async function book(page, card, f) {
++    phase = 'card to real bookable consilium slot';
++    await keyboard(page.locator('#tab-overview'));
++    const [freshSchedule] = await Promise.all([response(page, 'GET', schedule),
++        keyboard(page.locator('#bookPatientConsiliumBtn'))]);
++    const availability = await protectedRead(freshSchedule);
++    assert(availability.slots.some(slot => slot.scheduledDate === f.day && slot.scheduledTime === '11:00' &&
++        slot.consiliumGroup === 'thoracic' && slot.bookable && !slot.occupied));
++    assert(availability.slots.some(slot => slot.scheduledDate === f.day && slot.scheduledTime === '10:30' &&
++        slot.consiliumGroup === 'thoracic' && slot.occupied));
++    const form = page.locator('#consiliumModal');
++    await form.waitFor();
++    assert.equal(await page.locator('#consiliumPatient').inputValue(), card.id);
++    assert.equal(await page.locator('#consiliumPatient').isDisabled(), true);
++    assert.equal(await page.locator('#consiliumGroup').getAttribute('readonly'), '');
++    await page.locator('#consiliumDate').fill(f.day);
++    await page.locator('#consiliumTime').selectOption('11:00');
++    await page.locator('#consiliumComment').fill('Синтетическая запись из карточки F7');
++    assert.equal(writes.filter(write => write.pathname === appointments).length,0);
++    const committed = await post(page,appointments,page.locator('#submitConsiliumBtn'),201);
++    const record = await committed.json();
++    assert.equal(record.patientId,card.id);
++    assert.equal(record.scheduledDate,f.day);
++    assert.equal(record.scheduledTime,'11:00');
++    assert.equal(record.consiliumGroup,'thoracic');
++    assert.equal(record.status,'recorded');
++    await form.waitFor({state:'hidden'});
++    await page.locator('#patientConsiliumRecords').getByRole('button').filter({hasText:'11:00'}).waitFor();
++    assert(await page.locator('#view-patient').isVisible());
++    assert.equal(await page.locator('#crumbPatientName').textContent(),card.name);
++    assert.equal(writes.filter(write => write.pathname === appointments).length,1);
++    checks.push('pinned created patient, saved scoped slot and one explicit appointment POST; fresh same-card return without decision or stage change');
++    return record;
++}
++
++async function denyAndVerifyChair(browser, f, card, appointment) {
++    phase = 'real read-only and foreign-scope refusal, chair confirms booking';
++    const readonly = await session(browser,f,'deputy_chief_oncology');
++    assert(!await readonly.page.locator('#openAddBtn').isVisible());
++    const csrf = (await readonly.context.cookies()).find(cookie=>cookie.name==='clinic_csrf');
++    const rejected = await readonly.context.request.post(origin+patients,{
++        headers:{'Idempotency-Key':randomUUID(),'X-CSRF-Token':csrf.value},
++        data:{...JSON.parse(writes[0].body),name:'Синтетический запрещенный F7'},
++    });
++    assert.equal(rejected.status(),403);
++    await readonly.context.close();
++
++    const foreign = await browser.newContext();
++    await f.call(foreign,'POST','/api/auth/login',{username:'i5a.outside',password});
++    const hidden = await f.request(foreign,'GET',patients+'/'+card.id);
++    assert.equal(hidden.status(),404);
++    assert(!(await hidden.text()).includes(card.name));
++    await foreign.close();
++
++    const chair = await session(browser,f,'consilium_chair');
++    assert(!await chair.page.locator('#openAddBtn').isVisible());
++    const present = response(chair.page,'GET',appointments);
++    await navigate(chair.page,'consilium');
++    const table = await protectedRead(await present);
++    assert(table.appointments.some(item => item.id === appointment.id && item.status === 'recorded'));
++    await chair.page.locator('#consiliumDateFilter').fill(f.day);
++    await chair.page.locator('#consilium-grid-row-' + appointment.id).waitFor();
++    await chair.context.close();
++    checks.push('genuine 403 for read-only creation, neutral 404 for a foreign doctor, real chair read finds the recorded booking');
++}
++
++async function replayAndDuplicate(page, doctor, f, names, policy) {
++    phase = 'lost create reply with explicit exact replay';
++    await navigate(page,'patients');
++    await openForm(page);
++    await fill(page,f.roles.doctor.id,names[1],'',policy);
++    const prior = writes.length;
++    let lost;
++    await page.route(origin+patients,async route => {
++        assert.equal(route.request().method(),'POST');
++        const committed = await route.fetch();
++        assert.equal(committed.status(),201);
++        assert.equal(committed.headers()['idempotent-replayed'],undefined);
++        lost = await committed.json();
++        await route.abort('connectionreset');
++    }, {times:1});
++    await keyboard(page.locator('#submitAddBtn'));
++    await page.getByRole('button',{name:'Проверить результат',exact:true}).waitFor();
++    assert(lost && lost.name === names[1]);
++    assert.equal(writes.length - prior,1);
++    assert.equal(await page.locator('#fio').inputValue(),names[1]);
++    assert.equal(await page.locator('#fio').isDisabled(),true);
++    const initial = writes.at(-1);
++    assert.match(initial.key,/^[a-f0-9-]{36}$/i);
++    const ready = freshCard(page,lost.id);
++    const replay = await post(page,patients,page.locator('#submitAddBtn'),201);
++    assert.equal(replay.headers()['idempotent-replayed'],'true');
++    assert.equal((await replay.json()).id,lost.id);
++    assert.deepEqual(writes.at(-1),initial);
++    assert.equal(writes.length - prior,2);
++    await ready;
++    const csrf = (await doctor.cookies()).find(cookie => cookie.name === 'clinic_csrf');
++    const reused = await doctor.request.post(origin+patients,{
++        headers:{'Idempotency-Key':initial.key,'X-CSRF-Token':csrf.value},
++        data:{...JSON.parse(initial.body),name:names[1]+' Изменено'},
++    });
++    assert.equal(reused.status(),422);
++    assert.equal((await reused.json()).code,'IDEMPOTENCY_KEY_REUSED');
++    transportFaults.push('browser connection reset after genuine FastAPI 201 and COMMIT');
++    checks.push('lost real 201 sends no automatic retry; explicit same exact key/body replays original ID; changed body is refused with 422');
++
++    phase = 'genuine 409 duplicate with explicit confirmation';
++    await navigate(page,'patients');
++    await openForm(page);
++    await fill(page,f.roles.doctor.id,names[2],'',policy);
++    const duplicate = await post(page,patients,page.locator('#submitAddBtn'),409);
++    const body = await duplicate.json();
++    assert.equal(body.code,'POSSIBLE_DUPLICATE');
++    assert(body.matches.some(match=>match.id===lost.id));
++    const modal = page.locator('#duplicateModal');
++    await modal.waitFor();
++    const reason = 'Синтетическое основание отдельной карточки F7';
++    await modal.locator('#duplicateReason').fill(reason);
++    const read = page.waitForResponse(r => r.request().method()==='GET' &&
++        /^\/api\/patients\/[a-f0-9-]+$/i.test(new URL(r.url()).pathname));
++    const accepted = await post(page,patients,modal.locator('#confirmDuplicateBtn'),201);
++    const newCard = await accepted.json();
++    assert.notEqual(newCard.id,lost.id);
++    assert.equal(newCard.name,names[2]);
++    const confirmation = JSON.parse(accepted.request().postData()).duplicateConfirmation;
++    assert.equal(confirmation.reason,reason);
++    assert(confirmation.matchedPatientIds.includes(lost.id));
++    assert.notEqual(accepted.request().headers()['idempotency-key'],initial.key);
++    assert.equal((await protectedRead(await read)).id,newCard.id);
++    await page.waitForFunction(id=>app.currentView==='patient'&&app.currentPatientId===id,newCard.id);
++    checks.push('real duplicate 409 identifies scoped match; explicit reason and server-confirmed distinct patient preserve existing duplicate rules');
++    return [lost.id,newCard.id];
++}
++
++async function workload(page,card,event,baseAmount) {
++    phase = 'fresh working lists and personal aggregate';
++    const analytics = response(page,'GET',dashboard);
++    await navigate(page,'analytics');
++    const snapshot = await protectedRead(await analytics);
++    const count = snapshot.summary.cards.find(item=>item.code==='total_patients').value;
++    assert.equal(count,baseAmount+1);
++    const events = '/api/patients/workspace/events';
++    await navigate(page,'calendar');
++    const [calendar] = await Promise.all([response(page,'GET',events,(_,url)=>url.searchParams.get('q')===card.name),
++        page.locator('#eventsWorkspaceQuery').fill(card.name).then(() =>
++            keyboard(page.locator('#eventsWorkspaceSearch button[type=submit]')))]);
++    const planned = await protectedRead(calendar);
++    assert(planned.events.some(item=>item.id===event.id && item.patientId===card.id && !item.actualDate));
++    await page.locator('#calendarPanel [data-workspace-row="'+event.id+'"]').waitFor();
++    const day = response(page,'GET',patients,(_,url)=>url.searchParams.get('limit')==='20' &&
++        url.searchParams.get('view')==='page');
++    await navigate(page,'myDay');
++    assert.equal((await protectedRead(await day)).page.total,baseAmount+1);
++    const inbox = response(page,'GET','/api/internal-notifications');
++    await navigate(page,'notifications');
++    const notifications = await protectedRead(await inbox);
++    const patientAlerts = notifications.items.filter(item=>item.patient_id===card.id);
++    assert(patientAlerts.every(item=>!['event','consilium_revision'].includes(item.source_type)),
++        'a far-future plan and recorded booking must not trigger event or revision alerts');
++    checks.push('fresh personal dashboard and My Day add exactly one authorized patient; calendar shows unchanged plan and inbox has no spurious far-future alert');
++}
++
++async function main() {
++    const browser = await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE,
++        args:['--disable-background-networking']});
++    try {
++        const f=await setup(browser,origin);
++        const {context,page}=await session(browser,f,'doctor');
++        const names=['Синтетический Новый Пациент F7','Синтетический Проверка Повтора F7','Синтетический Подтвержденный Дубль F7'];
++        const base=await f.call(context,'GET',dashboard);
++        const baseAmount=base.summary.cards.find(item=>item.code==='total_patients').value;
++
++        phase='empty validation and keyboard-only intake';
++        await openForm(page);
++        assert.equal(await page.locator('#fio').inputValue(),'');
++        await keyboard(page.locator('#submitAddBtn'));
++        await page.locator('#addFormError').waitFor();
++        assert.equal(writes.length,0);
++        await page.locator('#fio').focus();
++        await page.keyboard.press('Tab');
++        assert.equal(await page.evaluate(()=>document.activeElement.id),'age');
++        await page.keyboard.press('Shift+Tab');
++        assert.equal(await page.evaluate(()=>document.activeElement.id),'fio');
++        await fill(page,f.roles.doctor.id,names[0],f.day);
++        await page.locator('#addFormError').waitFor({state:'hidden'});
++        assert.equal(await page.locator('#createErrorSummaryList li').count(),0);
++        await page.locator('#createEventPreview').getByText(/13:15/).waitFor();
++        assert.equal(writes.length,0);
++        await responsive(page);
++        await keyboard(page.locator('#createBackBtn'));
++        await page.locator('#confirmModal').waitFor();
++        await page.keyboard.press('Escape');
++        await page.locator('#confirmModal').waitFor({state:'hidden'});
++        assert.equal(await page.locator('#fio').inputValue(),names[0]);
++        assert.equal(await page.evaluate(()=>document.activeElement.id),'createBackBtn');
++        checks.push('empty field error, real keyboard diagnosis, Tab and Shift+Tab, planned preview, Escape preserves intake draft, 10 axe checks and no writes');
++
++        phase='authorized create plus fresh patient route and scoped list';
++        const card=await exactCreate(page,names[0]);
++        assert.equal(writes.length,1);
++        assert.equal(card.age,51);
++        assert.equal(card.diagnosis,'C34.1');
++        assert.equal(card.stage,'exam');
++        assert.equal(card.treatingDoctorUserId,f.roles.doctor.id);
++        assert.equal(card.history.length,1);
++        assert.equal(card.history[0].stage,'exam');
++        assert.equal(card.history[0].events.length,1);
++        const event=card.history[0].events[0];
++        assert.equal(event.date,f.day);
++        assert.equal(event.time,'13:15');
++        assert.equal(event.actualDate,null);
++        await keyboard(page.locator('#tab-events'));
++        await page.locator('#patient-event-'+event.id).waitFor();
++        await keyboard(page.locator('#backToList'));
++        await registry(page,card);
++        checks.push('single 201, server-created ID, fresh card GET, initial route and planned event, paginated server search and fresh scoped reopen');
++
++        const appointment=await book(page,card,f);
++        await denyAndVerifyChair(browser,f,card,appointment);
++        await workload(page,card,event,baseAmount);
++        const additional=await replayAndDuplicate(page,context,f,names,'7700000099997707');
++
++        assert.equal(writes.filter(item=>item.pathname===patients).length,5);
++        assert.equal(writes.filter(item=>item.pathname===appointments).length,1);
++        assert.equal(legacyReads,0);
++        assert.equal(pageErrors,0);
++        fs.writeFileSync(path.join(process.env.OUT,'journey.local.json'),JSON.stringify({
++            suite:'journey',browser:browser.version(),checks,axe,transportFaults,pageErrors,
++            requests:{createPosts:5,appointmentPosts:1,legacyFullLists:0,unexpectedWrites:0},
++            privateProof:{ids:[card.id,...additional],names,doctor:f.roles.doctor.id,readHashes,
++                event:event.id,eventDate:event.date,eventTime:event.time,slotDay:f.day,appointment:appointment.id},
++        },null,2));
++    } finally {
++        await browser.close();
++    }
++}
++
++main().catch(error=>{
++    process.stderr.write(phase+'\n'+error.stack+'\n');
++    process.exitCode=1;
++});
+diff --git a/tools/tests/fast_track_f7/run.py b/tools/tests/fast_track_f7/run.py
+new file mode 100644
+index 0000000..dff7474
+--- /dev/null
++++ b/tools/tests/fast_track_f7/run.py
+@@ -0,0 +1,128 @@
++"""Run the F7 real Chromium patient journey on a disposable localhost FastAPI database."""
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++sys.path.insert(0, str(APP))
++from tools.tests.fast_track_f6.run import BROWSER_ENV, execute, wait_ready  # noqa: E402
++
++
++def verify(db, result):
++    proof = result.pop("privateProof")
++    main, replay, duplicate = proof["ids"]
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        assert conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
++        assert conn.execute("SELECT version FROM schema_version").fetchone()[0] == 33
++        for patient_id, name in zip(proof["ids"], proof["names"], strict=True):
++            patient = conn.execute(
++                "SELECT name,treating_doctor_user_id,stage,diagnosis FROM patients WHERE id=?", (patient_id,)
++            ).fetchone()
++            assert patient == (name, proof["doctor"], "exam", "C34.1")
++            assert conn.execute("SELECT count(*) FROM patients WHERE name=?", (name,)).fetchone()[0] == 1
++            history = conn.execute(
++                "SELECT stage FROM history_entries WHERE patient_id=?", (patient_id,)
++            ).fetchall()
++            assert history == [("exam",)]
++            created = conn.execute(
++                "SELECT actor_user_id,result FROM audit_events WHERE event_type='patient_created' AND patient_id=?",
++                (patient_id,)
++            ).fetchall()
++            assert created == [(proof["doctor"], "ok")]
++        event = conn.execute(
++            "SELECT e.id,e.date,e.time,e.actual_date FROM events e JOIN history_entries h "
++            "ON e.history_entry_id=h.id WHERE h.patient_id=?", (main,)
++        ).fetchall()
++        assert event == [(proof["event"], proof["eventDate"], proof["eventTime"], None)]
++        appointment = conn.execute(
++            "SELECT id,scheduled_date,scheduled_time,consilium_group,status,created_by_user_id "
++            "FROM oncology_consilium_appointments WHERE patient_id=?", (main,)
++        ).fetchall()
++        assert appointment == [(proof["appointment"], proof["slotDay"], "11:00", "thoracic", "recorded", proof["doctor"])]
++        audit = conn.execute(
++            "SELECT event_type,actor_user_id,result,detail FROM audit_events "
++            "WHERE patient_id=? AND event_type LIKE 'consilium_%'", (main,)
++        ).fetchall()
++        assert len(audit) == 1
++        assert audit[0][:3] == ("consilium_appointment_created", proof["doctor"], "ok")
++        assert proof["appointment"] in audit[0][3]
++        replay_audits = conn.execute(
++            "SELECT patient_id,actor_user_id,result FROM audit_events "
++            "WHERE event_type='patient_create_replayed' AND patient_id IN (?,?,?)", (main, replay, duplicate)
++        ).fetchall()
++        assert replay_audits == [(replay, proof["doctor"], "ok")]
++        for read in proof["readHashes"]:
++            assert conn.execute(
++                "SELECT 1 FROM read_access_manifests WHERE snapshot_sha256=?", (read,)
++            ).fetchone() is not None
++    result["database"] = {"schema": 33, "createdCards": 3, "createAudits": 3, "replayAudits": 1,
++                          "appointmentAudits": 1, "exactReadHashes": len(proof["readHashes"]),
++                          "originalRouteAndPlannedEventUnchanged": True, "noUnsolicitedDecisionOrSignature": True}
++    return result
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if output == APP or APP in output.parents:
++        parser.error("write receipts outside the checkout")
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    sha = subprocess.check_output(["git", "-C", APP, "rev-parse", "HEAD"], text=True).strip()
++    tree = subprocess.check_output(["git", "-C", APP, "rev-parse", "HEAD^{tree}"], text=True).strip()
++    dirty = bool(subprocess.check_output(["git", "-C", APP, "status", "--porcelain"]))
++    with socket.socket() as listener:
++        listener.bind(("127.0.0.1", 0))
++        port = listener.getsockname()[1]
++    origin = f"http://127.0.0.1:{port}"
++    with tempfile.TemporaryDirectory(prefix="clinic-f7-") as directory:
++        scratch = Path(directory).resolve()
++        env = {**{key: os.environ[key] for key in BROWSER_ENV if key in os.environ},
++               "PATH": os.environ["PATH"], "HOME": str(scratch), "TMPDIR": str(scratch),
++               "LANG": "C.UTF-8", "TZ": "UTC", "PYTHONDONTWRITEBYTECODE": "1",
++               "CLINIC_HOST": "127.0.0.1", "CLINIC_HTTPS": "false", "CLINIC_AI_DATA_MODE": "disabled"}
++        with (output / "server.local.log").open("wb") as log:
++            worker = subprocess.Popen([sys.executable, "-I", "-B", str(HERE.parent / "wp_h/server.py"),
++                                       "--count", "100", "--port", str(port)],
++                                      env=env, stdout=log, stderr=subprocess.STDOUT, cwd=scratch)
++        try:
++            db = wait_ready(worker, origin, scratch)
++            execute(["node", str(HERE / "journey.cjs")],
++                    {**env, "WP_H_ORIGIN": origin, "COUNT": "100", "OUT": str(output)}, output)
++            result = verify(db, json.loads((output / "journey.local.json").read_bytes()))
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean = worker.wait(timeout=20) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait(timeout=5)
++                clean = False
++        assert not list(scratch.glob("clinic-wph-baseline-*"))
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex(("127.0.0.1", port)) != 0
++    assert clean and closed
++    result.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty, syntheticOnly=True,
++                  cleanup={"cleanExit": clean, "listenerClosed": closed, "databaseRemoved": not scratch.exists()})
++    assert all(result["cleanup"].values())
++    result["screenshots"] = {file.name: hashlib.sha256(file.read_bytes()).hexdigest()
++                             for file in sorted(output.glob("f7-*.png"))}
++    (output / "public.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
++    print("F7 Chromium PASS with exact medical audit and clean teardown")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/tools/tests/wp_i_create/create.cjs b/tools/tests/wp_i_create/create.cjs
+index 7398c86..e4c078f 100644
+--- a/tools/tests/wp_i_create/create.cjs
++++ b/tools/tests/wp_i_create/create.cjs
+@@ -12,7 +12,7 @@ await p.locator('#createBackBtn').click();await p.locator('#confirmCancelBtn').c
+ // Successful create: server ID, one request, full detail opened.
+ let response=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/patients'&&r.request().method()==='POST');await p.locator('#submitAddBtn').click();let r=await response;assert.equal(r.status(),201,role+' create');const created=await r.json();await p.waitForFunction(id=>app.currentView==='patient'&&app.currentPatientId===id,created.id);assert.equal(writes,1);assert(created.id);assert.equal((await f.call('GET','/api/patients/'+created.id)).name,'Синтетический новый I4');result.roles.push({role,allowed,writes});
+ if(role==='developer'){
+-await p.evaluate(()=>app.showView('patients'));await p.locator('#openAddBtn').click();await fill(p,'Синтетический неизвестный исход I4','7700000099990001');const sent=[];await p.route('**/api/patients',async route=>{if(route.request().method()!=='POST')return route.continue();sent.push({key:route.request().headers()['idempotency-key'],body:route.request().postData()});const res=await route.fetch();assert.equal(res.status(),201);await route.abort('connectionreset');});await p.locator('#submitAddBtn').click();await p.waitForFunction(()=>app.addPatientUncertain&&!app.addPatientPending);assert.equal(await p.locator('#fio').isDisabled(),true);const fixed=await p.evaluate(()=>({key:app.addPatientKey,body:app.addPatientSentBody}));assert.equal(sent.length,2);assert(sent.every(x=>x.key===fixed.key&&x.body===fixed.body));assert.equal(sent[0].key,fixed.key);await p.unroute('**/api/patients');response=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/patients'&&r.request().method()==='POST');await p.locator('#submitAddBtn').click();r=await response;assert.equal(r.status(),201);assert.equal(r.request().headers()['idempotency-key'],fixed.key);assert.equal(r.request().postData(),fixed.body);assert.equal(r.headers()['idempotent-replayed'],'true');const replay=await r.json();await p.waitForFunction(id=>app.currentPatientId===id&&app.currentView==='patient',replay.id);result.checks.push('real commit + lost response; frozen body/key, explicit replay gets same ID, no double creation');
++await p.evaluate(()=>app.showView('patients'));await p.locator('#openAddBtn').click();await fill(p,'Синтетический неизвестный исход I4','7700000099990001');const sent=[];await p.route('**/api/patients',async route=>{if(route.request().method()!=='POST')return route.continue();sent.push({key:route.request().headers()['idempotency-key'],body:route.request().postData()});const res=await route.fetch();assert.equal(res.status(),201);await route.abort('connectionreset');});await p.locator('#submitAddBtn').click();await p.waitForFunction(()=>app.addPatientUncertain&&!app.addPatientPending);assert.equal(await p.locator('#fio').isDisabled(),true);const fixed=await p.evaluate(()=>({key:app.addPatientKey,body:app.addPatientSentBody}));assert.equal(sent.length,1);assert(sent.every(x=>x.key===fixed.key&&x.body===fixed.body));assert.equal(sent[0].key,fixed.key);await p.unroute('**/api/patients');response=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/patients'&&r.request().method()==='POST');await p.locator('#submitAddBtn').click();r=await response;assert.equal(r.status(),201);assert.equal(r.request().headers()['idempotency-key'],fixed.key);assert.equal(r.request().postData(),fixed.body);assert.equal(r.headers()['idempotent-replayed'],'true');const replay=await r.json();await p.waitForFunction(id=>app.currentPatientId===id&&app.currentView==='patient',replay.id);result.checks.push('real commit + lost response; frozen body/key, explicit replay gets same ID, no double creation');
+ // Validation error from real backend, preserving form and field diagnostics.
+ await p.evaluate(()=>app.showView('patients'));await p.locator('#openAddBtn').click();await fill(p,'Синтетический 422 I4');await p.locator('#phone').fill('1'.repeat(51));response=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/patients'&&r.request().method()==='POST');await p.locator('#submitAddBtn').click();assert.equal((await response).status(),422);assert.equal(await p.locator('#phone').getAttribute('aria-invalid'),'true');assert.equal(await p.locator('#fio').inputValue(),'Синтетический 422 I4');await p.locator('#phone').fill('+70000000001');response=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/patients'&&r.request().method()==='POST');await p.locator('#submitAddBtn').click();assert.equal((await response).status(),201);await p.waitForFunction(()=>app.currentView==='patient');result.checks.push('real422: preserved form and field error; corrected manual create succeeds');
+ }

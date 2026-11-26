@@ -1,0 +1,108 @@
+{
+  "suite": "journey",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "empty field error, real keyboard diagnosis, Tab and Shift+Tab, planned preview, Escape preserves intake draft, 10 axe checks and no writes",
+    "single 201, server-created ID, fresh card GET, initial route and planned event, paginated server search and fresh scoped reopen",
+    "pinned created patient, saved scoped slot and one explicit appointment POST; fresh same-card return without decision or stage change",
+    "genuine 403 for read-only creation, neutral 404 for a foreign doctor, real chair read finds the recorded booking",
+    "fresh personal dashboard and My Day add exactly one authorized patient; calendar shows unchanged plan and inbox has no spurious far-future alert",
+    "lost real 201 sends no automatic retry; explicit same exact key/body replays original ID; changed body is refused with 422",
+    "real duplicate 409 identifies scoped match; explicit reason and server-confirmed distinct patient preserve existing duplicate rules"
+  ],
+  "axe": [
+    {
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 1024,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    }
+  ],
+  "transportFaults": [
+    "browser connection reset after genuine FastAPI 201 and COMMIT"
+  ],
+  "pageErrors": 0,
+  "requests": {
+    "createPosts": 5,
+    "appointmentPosts": 1,
+    "legacyFullLists": 0,
+    "unexpectedWrites": 0
+  },
+  "database": {
+    "schema": 33,
+    "createdCards": 3,
+    "createAudits": 3,
+    "replayAudits": 1,
+    "appointmentAudits": 1,
+    "exactReadHashes": 11,
+    "originalRouteAndPlannedEventUnchanged": true,
+    "noUnsolicitedDecisionOrSignature": true
+  },
+  "candidateSha": "071959f405323c1a01ea2c2f4ddf90061a47725d",
+  "candidateTree": "2702c7364b1265ca42dd138ed16d6f2dfd4a2841",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "cleanup": {
+    "cleanExit": true,
+    "listenerClosed": true,
+    "databaseRemoved": true
+  },
+  "screenshots": {
+    "f7-intake-dark-375.png": "ec59fa9dbc6b145741a26def77e77e549f57ec2966f5f37baa6a9dd20ef37b19",
+    "f7-intake-light-1440.png": "5a8efcf15962c456ffcaca27ca5608fb5be1d194f1da1ff6f404022e977a5ce9"
+  }
+}
