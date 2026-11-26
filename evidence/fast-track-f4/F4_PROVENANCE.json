@@ -1,0 +1,81 @@
+{
+  "productSha": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+  "productTree": "2b8289692114ca616c7d1d9b9064a881dfe7f8a3",
+  "directParent": "0b91473ffb65892ce8551755a8d31118c332a000",
+  "patchSha256": "cf151fffa805610a93f9854ef72437b989be2a2bde8f40de45082e7d4b5b7e79",
+  "medicalSourceUnchanged": true,
+  "CI": "https://github.com/IskhakovMA/fixes/actions/runs/45762977911",
+  "hostedBrowser": "https://github.com/IskhakovMA/fixes/actions/runs/45762978013",
+  "hostedRun": {
+    "conclusion": "success",
+    "headBranch": "feature/fast-track-f4-schedule-notifications",
+    "headSha": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "databaseId": 139717083581,
+        "name": "f4-chromium",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job"
+          },
+          {
+            "conclusion": "success",
+            "name": "Checkout exact F4 candidate"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check Git tree and protect existing medical contracts"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install pinned synthetic test dependencies"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run F4 and affected browser regressions"
+          },
+          {
+            "conclusion": "success",
+            "name": "Retain sanitized machine receipts"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Checkout exact F4 candidate"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job"
+          }
+        ]
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45762978013",
+    "receiptSHA256": {
+      "F1_REGRESSION.json": "5758c80091c3abc1ec7b6fc1a00f2eadecfdb9da336f1ba223c4e747dfd0668c",
+      "F2_REGRESSION.json": "b28affd0a9942f5e5538f2a2122539a21ae44f3dcffdb6ee6a3664e853ed2d5e",
+      "F3_REGRESSION.json": "e38042e314bf5460b039b4b70621468a47cb4fb993f2a1b6d5c1f2bb9dd91f68",
+      "F4_HOSTED.json": "dad51df6d77e236b05401de2260954a729c8b037f181678727a403e7f3828985",
+      "NOTIFICATIONS_REGRESSION.json": "e107cb490a0ca7cddfb6975713e62a4aacc9940970a4df4bb441cb923fbba0af"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schedule": "Verified full scoped 58 across 50+8; temporal order, stable IDs and allowed q; period query is unsupported.",
+  "notifications": "Verified explicit read unchanged backend, fresh same-route object validation before focus, and noPlan checks for direct and History.",
+  "designAuthority": [
+    "prototype/redesign/app.js:2953",
+    "prototype/redesign/styles.css:592",
+    "prototype/redesign/app.js:2030",
+    "prototype/redesign/styles.css:436",
+    "prototype/staff-ux/events.js:35"
+  ],
+  "visualReview": {
+    "viewportAxe": 16,
+    "nativeZoom": 12,
+    "manualScreenReaderTested": false,
+    "source": "F4 development tree; separate exact results in product receipts"
+  },
+  "historyAndScope": "Existing session, draft/pending guards preserved; on lock schedule/inbox cleared; signed cursor only in memory.",
+  "ciAndPublicSafety": "Immutable actions and exact F3 parent/tree; bounded runner; JSON receipts only; source fixtures generated locally.",
+  "publicReview": {
+    "exactProductSha": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+    "sourcePatchMatching": true,
+    "screenshotVisualAndCrcPass": 4,
+    "syntheticOnly": true,
+    "gitleaks": "PASS"
+  }
+}

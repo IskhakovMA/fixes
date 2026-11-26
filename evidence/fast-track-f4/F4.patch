@@ -1,0 +1,1580 @@
+diff --git a/.github/workflows/fast-track-f4-browser.yml b/.github/workflows/fast-track-f4-browser.yml
+new file mode 100644
+index 0000000000000000000000000000000000000000..1443b5014256aaaacc9615b557ac2c621906618d
+--- /dev/null
++++ b/.github/workflows/fast-track-f4-browser.yml
+@@ -0,0 +1,139 @@
++name: Fast Track F4 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f4-schedule-notifications]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f4-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F3_SHA: 0b91473ffb65892ce8551755a8d31118c332a000
++  F3_TREE: 5ff5f5445c3499f671da832cdda58aaf7f7e03e2
++
++jobs:
++  f4-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 20
++    steps:
++      - name: Checkout exact F4 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F3_SHA^{tree}")" = "$F3_TREE"
++          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $F3_SHA"
++          git diff --exit-code "$F3_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml .github/workflows/fast-track-f2-browser.yml .github/workflows/fast-track-f3-browser.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f4-browser.yml|backend/tests/test_frontend_csp.py|index.html|static/app.js|static/f1-doctor.js|static/styles.css|tools/tests/fast_track_f4/browser.cjs|tools/tests/fast_track_f4/run.py) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F3_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F4_CANDIDATE=$GITHUB_SHA"
++          echo "F4_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F4 and affected browser regressions
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          export F4_SCREENSHOTS=1
++          mkdir -m 700 "$RUNNER_TEMP/f4-public"
++          for suite in fast_track_f4 fast_track_f3 fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F4_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[1234]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] in {"fast_track_f2", "fast_track_f3", "fast_track_f4"}:
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f4-public/$suite.json"
++          done
++          for scenario in navigation unknownDenial; do
++            out="$RUNNER_TEMP/history-$scenario"
++            if ! HISTORY_SCENARIO="$scenario" python -B tools/tests/wp_i_card/run.py --suite history --out "$out"; then
++              if test -f "$out/card.log"; then
++                grep -Eo 'history\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$out/history-results.json" "$scenario" "$RUNNER_TEMP/f4-public/history-$scenario.json" <<'PYTHON'
++          import json
++          from pathlib import Path
++          import sys
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          expected = {"navigation": 6, "unknownDenial": 1}[sys.argv[2]]
++          assert result["syntheticOnly"] is True and result["realBackend"] is True
++          assert result["phase"] == "complete" and len(result["check"]) == expected
++          Path(sys.argv[3]).write_text(json.dumps({"scenario": sys.argv[2], "groups": expected, "result": "PASS"}) + "\n")
++          PYTHON
++          done
++          out="$RUNNER_TEMP/inbox-fix1"
++          if ! python -B tools/tests/wp_i_notifications/run.py --suite fix1 --count 1000 --out "$out"; then
++            if test -f "$out/card.log"; then grep -Eo 'fix1\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true; fi
++            exit 1
++          fi
++          python - "$out/results.json" "$RUNNER_TEMP/f4-public/notifications-fix1.json" <<'PYTHON'
++          import json
++          import sys
++          from pathlib import Path
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          assert result["realBackend"] and len(result["checks"]) == 12
++          Path(sys.argv[2]).write_text(json.dumps({"groups": 12, "result": "PASS"}) + "\n")
++          PYTHON
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f4-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f4-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index 0cde3c052808b3ac1ea59d8c1f1661b6c7386355..2dac3b341f1fa59eb4b5c412280fe6e2739d3830 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,11 +138,11 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f3"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f4"></script>' in body
+     for path in F1_SCRIPTS:
+-        source = f'<script src="/static/{path.name}?v=fast-track-f3"></script>'
++        source = f'<script src="/static/{path.name}?v=fast-track-f4"></script>'
+         assert source in body
+         assert body.index(source) < body.index('<script src="/static/app.js')
+     # ни одного <style> и ни одного inline-скрипта в документе
+diff --git a/index.html b/index.html
+index 26493834d22763ffa804ddbfb5e85326b3573ffb..c1f69f7f8eade1c4636461945b27a15deab5c0dd 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4">
+ </head>
+ <body>
+ 
+@@ -675,11 +675,15 @@
+             </section>
+ 
+             <!-- ВСПОМОГАТЕЛЬНЫЕ РАЗДЕЛЫ -->
+-            <section class="view is-hidden patient-workspace-list" id="view-calendar">
++            <section class="view is-hidden patient-workspace-list schedule-workspace" id="view-calendar" aria-labelledby="scheduleTitle">
+                 <div class="pagehead">
+                     <div class="pagehead__text">
+-                        <h1 class="pagehead__title">Расписание пациентских событий</h1>
+-                        <p class="pagehead__subtitle">События с плановой датой без отмеченного факта, включая просроченные. Время учреждения — МСК.</p>
++                        <h1 class="pagehead__title" id="scheduleTitle">Расписание</h1>
++                        <p class="pagehead__subtitle">Плановые события доступных пациентов без отмеченного факта, включая просроченные. Время учреждения — МСК.</p>
++                    </div>
++                    <div class="pagehead__actions">
++                        <button type="button" class="btn btn--ghost" id="backToScheduleSource" data-route-click hidden></button>
++                        <button type="button" class="btn btn--ghost" id="scheduleNotifications" data-route-click hidden>Внутренние уведомления</button>
+                     </div>
+                 </div>
+                 <form class="workspace-search panel panel--pad" id="eventsWorkspaceSearch" role="search" aria-label="Поиск событий">
+@@ -707,7 +711,7 @@
+                 <div class="pagehead">
+                     <div class="pagehead__text">
+                         <h1 class="pagehead__title">Уведомления</h1>
+-                        <p class="pagehead__subtitle">Напоминания пациентам и статусы отправки</p>
++                        <p class="pagehead__subtitle">Внутренние уведомления сотрудников и статусы отправки пациентам</p>
+                     </div>
+                     <div class="pagehead__actions">
+                         <button type="button" class="btn btn--ghost is-hidden" id="notificationsGenerateBtn">Сформировать напоминания</button>
+@@ -715,14 +719,13 @@
+                     </div>
+                 </div>
+ 
+-                <p class="alert alert--info" id="notificationsMockBanner">Тестовый режим: реальные SMS не отправляются</p>
+-
+                 <div class="notification-tabs notifications-page-tabs" id="notificationsPageTabs" role="tablist" aria-label="Раздел уведомлений">
+                     <button type="button" class="notification-tab is-active" id="notificationsInboxTab" role="tab" aria-selected="true" aria-controls="notificationsInboxPanel" data-notifications-tab="inbox">Входящие</button>
+                     <button type="button" class="notification-tab" id="notificationsOutboundTab" role="tab" aria-selected="false" aria-controls="notificationsOutboundPanel" data-notifications-tab="outbound">Отправка пациентам</button>
+                 </div>
+ 
+                 <div id="notificationsOutboundPanel" role="tabpanel" aria-labelledby="notificationsOutboundTab" hidden>
++                    <p class="alert alert--info" id="notificationsMockBanner">Тестовый режим: реальные SMS не отправляются</p>
+                     <div class="stats" id="notificationsStatsRow"></div>
+ 
+                     <div class="toolbar">
+@@ -780,7 +783,7 @@
+                     <div class="section-head">
+                         <div>
+                             <h2 class="section-title">Центр уведомлений сотрудников</h2>
+-                            <p class="pagehead__subtitle">Системные уведомления: события по доступным пациентам</p>
++                            <p class="pagehead__subtitle">Системные уведомления по доступным пациентам</p>
+                         </div>
+                         <div class="notification-header-actions"><button type="button" class="btn btn--ghost" id="internalNotificationsFullReadAllBtn">Прочитать все</button><button type="button" class="btn btn--ghost" id="internalNotificationsRefreshBtn">Обновить</button></div>
+                     </div>
+@@ -1912,8 +1915,8 @@
+ <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+ 
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+-<script src="/static/f1-management.js?v=fast-track-f3"></script>
+-<script src="/static/f1-doctor.js?v=fast-track-f3"></script>
+-<script src="/static/app.js?v=fast-track-f3"></script>
++<script src="/static/f1-management.js?v=fast-track-f4"></script>
++<script src="/static/f1-doctor.js?v=fast-track-f4"></script>
++<script src="/static/app.js?v=fast-track-f4"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index e620a7f6bedb0457ac5b4f44608ece609a8881c6..3f271e1e3e8dcfa931a6ede50531c9f5ae93f4ff 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -2250,7 +2250,9 @@ const app = {
+         }
+         const f1Back = $('backToF1');
+         f1Back.hidden = view !== 'patient' || !this.f1CardOrigin || !this.navigationVisibility()[this.f1CardOrigin];
+-        f1Back.textContent = f1Back.hidden ? '' : this.f1CardOrigin === 'pulse' ? 'К пульсу клиники' : 'К моему дню';
++        f1Back.textContent = f1Back.hidden ? '' : {
++            pulse: 'К пульсу клиники', myDay: 'К моему дню', calendar: 'К расписанию', notifications: 'К уведомлениям',
++        }[this.f1CardOrigin];
+         if (previousView === 'pulse' && view !== 'pulse') f1Management.clear(this);
+         if (previousView === 'myDay' && view !== 'myDay') f1Doctor.clear(this);
+         if (this.qualityV1 && previousView !== view) {
+@@ -2286,7 +2288,15 @@ const app = {
+             }
+             this.renderConsilium();
+         }
+-        if (view === 'calendar') this.renderCalendar();
++        if (view === 'calendar') {
++            const schedule = this.workspaceListState('events');
++            $('eventsWorkspaceQuery').value = schedule.query;
++            const back = $('backToScheduleSource');
++            back.hidden = schedule.source !== 'myDay' || !this.navigationVisibility().myDay;
++            back.textContent = back.hidden ? '' : 'К моему дню';
++            $('scheduleNotifications').hidden = !this.navigationVisibility().notifications;
++            void this.renderCalendar(schedule.trail[schedule.index]);
++        }
+         if (view === 'checklists') this.renderChecklistsView();
+         if (view === 'notifications') {
+             this.renderNotificationsPage();
+@@ -2358,6 +2368,20 @@ const app = {
+ 
+     /* ------------------------------------------------------------ Авторизация */
+ 
++    clearScheduleAndInbox() {
++        if (this.workspacePages) delete this.workspacePages.events;
++        $('calendarPanel').replaceChildren();
++        $('calendarPanel').removeAttribute('aria-busy');
++        this.closeInternalNotificationsDrawer({restoreFocus: false});
++        this.internalNotifications.fullItems = [];
++        this.internalNotifications.summary = null;
++        this.internalReady.full = false;
++        this.internalSummaryReady = false;
++        this.internalNotificationReturnId = null;
++        $('internalNotificationsFullList').replaceChildren();
++        this.updateInternalNotificationsBadge();
++    },
++
+     expireSession(accessChanged = false) {
+         f1Management.clear(this, true);
+         f1Doctor.clear(this, true);
+@@ -2366,6 +2390,7 @@ const app = {
+         browserNavigation.invalidate();
+         this.sessionExpired = true;
+         this.sessionEpoch = (this.sessionEpoch || 0) + 1;
++        this.clearScheduleAndInbox();
+         this.draftOwnerId = this.user.id;
+         document.body.classList.add('session-locked');
+         $('loginScreen').classList.remove('is-hidden');
+@@ -2405,6 +2430,7 @@ const app = {
+         this.sessionExpired = true;
+         this.sessionEpoch = (this.sessionEpoch || 0) + 1;
+         this.discardingSession = true;
++        this.clearScheduleAndInbox();
+         location.reload();
+     },
+ 
+@@ -5650,20 +5676,25 @@ const app = {
+ 
+     renderInternalNotificationCard(item, compact) {
+         const unread = !item.read_at;
+-        return el('article', { class: `internal-notification${unread ? ' internal-notification--unread' : ''}` }, [
++        const eventDate = item.event_at || item.first_seen_at;
++        const planned = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}):00)?$/.exec(eventDate || '');
++        const dateLabel = planned ? [`${planned[3]}.${planned[2]}.${planned[1]}`, planned[4]].filter(Boolean).join(' · ')
++            : eventDate ? this.formatDateTime(eventDate) : 'Дата не указана';
++        return el('article', { class: `internal-notification internal-notification--${unread ? 'unread' : 'read'}` }, [
+             el('div', { class: 'internal-notification__main' }, [
+                 el('div', { class: 'internal-notification__head' }, [
+                     el('span', {
+                         class: `chip chip--${this.internalNotificationTone(item.type)}`,
+                         text: this.INTERNAL_NOTIFICATION_TYPE_LABELS[item.type] || item.type,
+                     }),
+-                    unread ? el('span', { class: 'internal-notification__unread', text: 'Новое' }) : null,
++                    el('span', { class: unread ? 'internal-notification__unread' : 'internal-notification__read',
++                        text: unread ? 'Новое' : 'Прочитано' }),
+                 ]),
+                 el('h3', { class: 'internal-notification__title', text: item.title || 'Уведомление' }),
+                 compact ? null : el('p', { class: 'internal-notification__text', text: item.description || '' }),
+                 el('div', { class: 'internal-notification__meta', text: [
+                     item.patient_name || 'Пациент',
+-                    item.event_at ? this.formatDateTime(item.event_at) : 'Дата не указана',
++                    dateLabel,
+                 ].join(' · ') }),
+             ]),
+             el('div', { class: 'internal-notification__actions' }, [
+@@ -5671,6 +5702,8 @@ const app = {
+                     type: 'button',
+                     class: 'btn btn--ghost btn--sm',
+                     text: 'Открыть', disabled:!!this.notificationMutation,
++                    'data-internal-notification-open': '',
++                    'data-internal-notification-return': !compact && this.internalNotificationReturnId === item.id ? '' : null,
+                     on: { click: () => this.openInternalNotificationPatient(item) },
+                 }) : null,
+                 unread ? el('button', {
+@@ -5693,7 +5726,7 @@ const app = {
+         await this.renderInternalNotificationsDrawer();
+     },
+ 
+-    closeInternalNotificationsDrawer() {
++    closeInternalNotificationsDrawer({restoreFocus = true} = {}) {
+         this.beginRead('internal-drawer');this.internalReady=this.internalReady||{};this.internalReady.drawer=false;this.internalNotifications.drawerItems=[];
+         $('internalNotificationsDrawerList').replaceChildren();
+         $('internalNotificationsScrim').classList.add('is-hidden');
+@@ -5701,7 +5734,7 @@ const app = {
+         $('internalNotificationsDrawer').setAttribute('aria-hidden', 'true');
+         $('internalNotificationsBell').setAttribute('aria-expanded', 'false');
+         const focusId = this.internalNotifications.lastFocusId || 'internalNotificationsBell';
+-        if ($(focusId)) $(focusId).focus();
++        if (restoreFocus) $(focusId)?.focus();
+     },
+ 
+     async renderInternalNotificationsDrawer() {
+@@ -5772,6 +5805,12 @@ const app = {
+             } else {
+                 list.replaceChildren(this.internalGroups(rows,false));
+             }
++            const returnTarget = list.querySelector('[data-internal-notification-return]');
++            this.internalNotificationReturnId = null;
++            if (returnTarget && this.currentView === 'notifications' && !ui.topModal() &&
++                document.activeElement === $('view-notifications').querySelector('h1')) {
++                returnTarget.focus();
++            }
+             const { offset, limit } = this.internalNotifications.filters;
+             const total = this.internalNotifications.total || 0;
+             $('internalNotificationsPageInfo').textContent = total
+@@ -5791,7 +5830,7 @@ const app = {
+ 
+     async refreshInternalNotificationLists() {
+         if (!$('internalNotificationsDrawer').classList.contains('is-hidden')) await this.renderInternalNotificationsDrawer();
+-        if (this.currentView==='notifications')await this.renderInternalNotificationCenter();
++        if (this.currentView === 'notifications' && this.notifications.activeTab === 'inbox') await this.renderInternalNotificationCenter();
+         await this.refreshInternalNotificationSummary();
+     },
+     async markInternalNotificationRead(id) {
+@@ -5809,31 +5848,82 @@ const app = {
+     },
+ 
+     async openInternalNotificationPatient(item) {
+-        if(!this.internalItemCurrent(item)||this.notificationMutation)return;const epoch=this.sessionEpoch||0;
+-        if (item.source_type === 'consilium_revision') {
+-            if(!await this.confirmClinicalNavigation()||epoch!==(this.sessionEpoch||0)||!this.internalItemCurrent(item))return;
+-            if (!item.read_at) {
+-                if(!await this.markInternalNotificationRead(item.id))return;
++        if (!this.internalItemCurrent(item) || this.notificationMutation || !item.patient_id) return false;
++        const ticket = this.notificationTicket('notification-navigation');
++        const current = () => this.notificationCurrent(ticket) && this.internalItemCurrent(item) && !this.notificationMutation;
++        const refresh = message => {
++            if (!current()) return;
++            ui.toast(message, 'warning');
++            void this.refreshInternalNotificationLists();
++        };
++        const drawer = !$('internalNotificationsDrawer').classList.contains('is-hidden');
++        let opened;
++        if (item.source_type === 'consilium_revision' && item.source_id) {
++            try {
++                const {appointments} = await apiGetJson('/api/consilium/appointments');
++                if (!current()) return false;
++                const revision = appointments.find(record => record.id === item.source_id &&
++                    record.patientId === item.patient_id && record.status === 'needs_revision');
++                if (!revision) {
++                    refresh('Запись консилиума больше не ожидает доработки или недоступна.');
++                    return false;
++                }
++                opened = await browserNavigation.navigate({screen: 'consilium'}, {
++                    objectId: item.patient_id, allowed: current,
++                    prepare: () => {
++                        this.consilium.focusId = item.source_id;
++                        this.consilium.search = '';
++                        this.consilium.doctorDate = '';
++                        this.consilium.groupFilters = [];
++                        this.consilium.loaded = false;
++                        $('consiliumSearchInput').value = '';
++                        $('consiliumDoctorDate').value = '';
++                        this.renderConsiliumGroupPicker('doctor');
++                        return true;
++                    },
++                    denied: () => refresh('Карточка больше недоступна.'),
++                    readFailed: () => refresh('Не удалось проверить действие.'),
++                });
++            } catch (error) {
++                if (!error.obsolete) refresh('Не удалось проверить запись консилиума.');
++                return false;
+             }
+-            if(epoch!==(this.sessionEpoch||0)||this.sessionExpired)return;
+-            this.closeInternalNotificationsDrawer();
+-            this.consilium.focusId = item.source_id;
+-            this.consilium.search = '';
+-            this.consilium.doctorDate = '';
+-            this.consilium.groupFilters = [];
+-            this.consilium.loaded = false;
+-            $('consiliumSearchInput').value = '';
+-            $('consiliumDoctorDate').value = '';
+-            this.renderConsiliumGroupPicker('doctor');
+-            await this.refreshInternalNotificationSummary();
+-            if(epoch!==(this.sessionEpoch||0)||this.sessionExpired||this.clinicalWriteInFlight||this.dirtyClinicalControls().length)return;
+-            await this.navigateView('consilium');
+-            return;
++        } else {
++            const tab = item.source_type === 'checklist' ? 'checklist'
++                : item.source_type === 'data_quality' ? 'data'
++                : item.source_type === 'event' ? 'events' : 'overview';
++            const action = item.source_type === 'event' && item.source_id
++                ? {kind: 'day-event', eventId: item.source_id}
++                : null;
++            opened = await this.openPatient(item.patient_id, tab, {
++                cardOrigin: 'notifications',
++                allowed: current,
++                historyAction: action,
++                prepare: patient => {
++                    if (!action) return true;
++                    const occurrence = patient.history?.find(entry => entry.events?.some(event => event.id === action.eventId));
++                    const event = occurrence?.events.find(event => event.id === action.eventId);
++                    if (!event?.date || this.terminalStages.includes(patient.stage) ||
++                        (item.event_at && item.event_at !== (event.time ? `${event.date}T${event.time}:00` : event.date))) {
++                        refresh('Плановое событие изменилось или больше недоступно.');
++                        return false;
++                    }
++                    Object.assign(action, {occurrenceId: occurrence.id, stage: occurrence.stage,
++                        date: event.date, time: event.time || ''});
++                    const reason = f1Doctor.replayAction(this, patient, action, true);
++                    if (reason) refresh(reason);
++                    return !reason;
++                },
++                focus: action ? () => f1Doctor.focusAction(action) : undefined,
++                denied: () => refresh('Карточка больше недоступна.'),
++                readFailed: () => refresh('Не удалось проверить действие.'),
++            });
++        }
++        if (opened && this.notificationCurrent(ticket)) {
++            if (drawer) this.closeInternalNotificationsDrawer({restoreFocus: false});
++            this.internalNotificationReturnId = item.id;
+         }
+-        const tab = item.source_type === 'checklist' ? 'checklist'
+-            : item.source_type === 'data_quality' ? 'data'
+-            : 'events';
+-        if(await this.openNotificationPatient(item.patient_id, tab))this.closeInternalNotificationsDrawer();
++        return Boolean(opened);
+     },
+ 
+     /* ============================================================ РЕНДЕР: УВЕДОМЛЕНИЯ */
+@@ -7036,6 +7126,25 @@ const app = {
+ 
+     /* ==================================================== РЕНДЕР: ПРОЧИЕ РАЗДЕЛЫ */
+ 
++    openWorkingSchedule(query = '', allowed) {
++        if (this.currentView !== 'myDay' || !this.navigationVisibility().myDay) return false;
++        return browserNavigation.navigate({screen: 'calendar', schedule: {query, source: 'myDay', trail: [null], index: 0}}, {allowed});
++    },
++
++    scheduleContext(eventId = null) {
++        const state = this.workspaceListState('events');
++        return {query: state.query, source: state.source || null, eventId,
++            trail: state.ready ? state.trail.slice(0, state.index + 1) : [null], index: state.ready ? state.index : 0};
++    },
++
++    scheduleDateCell(row, today) {
++        const tone = row.date < today ? 'danger' : row.date === today ? 'accent' : 'neutral';
++        const label = row.date < today ? 'Просрочено' : row.date === today ? 'Сегодня' : 'Запланировано';
++        const date = row.date.split('-').reverse().join('.');
++        return [el('div', {class: 'workspace-date', text: `${date} · ${row.time || 'Время не указано'}`}),
++            el('span', {class: `chip chip--${tone}`, text: label})];
++    },
++
+     async renderCalendar(cursor = null) {
+         return this.renderWorkspacePage('events','calendarPanel','calendar',cursor);
+     },
+@@ -7046,6 +7155,12 @@ const app = {
+     async renderWorkspacePage(kind,hostId,view,cursor=null,_unused=null,restarted=false) {
+         const state=this.workspaceListState(kind),epoch=this.sessionEpoch,owner=this.user?.id;
+         const version=this.beginRead('workspace-'+kind),host=$(hostId),returnFocus=host.contains(document.activeElement);
++        const scheduleTitle = kind === 'events' ? $('scheduleTitle') : null;
++        if (returnFocus && scheduleTitle && !ui.topModal()) {
++            scheduleTitle.tabIndex = -1;
++            scheduleTitle.focus({preventScroll: true});
++        }
++        const scheduleFocus = () => scheduleTitle && document.activeElement === scheduleTitle && !ui.topModal();
+         const current=()=>this.isCurrentRead('workspace-'+kind,version)&&this.sessionEpoch===epoch&&this.user?.id===owner&&!this.sessionReconciling&&this.currentView===view;
+         state.ready=false;state.rows=[];host.setAttribute('aria-busy','true');
+         host.replaceChildren(el('p',{class:'empty',role:'status',text:'Загрузка актуальных данных…'}));
+@@ -7056,11 +7171,12 @@ const app = {
+             if(!current())return;
+             state.rows=data[kind];state.page=data.page;state.ready=true;state.epoch=epoch;
+             const event=kind==='events',headers=event?['Пациент и этап','Плановая дата и время','Заведующий','Действие']:['Пациент и этап','Обязательные пункты','Лечащий врач','Действие'];
++            const today = event ? new Intl.DateTimeFormat('sv-SE', {timeZone: 'Europe/Moscow', dateStyle: 'short'}).format() : null;
+             const rows=state.rows.map(row=>{
+                 const name=event?row.patientName:row.patient_name,stage=this.stageNames[row.stage]||row.stage;
+                 return el('tr',{class:'list-row','data-workspace-row':event?row.id:row.patient_id},[
+                     el('td',{'data-label':headers[0]},[el('div',{class:'person__name',text:name}),el('div',{class:'person__meta',text:stage})]),
+-                    el('td',{'data-label':headers[1]},event?[el('div',{class:'workspace-date',text:row.date+(row.time?' · '+row.time:' · Время не указано')}),this.dateChip(this.getDaysUntil(row.date),row.time)]:[
++                    el('td',{'data-label':headers[1]},event?this.scheduleDateCell(row,today):[
+                         el('div',{class:'workspace-progress',role:'progressbar','aria-label':'Выполнение обязательных пунктов','aria-valuemin':'0','aria-valuemax':String(row.total_required),'aria-valuenow':String(row.completed_required)},el('span',{class:'workspace-progress__fill','data-complete':String(row.completed_required===row.total_required)},String(row.completed_required)+' / '+String(row.total_required))),
+                         el('span',{class:row.incomplete_required?'chip chip--warning':'chip chip--good',text:row.incomplete_required?'Не выполнено: '+row.incomplete_required:'Обязательные пункты выполнены'})]),
+                     el('td',{'data-label':headers[2],text:(event?row.head:row.treating_doctor_name)||'Не указан'}),
+@@ -7073,7 +7189,16 @@ const app = {
+             ]));
+             const load=next=>this.renderWorkspacePage(kind,hostId,view,next);
+             host.replaceChildren(el('div',{class:'workspace-result',role:'status','aria-live':'polite',tabindex:'-1',text:`Найдено в разрешенной области: ${data.page.total}`}),rows.length?table:el('div',{class:'empty',text:state.query?'По вашему запросу ничего не найдено. Измените поиск.':event?'Плановых событий без факта нет.':'Чек-листов с обязательными пунктами нет.'}),this.boundedPager(data,state,load));
+-            if(returnFocus)host.querySelector('.workspace-result').focus({preventScroll:true});
++            if (event) {
++                const eventId = state.focusEventId;
++                state.focusEventId = null;
++                if (scheduleFocus()) {
++                    const previous = eventId && [...host.querySelectorAll('[data-workspace-row]')]
++                        .find(node => node.dataset.workspaceRow === eventId)?.querySelector('button');
++                    if (previous) previous.focus();
++                    else if (returnFocus || restarted) host.querySelector('.workspace-result').focus({preventScroll:true});
++                }
++            } else if(returnFocus)host.querySelector('.workspace-result').focus({preventScroll:true});
+         } catch(error) {
+             if(!current())return;
+             if(!restarted&&[409,410].includes(error.status)&&['PATIENT_QUERY_CHANGED','CURSOR_EXPIRED'].includes(error.data?.code)){
+@@ -7081,7 +7206,11 @@ const app = {
+                 return this.renderWorkspacePage(kind,hostId,view,null,null,true);
+             }
+             state.ready=false;state.rows=[];
+-            if(!error.obsolete)host.replaceChildren(el('p',{class:'alert alert--danger',role:'alert',text:'Нет актуальных данных. '+error.message}),el('button',{type:'button',class:'btn btn--ghost',text:'Повторить загрузку',on:{click:()=>loadWorkspace()}}));
++            if(!error.obsolete) {
++                const retry = el('button',{type:'button',class:'btn btn--ghost',text:'Повторить загрузку',on:{click:()=>loadWorkspace()}});
++                host.replaceChildren(el('p',{class:'alert alert--danger',role:'alert',text:'Нет актуальных данных. '+error.message}),retry);
++                if (scheduleFocus()) retry.focus();
++            }
+         } finally {if(current())host.removeAttribute('aria-busy');}
+         const loadWorkspace=()=>this.renderWorkspacePage(kind,hostId,view);
+     },
+@@ -7089,20 +7218,27 @@ const app = {
+         const state = this.workspaceListState(kind);
+         const view = kind === 'events' ? 'calendar' : 'checklists';
+         const id = row.patientId || row.patient_id;
++        const action = kind === 'events' ? {kind: 'day-event', occurrenceId: row.historyEntryId,
++            eventId: row.id, stage: row.stage, date: row.date, time: row.time || ''} : null;
++        const refresh = () => {
++            if (this.currentView === 'calendar' && this.isCurrentRead('workspace-events', version)) {
++                void this.renderCalendar(state.trail[state.index]);
++            }
++        };
+         return this.openPatient(id, kind === 'events' ? 'events' : 'checklist', {
+-            registryOnDenial: true,
++            registryOnDenial: !action,
++            historyAction: action,
++            denied: action ? refresh : undefined,
++            readFailed: action ? refresh : undefined,
+             allowed: () => state.ready && state.rows.includes(row) && state.epoch === this.sessionEpoch &&
+                 this.currentView === view && this.isCurrentRead('workspace-' + kind, version),
+             prepare: patient => {
+-                if (kind !== 'events') return true;
+-                const index = (patient.history || []).findIndex(occ => occ.id === row.historyEntryId &&
+-                    occ.events.some(event => event.id === row.id));
+-                if (index < 0) {
+-                    ui.toast('Событие больше недоступно. Обновите расписание.', 'warning');
+-                    return false;
+-                }
+-                this.selectedTimelineNodes[id] = 'occ:' + index;
+-                return true;
++                if (!action) return true;
++                const unavailable = f1Doctor.replayAction(this, patient, action);
++                if (!unavailable) return true;
++                ui.toast(unavailable, 'warning');
++                refresh();
++                return false;
+             },
+             focus: () => {
+                 const target = kind === 'events' ? $('patient-event-' + row.id) : $('patientPanels');
+@@ -7301,7 +7437,7 @@ const app = {
+         }
+         // A row can be denied after returning from its previous card. Clear the
+         // hidden card, then let the active workspace refresh its own selection.
+-        if (this.currentPatientId === patientId && ['myDay', 'pulse'].includes(this.currentView)) {
++        if (this.currentPatientId === patientId && ['myDay', 'pulse', 'calendar', 'notifications'].includes(this.currentView)) {
+             this.clearPatientNavigationView();
+         }
+         if (this.currentPatientId !== patientId) {
+@@ -11776,8 +11912,17 @@ const app = {
+             if (this.registrySource && this.navigationVisibility()[this.registrySource]) this.navigateView(this.registrySource);
+         });
+         on('backToF1', 'click', () => {
+-            if (this.f1CardOrigin) this.navigateView(this.f1CardOrigin);
++            const origin = this.f1CardOrigin;
++            if (origin === 'calendar') {
++                void browserNavigation.navigate({screen: origin, schedule: browserNavigation.committed?.route.scheduleReturn});
++            } else if (origin === 'notifications') {
++                void browserNavigation.navigate({screen: origin, internalInbox: true});
++            } else if (origin) this.navigateView(origin);
++        });
++        on('backToScheduleSource', 'click', () => {
++            if (this.workspaceListState('events').source === 'myDay') this.navigateView('myDay');
+         });
++        on('scheduleNotifications', 'click', () => browserNavigation.navigate({screen: 'notifications', internalInbox: true}));
+         on('sidebarToggle', 'click', () => {
+             const shell = $('appScreen');
+             if (window.matchMedia('(min-width: 861px)').matches && this.can('consiliumChair')) {
+@@ -12523,7 +12668,7 @@ const browserNavigation = {
+             .map(node => [node, JSON.stringify(app.patientDraftControls.get(node).readValue())]);
+     },
+ 
+-    async navigate(route, {entry, replace = false, allowed, prepare, focus, objectId, denied, registryOnDenial, historyAction, readFailed} = {}) {
++    async navigate(route, {entry, replace = false, allowed, prepare, focus, objectId, denied, registryOnDenial, historyAction, readFailed, cardOrigin} = {}) {
+         if (!app.user || app.sessionExpired || app.sessionReconciling || !this.nonce) return false;
+         if (this.correction && !replace) return false;
+         this.closeNavigationDialog();
+@@ -12534,9 +12679,13 @@ const browserNavigation = {
+         const positionKey = history.state?.route;
+         const sourceView = app.currentView, sourcePatient = app.currentPatientId, sourceTab = app.currentTab;
+         if (!entry && route.screen === 'patient') {
+-            const origin = sourceView === 'patient' && sourcePatient === route.patientId ? app.f1CardOrigin : sourceView;
+-            if (origin === 'pulse' || origin === 'myDay') route = {...route, f1Source: origin};
+-            if (origin === 'myDay' && historyAction?.kind === 'day-event') route = {...route, historyAction};
++            const origin = cardOrigin || (sourceView === 'patient' && sourcePatient === route.patientId
++                ? app.f1CardOrigin : sourceView === 'notifications' ? null : sourceView);
++            if (['pulse', 'myDay', 'calendar', 'notifications'].includes(origin)) route = {...route, f1Source: origin};
++            if (['myDay', 'calendar', 'notifications'].includes(origin) && historyAction?.kind === 'day-event') route = {...route, historyAction};
++            if (sourceView === 'patient' && sourcePatient === route.patientId && this.committed?.route.scheduleReturn) {
++                route = {...route, scheduleReturn: this.committed.route.scheduleReturn};
++            }
+             const registryReturn = sourceView === 'patients' ? app.registryContext(route.patientId)
+                 : sourceView === 'patient' && sourcePatient === route.patientId ? this.committed?.route.registryReturn : null;
+             if (registryReturn) route = {...route, registryReturn};
+@@ -12557,8 +12706,9 @@ const browserNavigation = {
+                 }
+                 return false;
+             }
+-            if (!entry && !replace && this.sameRoute(this.committed?.route, route) &&
+-                app.currentView === route.screen && (route.screen !== 'patient' || app.currentTab === route.tab)) return true;
++            const same = !entry && !replace && this.sameRoute(this.committed?.route, route) &&
++                app.currentView === route.screen && (route.screen !== 'patient' || app.currentTab === route.tab);
++            if (same && cardOrigin !== 'notifications' && !objectId) return true;
+             const consent = await this.confirmExit(current, route);
+             if (!consent || !current() || (allowed && !allowed())) return false;
+             reading = Boolean(id);
+@@ -12581,13 +12731,17 @@ const browserNavigation = {
+                 return false;
+             }
+             if (entry && route.historyAction?.kind === 'day-event') {
+-                const unavailable = f1Doctor.replayAction(app, patient, route.historyAction);
++                const unavailable = f1Doctor.replayAction(app, patient, route.historyAction, route.f1Source === 'notifications');
+                 if (unavailable) {
+                     ui.toast(unavailable, 'warning');
+-                    f1Doctor.render(app, unavailable);
++                    if (sourceView === 'myDay') f1Doctor.render(app, unavailable);
++                    else if (sourceView === 'calendar') {
++                        const schedule = app.workspaceListState('events');
++                        void app.renderCalendar(schedule.trail[schedule.index]);
++                    } else if (sourceView === 'notifications') void app.refreshInternalNotificationLists();
+                     return false;
+                 }
+-                focus = () => f1Doctor.focusAction(route.historyAction);
++                if (route.f1Source === 'myDay') focus = () => f1Doctor.focusAction(route.historyAction);
+             }
+             if (sourceView === 'patients' && this.committed?.route.screen === 'patients') {
+                 const registry = app.registryContext(route.patientId);
+@@ -12597,8 +12751,19 @@ const browserNavigation = {
+                 app.pageLoading = false;
+                 app.beginRead('patients');
+             }
++            if (sourceView === 'calendar' && this.committed?.route.screen === 'calendar') {
++                const schedule = app.scheduleContext(historyAction?.eventId);
++                this.committed.route.schedule = schedule;
++                if (!entry && route.screen === 'patient') route = {...route, scheduleReturn: schedule};
++                app.beginRead('workspace-events');
++                const state = app.workspaceListState('events');
++                state.ready = false;
++                state.rows = [];
++                $('calendarPanel').replaceChildren();
++            }
+             this.render(route, patient, focus, replace);
+             if (entry) this.committed = entry;
++            else if (same) this.committed.route = route;
+             else if (replace) this.reset(route);
+             else this.save(route, false);
+             finished = true;
+@@ -12654,6 +12819,16 @@ const browserNavigation = {
+                 $('patientRegistryCount').textContent = '—';
+                 app.setPatientListState('loading');
+             }
++            if (route.screen === 'calendar') {
++                const state = app.workspaceListState('events');
++                const schedule = route.schedule;
++                state.source = schedule?.source || null;
++                if (schedule) state.query = schedule.query;
++                state.index = schedule?.index || 0;
++                state.trail = schedule?.trail.slice() || [null];
++                state.focusEventId = schedule?.eventId || null;
++            }
++            if (route.screen === 'notifications' && route.internalInbox) app.notifications.activeTab = 'inbox';
+             app.showView(route.screen);
+         }
+         const target = focus?.() || (route.tab ? $('tab-' + route.tab) : $('view-' + route.screen)?.querySelector('h1'));
+diff --git a/static/f1-doctor.js b/static/f1-doctor.js
+index 016e270828307a51ea322b2f9a309c644f0194c5..32d616da1735ddb63cd6e6e86ead1c85068f13c6 100644
+--- a/static/f1-doctor.js
++++ b/static/f1-doctor.js
+@@ -126,12 +126,14 @@ const f1Doctor = (() => {
+         return row.time ? `${date} · ${row.time}` : date;
+     }
+ 
+-    function replayAction(app, patient, action) {
++    function replayAction(app, patient, action, internalNotice = false) {
+         const index = (patient.history || []).findIndex(occurrence =>
+             occurrence.id === action.occurrenceId && occurrence.stage === action.stage);
+         const event = patient.history?.[index]?.events?.find(item => item.id === action.eventId);
+         if (event?.actualDate) return 'Факт события уже отмечен.';
+-        if (!event?.date) return 'Плановое событие больше недоступно.';
++        if (!event?.date || (internalNotice && (event.noPlan || app.terminalStages.includes(patient.stage)))) {
++            return 'Плановое событие больше недоступно.';
++        }
+         if (event.date !== action.date || (event.time || '') !== action.time) return 'Плановый срок изменился.';
+         app.selectedTimelineNodes[patient.id] = 'occ:' + index;
+         return null;
+@@ -220,7 +222,12 @@ const f1Doctor = (() => {
+                 secondary ? el('p', { class: 'f1-description', text: secondary }) : null,
+                 el('span', { class: `chip chip--${status[0]}`, text: status[1] }),
+             ]),
+-            patientAction(app, row, mode, live, refresh, readFailed),
++            mode === 'events' ? el('div', {class: 'f1-item__action schedule-row-actions'}, [
++                patientAction(app, row, mode, live, refresh, readFailed),
++                button('Найти в расписании', () => {
++                    if (live()) void app.openWorkingSchedule(row.patientName, live);
++                }, {'data-f4-schedule-event': '', 'aria-label': `Найти в расписании — ${name}`}),
++            ]) : patientAction(app, row, mode, live, refresh, readFailed),
+         ]);
+     }
+ 
+@@ -330,9 +337,14 @@ const f1Doctor = (() => {
+                 sort: 'name', include_terminal: 'true',
+             }, current);
+         }, { id: 'f3MyDayRegistry' });
++        const schedule = button('Открыть расписание', () => {
++            const mode = state.mode;
++            const current = () => schedule.isConnected && permitted(app) && app.f1Doctor === state && state.mode === mode;
++            if (current()) void app.openWorkingSchedule('', current);
++        }, {id: 'f4MyDaySchedule'});
+         host.replaceChildren(
+             el('div', { class: 'f1-actions', role: 'group', 'aria-label': 'Разделы моего дня' }, controls),
+-            heading, detail, el('div', {class: 'f1-actions'}, [select, registry]), body,
++            heading, detail, el('div', {class: 'f1-actions'}, [select, registry, schedule]), body,
+         );
+ 
+         function show(message = '') {
+diff --git a/static/styles.css b/static/styles.css
+index 8e5dd4b9cf94fd84eea5663fb579f8a40bb0956c..ad8cc345667796623199148aab54ac16a2040ad7 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -3447,3 +3447,74 @@ html[data-theme="light"] #consiliumForm .alert--danger { color:#b91c1c; }
+ #view-patient .crumbs:has(#backToF1:not([hidden])) {
+     flex-wrap: wrap;
+ }
++
++/* Stage 3.5: компактный список событий с подтвержденными датами и временем. */
++.schedule-workspace .pagehead__actions > [hidden] { display: none; }
++.schedule-workspace .workspace-search { margin-bottom: var(--sp-4); }
++.schedule-workspace .workspace-result { padding: var(--sp-3) var(--sp-4); }
++.schedule-workspace .workspace-table :is(th, td) {
++    padding: var(--sp-2) var(--sp-4);
++    overflow-wrap: anywhere;
++}
++.schedule-workspace .workspace-table td:first-child { min-width: 0; }
++.schedule-workspace .workspace-date {
++    margin-bottom: var(--sp-1);
++    font-weight: 600;
++}
++.schedule-workspace .workspace-table .person__name { font-size: var(--text-base); }
++.schedule-workspace .workspace-table .list-row:focus-within { background: var(--surface-2); }
++.schedule-workspace .workspace-result,
++#patientPanels [id^="patient-event-"] { scroll-margin-top: calc(var(--topbar-h) + var(--sp-3)); }
++
++/* Stage 3.5: тип, состояние прочтения и действия сотрудника. */
++:is(#notificationsInboxPanel, .notification-drawer) .internal-notification {
++    padding: var(--sp-3) var(--sp-4);
++    border-inline-start: 3px solid transparent;
++    background: var(--surface);
++}
++:is(#notificationsInboxPanel, .notification-drawer) .internal-notification--unread {
++    border-inline-start-color: var(--accent);
++    background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface));
++}
++:is(#notificationsInboxPanel, .notification-drawer) .internal-notification__read {
++    color: var(--text-3);
++    font-size: var(--text-sm);
++}
++:is(#notificationsInboxPanel, .notification-drawer) :is(.internal-notification__title, .internal-notification__text, .internal-notification__meta) {
++    margin-top: var(--sp-1);
++}
++#notificationsInboxPanel .notification-group { margin-bottom: var(--sp-3); }
++#notificationsInboxPanel .notification-group__title {
++    color: var(--text-2);
++    padding: var(--sp-2) 0;
++}
++
++@media (max-width: 700px) {
++    .schedule-workspace .pagehead__actions { grid-template-columns: minmax(0, 1fr); }
++    .schedule-workspace .workspace-table .list-row {
++        display: grid;
++        grid-template-columns: repeat(2, minmax(0, 1fr));
++        gap: 0 var(--sp-3);
++    }
++    .schedule-workspace .workspace-table td { padding: var(--sp-1) 0; }
++    .schedule-workspace .workspace-table td:is(:first-child, :last-child) { grid-column: 1 / -1; }
++    .schedule-workspace .workspace-table :is(.btn, .chip),
++    :is(#notificationsInboxPanel, .notification-drawer) .internal-notification__actions .btn {
++        max-width: 100%;
++        white-space: normal;
++        overflow-wrap: anywhere;
++    }
++    #notificationsInboxPanel .section-head { flex-wrap: wrap; }
++    #notificationsInboxPanel .notification-header-actions { width: auto; }
++    #notificationsInboxPanel .toolbar__filters { gap: var(--sp-2); }
++    :is(#notificationsInboxPanel, .notification-drawer) .internal-notification {
++        grid-template-columns: minmax(0, 1fr);
++        gap: var(--sp-2);
++    }
++}
++
++.schedule-row-actions {
++    display: flex;
++    flex-wrap: wrap;
++    gap: var(--sp-2);
++}
+diff --git a/tools/tests/fast_track_f4/browser.cjs b/tools/tests/fast_track_f4/browser.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..a9977809506bfb605fdbd39049d9d03033bb54cf
+--- /dev/null
++++ b/tools/tests/fast_track_f4/browser.cjs
+@@ -0,0 +1,521 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const {createHash} = require('node:crypto');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
++
++const fixture = JSON.parse(fs.readFileSync(process.env.F4_FIXTURE, 'utf8'));
++const {origin, users, patients} = fixture;
++assert(fixture.syntheticOnly);
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++const axeSource = fs.readFileSync(process.env.AXE_SOURCE, 'utf8');
++const receipt = {checks: [], axe: [], nativeZoom: [], responseProofs: [], injectedTransportFaults: [],
++    pageErrors: 0, unexpectedClinicalWrites: 0, legacyRegistryRequests: 0};
++const output = path.dirname(process.env.F4_RECEIPT);
++let active = 'initialization';
++const clinicalWrites = [];
++const readWrites = [];
++const schedulePath = '/api/patients/workspace/events';
++const inboxPath = '/api/internal-notifications';
++function reply(page, pathname, matches = () => true, method = 'GET') {
++    return page.waitForResponse(response => {
++        const url = new URL(response.url());
++        return response.request().method() === method && url.pathname === pathname && matches(url.searchParams);
++    });
++}
++
++async function audited(response, kind) {
++    assert.equal(response.status(), 200, kind);
++    const raw = await response.body();
++    receipt.responseProofs.push({kind, sha256: createHash('sha256').update(raw).digest('hex')});
++    return JSON.parse(raw);
++}
++
++async function setup(context) {
++    await context.route('**/*', route => {
++        if (new URL(route.request().url()).origin === origin) return route.continue();
++        return route.abort('blockedbyclient');
++    });
++    const page = await context.newPage();
++    // Ordinary pagination is separated from deliberately concurrent scenarios.
++    // Forward each actual loopback API request once; no retry or response edit.
++    let queue = Promise.resolve();
++    await page.route(origin + '/api/**', route => {
++        const request = queue.then(async () => {
++            const response = await route.fetch();
++            await route.fulfill({response});
++        });
++        queue = request.catch(() => {});
++        return request;
++    });
++    page.setDefaultTimeout(15000);
++    page.on('pageerror', () => { receipt.pageErrors++; });
++    page.on('request', request => {
++        const url = new URL(request.url());
++        if (url.pathname === '/api/patients' && request.method() === 'GET' &&
++            url.searchParams.get('view') !== 'page') receipt.legacyRegistryRequests++;
++        if (url.pathname.startsWith(inboxPath) && request.method() === 'POST')
++            readWrites.push(url.pathname);
++        if (url.pathname.startsWith('/api/patients') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method()))
++            clinicalWrites.push({method: request.method(), path: url.pathname, body: request.postDataJSON()});
++    });
++    return page;
++}
++
++async function login(page, role) {
++    await page.goto(origin);
++    await page.locator('#username').fill(users[role]);
++    await page.locator('#password').fill(fixture.password);
++    await page.locator('#loginSubmit').click();
++    await ready(page);
++    assert.equal(await page.evaluate(() => app.user.username), users[role]);
++}
++
++async function ready(page, offset = null) {
++    await page.waitForFunction(offset => app.appReady && !app.sessionExpired && !app.sessionReconciling &&
++        app.currentView === 'patients' && app.patientListState === 'ready' &&
++        (offset === null || app.patientPage.page.offset === offset), offset);
++}
++
++async function keyboard(locator) {
++    await locator.focus();
++    assert(await locator.evaluate(el => el === document.activeElement && !el.disabled));
++    await locator.press('Enter');
++}
++
++async function view(page, key) {
++    await page.locator('[data-view="' + key + '"]').first().click();
++    await page.locator('#view-' + key).waitFor({state: 'visible'});
++}
++
++
++function eventRow(page, id) { return page.locator('#calendarPanel [data-workspace-row="' + id + '"]'); }
++
++async function calendarReady(page) {
++    await page.locator('#calendarPanel .workspace-result').waitFor();
++}
++
++async function scheduleOpen(page, locator, match = () => true) {
++    const [read] = await Promise.all([reply(page, schedulePath, match), keyboard(locator)]);
++    const data = await audited(read, 'schedule read');
++    await calendarReady(page);
++    return data;
++}
++
++async function scheduleSearch(page, name) {
++    await page.locator('#eventsWorkspaceQuery').fill(name);
++    return scheduleOpen(page, page.locator('#eventsWorkspaceSearch button[type=submit]'),
++        params => (params.get('q') || '') === name && !params.has('cursor'));
++}
++
++async function openEvent(page, button, patient, eventId) {
++    const [read] = await Promise.all([reply(page, '/api/patients/' + patient.id), keyboard(button)]);
++    const data = await audited(read, 'fresh event object');
++    assert.equal(data.id, patient.id);
++    assert(data.history.some(occ => occ.events.some(event => event.id === eventId && !event.actualDate)));
++    await page.waitForFunction(id => app.currentView === 'patient' && app.currentTab === 'events' &&
++        document.activeElement?.id === 'patient-event-' + id, eventId);
++    return data;
++}
++
++async function schedule(page, context) {
++    active = 'schedule completeness and return';
++    await view(page, 'myDay');
++    const first = await scheduleOpen(page, page.locator('#f4MyDaySchedule'));
++    assert(first.page.total > 50 && first.events.length === 50 && first.page.hasNext);
++    const more = page.locator('#calendarPanel .pagination').getByRole('button', {name: 'Далее', exact: true});
++    const second = await scheduleOpen(page, more, params => params.has('cursor'));
++    assert.equal(second.page.offset, first.events.length);
++    assert.equal(second.page.total, first.page.total);
++    const combined = [...first.events, ...second.events];
++    assert.equal(new Set(combined.map(row => row.id)).size, first.page.total);
++    assert(patients.schedule.eventIds.every(id => combined.some(row => row.id === id)));
++    assert(combined.every(row => row.patientId !== patients.foreign.id));
++    assert.deepEqual(combined.map(row => [row.date, row.time || ''].join(' ')),
++        combined.map(row => [row.date, row.time || ''].join(' ')).sort());
++    // Exercise the route on the second page to cover cursor-backed history.
++    const later = second.events.find(row => row.patientId === patients.schedule.id);
++    await openEvent(page, eventRow(page, later.id).getByRole('button'), patients.schedule, later.id);
++    const [restoredReply] = await Promise.all([reply(page, schedulePath, params => params.has('cursor')), page.goBack()]);
++    const restored = await audited(restoredReply, 'schedule back to second page');
++    assert.equal(restored.page.offset, second.page.offset);
++    await eventRow(page, later.id).waitFor();
++    await page.goForward();
++    await page.locator('#view-patient').waitFor();
++    await scheduleOpen(page, page.locator('#backToF1'), params => params.has('cursor'));
++    await page.locator('#calendarPanel [data-workspace-row]').first().waitFor();
++
++    const denied = await context.request.get(origin + '/api/patients/' + patients.foreign.id);
++    assert.equal(denied.status(), 404);
++    assert(!(await denied.text()).includes(patients.foreign.name));
++
++    const today = await scheduleSearch(page, patients.schedule.name);
++    const firstId = patients.schedule.eventIds[0];
++    assert.equal(today.events.find(event => event.id === firstId).date, fixture.today);
++    assert.equal(today.events.find(event => event.id === firstId).time || '', '');
++    await eventRow(page, firstId).getByText('Время не указано', {exact: false}).waitFor();
++    assert.equal(today.page.total, patients.schedule.eventIds.length);
++    receipt.schedule = {total: first.page.total, pageSizes: [first.events.length, second.events.length],
++        uniqueComplete: true, sortedDatesAndTime: true, syntheticExplicitNoTime: true};
++    receipt.checks.push('real scoped 50+ events, exhaustive two-page IDs, chronology, no-time and second-page Back/Forward + explicit return');
++}
++
++async function saveFact(page) {
++    active = 'explicit versioned schedule action';
++    const patient = patients.overdue;
++    const id = patient.eventIds.at(-1);
++    await scheduleSearch(page, patient.name);
++    const data = await openEvent(page, eventRow(page, id).getByRole('button'), patient, id);
++    const event = data.history[0].events.find(item => item.id === id);
++    const controls = page.locator('#patient-event-' + id);
++    await controls.getByRole('textbox', {name: 'Фактическая дата', exact: true}).evaluate((node, value) => {
++        node.value = value;
++        node.dispatchEvent(new Event('input', {bubbles: true}));
++    }, fixture.today);
++    assert.equal(clinicalWrites.length, 0);
++    const eventPath = '/api/patients/' + patient.id + '/events/' + id;
++    let release;
++    const held = new Promise(resolve => { release = resolve; });
++    const hold = async route => {
++        if (route.request().method() === 'PATCH') await held;
++        await route.fallback();
++    };
++    await page.route(origin + eventPath, hold);
++    const confirmed = reply(page, eventPath, () => true, 'PATCH');
++    try {
++        const sent = page.waitForRequest(request =>
++            request.method() === 'PATCH' && new URL(request.url()).pathname === eventPath);
++        await Promise.all([sent, controls.getByRole('button', {name: 'Сохранить: Фактическая дата', exact: true}).click()]);
++        assert(await page.evaluate(() => !!app.clinicalWriteInFlight));
++        await keyboard(page.locator('#backToF1'));
++        await page.getByText('Дождитесь результата сохранения.', {exact: false}).first().waitFor();
++        assert.equal(await page.evaluate(() => app.currentView), 'patient');
++        assert.equal(clinicalWrites.length, 1);
++    } finally {
++        release();
++    }
++    const mutation = await confirmed;
++    await page.unroute(origin + eventPath, hold);
++    assert.equal(mutation.status(), 200);
++    assert.equal((await mutation.json()).history[0].events.find(item => item.id === id).actualDate, fixture.today);
++    assert.deepEqual(clinicalWrites, [{method: 'PATCH', path: eventPath,
++        body: {field: 'actualDate', value: fixture.today, version: event.version}}]);
++    await page.waitForFunction(({patientId, id, today}) => !app.clinicalWriteInFlight &&
++        app.getPatient(patientId).history[0].events.find(item => item.id === id).actualDate === today,
++    {patientId: patient.id, id, today: fixture.today});
++    const fresh = await scheduleOpen(page, page.locator('#backToF1'), params => params.get('q') === patient.name);
++    assert(!fresh.events.some(item => item.id === id));
++    assert(fresh.events.some(item => item.id === patient.eventIds[0]));
++    await eventRow(page, id).waitFor({state: 'hidden'});
++    await keyboard(page.locator('#backToScheduleSource'));
++    await page.locator('#view-myDay').waitFor();
++    const [workspace] = await Promise.all([reply(page, schedulePath),
++        keyboard(page.locator('[data-f1-doctor-mode=events]'))]);
++    assert(!(await audited(workspace, 'My Day after confirmed fact')).events.some(item => item.id === id));
++    await scheduleOpen(page, page.locator('#f4MyDaySchedule'));
++    receipt.postCommit = {absentFromSchedule: true, absentFromMyDay: true,
++        pendingWriteStayedOnCard: true, explicitWrites: 1};
++    receipt.checks.push('explicit versioned event fact, pending navigation blocked, real schedule and My Day refresh without completed event');
++}
++
++function notificationArticle(page, item) {
++    return page.locator('#internalNotificationsFullList article').filter({hasText: item.patient_name})
++        .filter({has: page.getByRole('heading', {name: item.title, exact: true})});
++}
++
++async function searchInbox(page, patient) {
++    const inboxRead = reply(page, inboxPath);
++    await page.locator('#internalNotificationsSearchInput').fill(patient.name);
++    const response = await inboxRead;
++    assert.equal(response.status(), 200);
++    const data = await response.json();
++    assert(data.items.length && data.items.every(row => row.patient_id === patient.id));
++    await notificationArticle(page, data.items[0]).first().waitFor();
++    return data;
++}
++
++async function notifications(page) {
++    active = 'notification object and explicit read audit';
++    await keyboard(page.locator('#scheduleNotifications'));
++    await page.locator('#notificationsInboxPanel').waitFor();
++    await page.locator('#internalNotificationsFullList article').first().waitFor();
++    const patient = patients.overdue;
++    const initial = await searchInbox(page, patient);
++    assert(!initial.items.some(item => item.source_type === 'event' && item.source_id === patient.eventIds.at(-1)));
++    const item = initial.items.find(item => item.source_type === 'event' && item.source_id === patient.eventIds[0]);
++    assert(item && !item.read_at);
++    const row = notificationArticle(page, item);
++    await openEvent(page, row.locator('[data-internal-notification-open]'), patient, item.source_id);
++
++    const historyBefore = await page.evaluate(() => ({length: history.length, state: history.state}));
++    await keyboard(page.locator('#internalNotificationsBell'));
++    const drawer = page.locator('#internalNotificationsDrawer');
++    const drawerRow = drawer.locator('article').filter({hasText: item.patient_name})
++        .filter({has: page.getByRole('heading', {name: item.title, exact: true})});
++    await openEvent(page, drawerRow.locator('[data-internal-notification-open]'), patient, item.source_id);
++    await drawer.waitFor({state: 'hidden'});
++    assert.deepEqual(await page.evaluate(() => ({length: history.length, state: history.state})), historyBefore);
++    assert.equal(readWrites.length, 0);
++    const [returnedReply] = await Promise.all([reply(page, inboxPath), keyboard(page.locator('#backToF1'))]);
++    assert.equal(returnedReply.status(), 200);
++    assert(!(await returnedReply.json()).items.find(i => i.id === item.id).read_at);
++    await row.getByRole('button', {name: 'Прочитано', exact: true}).waitFor();
++
++    const [marked, refreshedReply] = await Promise.all([
++        reply(page, inboxPath + '/' + item.id + '/read', () => true, 'POST'),
++        reply(page, inboxPath),
++        keyboard(row.getByRole('button', {name: 'Прочитано', exact: true})),
++    ]);
++    assert.equal(marked.status(), 200);
++    assert.equal(refreshedReply.status(), 200);
++    const refreshed = await refreshedReply.json();
++    assert(refreshed.items.find(i => i.id === item.id).read_at);
++    assert.equal(refreshed.summary.unread_count, initial.summary.unread_count - 1);
++    await row.getByRole('button', {name: 'Прочитано', exact: true}).waitFor({state: 'hidden'});
++    assert.deepEqual(readWrites, [inboxPath + '/' + item.id + '/read']);
++    receipt.notifications = {exactEventFocus: true, openDidNotMarkRead: true, serverSummaryUpdated: true,
++        completedEventNoticeAbsent: true, explicitReadRequests: 1, sameRouteDrawerVerifiedWithoutNewHistory: true};
++    receipt.checks.push('server-generated internal event notifications, fresh exact event/return, one explicit read and server summary');
++}
++
++async function conflicts(page) {
++    active = 'calendar bounded cursor and query recovery';
++    await view(page, 'calendar');
++    await scheduleSearch(page, '');
++    const more = page.locator('#calendarPanel .pagination').getByRole('button', {name: 'Далее', exact: true});
++    let expired = 0;
++    const cursor = async route => {
++        if (new URL(route.request().url()).searchParams.has('cursor')) {
++            expired++;
++            return route.fulfill({status: 410, json: {code: 'CURSOR_EXPIRED'}});
++        }
++        return route.fallback();
++    };
++    await page.route(origin + schedulePath + '?*', cursor);
++    const reset = await scheduleOpen(page, more, params => !params.has('cursor'));
++    assert.equal(reset.page.offset, 0);
++    assert.equal(expired, 1);
++    await page.unroute(origin + schedulePath + '?*', cursor);
++    let attempts = 0;
++    const conflict = route => {
++        attempts++;
++        return route.fulfill({status: 409, json: {code: 'PATIENT_QUERY_CHANGED'}});
++    };
++    await page.route(origin + schedulePath + '?*', conflict);
++    await keyboard(more);
++    await page.locator('#calendarPanel').getByRole('alert').waitFor();
++    assert.equal(await page.locator('#calendarPanel [data-workspace-row]').count(), 0);
++    assert.equal(attempts, 2);
++    await page.unroute(origin + schedulePath + '?*', conflict);
++    await scheduleOpen(page, page.locator('#calendarPanel').getByRole('button', {name: 'Повторить загрузку'}));
++    receipt.injectedTransportFaults.push({scenario: 'calendar cursor 410', attempts: expired},
++        {scenario: 'calendar repeated ordinary 409', attempts});
++    receipt.checks.push('bounded 410 and repeated 409, old actions removed, keyboard recovery');
++}
++
++
++async function revokedNavigation(page, browser) {
++    active = 'authorized reassignment during schedule navigation';
++    const patient = patients.revoked;
++    const eventId = patient.eventIds[0];
++    const data = await scheduleSearch(page, patient.name);
++    assert(data.events.some(row => row.id === eventId));
++    const admin = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++    try {
++        const adminPage = await setup(admin);
++        await login(adminPage, 'admin');
++        const objectPath = '/api/patients/' + patient.id;
++        const current = await admin.request.get(origin + objectPath);
++        assert.equal(current.status(), 200);
++        const baseline = await current.json();
++        const csrf = (await admin.cookies()).find(item => item.name === 'clinic_csrf');
++        await page.route(origin + objectPath, async route => {
++            try {
++                const changed = await admin.request.put(origin + objectPath + '/treating-doctor', {
++                    data: {userId: fixture.accountIds.foreign, expectedVersion: baseline.version},
++                    headers: {'X-CSRF-Token': csrf.value},
++                });
++                assert.equal(changed.status(), 200);
++                assert.equal((await changed.json()).treatingDoctorUserId, fixture.accountIds.foreign);
++                await route.fallback();
++            } catch (error) {
++                await route.abort();
++                throw error;
++            }
++        }, {times: 1});
++        const [denied] = await Promise.all([reply(page, objectPath), keyboard(eventRow(page, eventId).getByRole('button'))]);
++        assert.equal(denied.status(), 404);
++        assert(!(await denied.text()).includes(patient.name));
++        await eventRow(page, eventId).waitFor({state: 'hidden'});
++        assert.equal(await page.locator('#view-patient').isVisible(), false);
++        await view(page, 'calendar');
++        await calendarReady(page);
++        await eventRow(page, eventId).waitFor({state: 'hidden'});
++    } finally {
++        await admin.close();
++    }
++    receipt.checks.push('actual neutral 404 after authorized reassignment during navigation; inaccessible appointment row no longer visible');
++}
++
++async function expiredSession(page, context) {
++    active = 'real calendar session revoke';
++    const csrf = (await context.cookies()).find(item => item.name === 'clinic_csrf');
++    const logout = await context.request.post(origin + '/api/auth/logout', {headers: {'X-CSRF-Token': csrf.value}});
++    assert.equal(logout.status(), 200);
++    const [denied] = await Promise.all([reply(page, schedulePath), keyboard(page.locator('#eventsWorkspaceRefresh'))]);
++    assert.equal(denied.status(), 401);
++    await page.locator('#loginScreen').waitFor();
++    assert(!await page.locator('#view-calendar').isVisible() || await page.evaluate(() => app.sessionExpired));
++    assert.equal(await page.locator('#calendarPanel [data-workspace-row]').count(), 0);
++    receipt.checks.push('real session revoke returns 401 and clears old schedule actions');
++}
++
++async function axe(page) {
++    return page.evaluate(async () => (await axe.run(document, {
++        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
++    })).violations.map(rule => ({id: rule.id, targets: rule.nodes.map(node => node.target)})));
++}
++
++async function theme(page, target) {
++    const html = page.locator('html');
++    if ((await html.getAttribute('data-theme')) !== target) await page.locator('#themeToggle').click();
++    assert.equal(await html.getAttribute('data-theme'), target);
++}
++
++async function geometry(page, viewName) {
++    return page.evaluate(viewName => {
++        window.scrollTo(0, 0);
++        const within = document.querySelector('#view-' + viewName);
++        const title = within.querySelector('h1, #crumbPatientName');
++        const heading = title.getBoundingClientRect();
++        const bar = document.querySelector('.topbar').getBoundingClientRect();
++        const hit = document.elementFromPoint(heading.left + Math.min(18, heading.width / 2), heading.top + heading.height / 2);
++        return {width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth, scale: visualViewport.scale,
++            titleVisible: heading.top + 1 >= bar.bottom && heading.bottom < innerHeight &&
++                !!hit && (title === hit || title.contains(hit))};
++    }, viewName);
++}
++
++async function narrower(page, viewName) {
++    await page.evaluate(axeSource);
++    for (const mode of ['light', 'dark']) {
++        await theme(page, mode);
++        for (const width of [320, 375, 768, 1440]) {
++            await page.setViewportSize({width, height: 1000});
++            const dimensions = await geometry(page, viewName);
++            assert.equal(dimensions.width, width);
++            assert.equal(dimensions.overflow, false);
++            assert.equal(dimensions.titleVisible, true, viewName + ' ' + width + ' title must be above the fold');
++            const violations = await axe(page);
++            assert.deepEqual(violations, [], viewName + ' ' + mode + ' ' + width);
++            receipt.axe.push({view: viewName, theme: mode, width, violations: 0, titleVisible: true});
++            if (process.env.F4_SCREENSHOTS === '1' && (width === 1440 && mode === 'light' || width === 375 && mode === 'dark'))
++                await page.screenshot({path: path.join(output, [viewName, mode, width].join('-') + '.png'), animations: 'disabled'});
++        }
++    }
++}
++
++async function nativeZoom() {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clinic-f3-native-'));
++    const extension = path.join(dir, 'extension');
++    fs.mkdirSync(extension);
++    fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({manifest_version: 3,
++        name: 'Local browser zoom verification', version: '1.0', permissions: ['tabs'],
++        background: {service_worker: 'worker.js'}}));
++    fs.writeFileSync(path.join(extension, 'worker.js'), 'chrome.runtime.onInstalled.addListener(()=>{});');
++    let context;
++    try {
++        context = await chromium.launchPersistentContext(path.join(dir, 'profile'), {
++            headless: true, viewport: null, reducedMotion: 'reduce', ignoreDefaultArgs: ['--disable-extensions'],
++            executablePath: process.env.WP_H_FULL_CHROMIUM || chromium.executablePath(),
++            args: ['--window-size=1280,1000', '--disable-background-networking',
++                '--disable-extensions-except=' + extension, '--load-extension=' + extension],
++        });
++        const page = await setup(context);
++        await login(page, 'doctor');
++        const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', {timeout: 12000});
++        const base = await page.evaluate(() => devicePixelRatio);
++        for (const viewName of ['calendar', 'notifications']) {
++            await worker.evaluate(async url => {
++                const tab = (await chrome.tabs.query({})).find(item => item.url === url);
++                if (!tab) throw new Error('missing synthetic browser tab');
++                await chrome.tabs.setZoom(tab.id, 1);
++            }, page.url());
++            await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base);
++            await view(page, viewName);
++            await page.locator(viewName === 'calendar' ? '#calendarPanel [data-workspace-row]' : '#internalNotificationsFullList article').first().waitFor();
++            for (const mode of ['light', 'dark']) {
++                await theme(page, mode);
++                for (const factor of [1, 2, 4]) {
++                    const zoom = await worker.evaluate(async ({url, factor}) => {
++                        const tab = (await chrome.tabs.query({})).find(item => item.url === url);
++                        if (!tab) throw new Error('missing synthetic browser tab');
++                        await chrome.tabs.setZoom(tab.id, factor);
++                        return chrome.tabs.getZoom(tab.id);
++                    }, {url: page.url(), factor});
++                    assert.equal(Math.round(zoom * 100), 100 * factor);
++                    await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base * factor);
++                    const dimensions = await geometry(page, viewName);
++                    assert.equal(dimensions.overflow, false);
++                    assert.equal(dimensions.scale, 1);
++                    assert.equal(dimensions.titleVisible, true);
++                    receipt.nativeZoom.push({view: viewName, theme: mode, percent: factor * 100, viewport: dimensions.width});
++                }
++            }
++        }
++    } finally {
++        await context?.close();
++        fs.rmSync(dir, {recursive: true, force: true});
++    }
++}
++
++async function main() {
++    const browser = await chromium.launch({headless: true, executablePath: process.env.BROWSER_EXECUTABLE,
++        args: ['--disable-background-networking']});
++    receipt.chromium = browser.version();
++    try {
++        const context = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const page = await setup(context);
++        await login(page, 'doctor');
++        await schedule(page, context);
++        await saveFact(page);
++        await notifications(page);
++        await conflicts(page);
++        await revokedNavigation(page, browser);
++        await expiredSession(page, context);
++        await page.unrouteAll({behavior: 'wait'});
++        await context.close();
++
++        const visual = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const presentation = await setup(visual);
++        await login(presentation, 'doctor');
++        active = 'responsive schedule';
++        await view(presentation, 'calendar');
++        await calendarReady(presentation);
++        await narrower(presentation, 'calendar');
++        active = 'responsive notifications';
++        await view(presentation, 'notifications');
++        await presentation.locator('#internalNotificationsFullList article').first().waitFor();
++        await narrower(presentation, 'notifications');
++        await presentation.unrouteAll({behavior: 'wait'});
++        await visual.close();
++    } finally {
++        await browser.close();
++    }
++    active = 'native zoom';
++    await nativeZoom();
++    assert.equal(clinicalWrites.length, 1);
++    assert.equal(readWrites.length, 1);
++    assert.equal(receipt.legacyRegistryRequests, 0);
++    assert.equal(receipt.pageErrors, 0);
++    receipt.checks.push('no implicit clinical or read-state mutation, no legacy list, 16 responsive axe states and 12 native zoom states');
++    fs.writeFileSync(process.env.F4_RECEIPT, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx', mode: 0o600});
++}
++
++main().catch(error => {
++    process.stderr.write(active + '\n' + error.stack + '\n');
++    process.exitCode = 1;
++});
+diff --git a/tools/tests/fast_track_f4/run.py b/tools/tests/fast_track_f4/run.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..07861cbc8aac8518773fe7051f1f2dd52e34746e
+--- /dev/null
++++ b/tools/tests/fast_track_f4/run.py
+@@ -0,0 +1,176 @@
++"""Run the F4 integration gate with the same isolated FastAPI server as F2."""
++import argparse
++from http.cookiejar import CookieJar
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
++from uuid import uuid4
++
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++sys.path.insert(0, str(APP))
++from tools.tests.fast_track_f2.run import snapshot, verify_manifest, wait_ready  # noqa: E402
++
++HOST = '127.0.0.1'
++ROW_COUNT = 52
++
++
++def seed_schedule(fixture):
++    jar = CookieJar()
++    opener = build_opener(ProxyHandler({}), HTTPCookieProcessor(jar))
++
++    def post(path, body, status):
++        csrf = next((cookie.value for cookie in jar if cookie.name == 'clinic_csrf'), None)
++        headers = {'Content-Type': 'application/json'}
++        if csrf:
++            headers.update({'X-CSRF-Token': csrf, 'Idempotency-Key': str(uuid4())})
++        req = Request(fixture['origin'] + path, json.dumps(body).encode(), headers, method='POST')
++        with opener.open(req, timeout=20) as response:
++            assert response.status == status
++            return json.load(response)
++
++    post('/api/auth/login', {'username': fixture['users']['admin'], 'password': fixture['password']}, 200)
++    from datetime import date, timedelta
++
++    today = date.fromisoformat(fixture['today'])
++    events = [{'date': str(today + timedelta(days=offset)), 'time': '11:30' if offset else ''}
++              for offset in range(ROW_COUNT)]
++    card = post('/api/patients', {
++        'name': 'Синтетический Расписание F4', 'age': 50, 'priority': 'normal',
++        'stage': 'exam', 'diagnosis': 'C34.1', 'nosology': 'lung34',
++        'treatingDoctorUserId': fixture['accountIds']['doctor'],
++        'head': 'Синтетический заведующий F4', 'events': events,
++    }, 201)
++    fixture['patients']['schedule'] = {'id': card['id'], 'name': card['name'],
++                                      'eventIds': [event['id'] for event in card['history'][0]['events']]}
++    assert len(fixture['patients']['schedule']['eventIds']) == ROW_COUNT
++    post('/api/auth/logout', {}, 200)
++
++
++def prove_commit(db, before, first_audit_id, fixture):
++    patient = fixture['patients']['overdue']
++    event_id = patient['eventIds'][-1]
++    after, _ = snapshot(db)
++    expected = {key: {key_id: row.copy() for key_id, row in table.items()} for key, table in before.items()}
++    event = expected['events'][event_id]
++    event.update(actual_date=fixture['today'], matched_plan=0, version=event['version'] + 1)
++    expected['patients'][patient['id']]['updated_at'] = after['patients'][patient['id']]['updated_at']
++    revoked = fixture['patients']['revoked']['id']
++    prior = expected['patients'][revoked]
++    prior.update(version=prior['version'] + 1, updated_at=after['patients'][revoked]['updated_at'],
++                 doctor=after['patients'][revoked]['doctor'],
++                 treating_doctor_user_id=fixture['accountIds']['foreign'])
++    event_facts = set(after['facts']) - set(expected['facts'])
++    assert len(event_facts) == 1
++    fact_id = event_facts.pop()
++    fact = after['facts'][fact_id]
++    assert fact['patient_id'] == patient['id'] and fact['event_id'] == event_id
++    assert fact['field'] == 'actual_date' and not fact['old_value'] and fact['new_value'] == fixture['today']
++    assert fact['actor_user_id'] == fixture['accountIds']['doctor'] and fact['source'] == 'event_update'
++    expected['facts'][fact_id] = fact
++    assert expected == after, 'only the authorized clinical action may alter clinical rows'
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        rows = conn.execute(
++            "SELECT event_type,actor_user_id,patient_id,result,detail FROM audit_events "
++            "WHERE id>? AND event_type IN ('patient_updated','treating_doctor_changed') ORDER BY id", (first_audit_id,)
++        ).fetchall()
++    assert len(rows) == 2
++    assert rows[1][:4] == ('treating_doctor_changed', fixture['accountIds']['admin'], revoked, 'ok')
++    assert rows[0][:4] == ('patient_updated', fixture['accountIds']['doctor'], patient['id'], 'ok')
++    assert 'action=event_update;field=actualDate' in rows[0][4] and event_id in rows[0][4]
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        reads = conn.execute(
++            "SELECT actor_user_id,patient_id,detail FROM audit_events "
++            "WHERE id>? AND event_type='internal_notification_read'", (first_audit_id,)
++        ).fetchall()
++        assert reads == [(fixture['accountIds']['doctor'], patient['id'], 'type=overdue source_type=event')]
++        read_state = conn.execute(
++            "SELECT count(*) FROM internal_notification_state WHERE user_id=? AND read_at IS NOT NULL",
++            (fixture['accountIds']['doctor'],),
++        ).fetchone()[0]
++        assert read_state == 1
++    return {'matchedWriteAudit': 1, 'recordedFacts': 1, 'matchedAuthorityControlAudit': 1, 'allOtherClinicalRowsUnchanged': True,
++            'matchedExplicitNotificationReadAudit': 1, 'persistedReadState': read_state}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--out', type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if output == APP or APP in output.parents:
++        parser.error('write private outputs outside the source checkout')
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    with socket.socket() as listener:
++        listener.bind((HOST, 0))
++        port = listener.getsockname()[1]
++    origin = f'http://{HOST}:{port}'
++    sha = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD'], text=True).strip()
++    tree = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD^{tree}'], text=True).strip()
++    dirty = bool(subprocess.check_output(['git', '-C', APP, 'status', '--porcelain']))
++    with tempfile.TemporaryDirectory(prefix='clinic-f2-') as working:
++        scratch = Path(working).resolve()
++        clean_env = {'PATH': os.environ['PATH'], 'HOME': str(scratch), 'TMPDIR': str(scratch),
++                     'LANG': 'C.UTF-8', 'PYTHONDONTWRITEBYTECODE': '1'}
++        fixture_file = scratch / 'fixture.json'
++        browser_env = {
++            **clean_env,
++            **{name: os.environ[name] for name in ('PLAYWRIGHT_MODULE', 'PLAYWRIGHT_BROWSERS_PATH',
++                                                  'BROWSER_EXECUTABLE', 'WP_H_FULL_CHROMIUM', 'AXE_SOURCE',
++                                                  'F4_SCREENSHOTS') if name in os.environ},
++            'F4_FIXTURE': str(fixture_file), 'F4_RECEIPT': str(output / 'browser-results.json'),
++        }
++        db = scratch / 'db/clinic.db'
++        with (output / 'server.local.log').open('wb') as log:
++            worker = subprocess.Popen(
++                [sys.executable, '-I', '-B', str(HERE.parent / 'fast_track_f2/server.py'),
++                 '--scratch', str(scratch), '--port', str(port)],
++                cwd=scratch, env=clean_env, stdout=log, stderr=subprocess.STDOUT,
++            )
++        try:
++            wait_ready(worker, origin, fixture_file)
++            fixture = json.loads(fixture_file.read_bytes())
++            assert fixture['origin'] == origin and fixture['syntheticOnly'] and fixture['schema'] == 33
++            seed_schedule(fixture)
++            fixture_file.write_text(json.dumps(fixture, ensure_ascii=False))
++            before, first_audit_id = snapshot(db)
++            with (output / 'browser.local.log').open('wb') as log:
++                run = subprocess.run(['node', str(HERE / 'browser.cjs')], cwd=scratch, env=browser_env,
++                                     stdout=log, stderr=subprocess.STDOUT, timeout=360, check=False)
++            if run.returncode:
++                return run.returncode
++            results = json.loads((output / 'browser-results.json').read_bytes())
++            audit = verify_manifest(db, results.pop('responseProofs'))
++            del audit['clinicalFixturesUnchanged']
++            audit.update(prove_commit(db, before, first_audit_id, fixture))
++            results.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty,
++                           syntheticOnly=True, syntheticPatients=len(before['patients']), schemaVersion=33, audit=audit)
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean_exit = worker.wait(timeout=15) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait(timeout=5)
++                clean_exit = False
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex((HOST, port)) != 0
++    results['cleanup'] = dict(cleanExit=clean_exit, databaseRemoved=not scratch.exists(), listenerClosed=closed)
++    assert all(results['cleanup'].values())
++    (output / 'public.json').write_text(json.dumps(results, indent=2, ensure_ascii=False) + '\n')
++    print(f"F4 Chromium: {len(results['checks'])} groups; exact read audit and clean shutdown")
++    return 0
++
++
++if __name__ == '__main__':
++    sys.exit(main())

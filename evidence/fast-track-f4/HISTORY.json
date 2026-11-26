@@ -1,0 +1,11 @@
+{
+  "candidateSha": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+  "checks": {
+    "navigation": 6,
+    "unknownDenial": 1
+  },
+  "hostedAggregateSHA256": {
+    "navigation": "1652d8d6052f4a908bf70e8a64c8970ac4874e9410bafd3fa8b7b5a54d27b133",
+    "unknownDenial": "af94fa7a68da0eb8f72efba472be0b2f9bb32318a231144e9275edbf8dca816b"
+  }
+}
