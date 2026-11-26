@@ -6,7 +6,7 @@ import sqlite3
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse, Response
 
-from .. import audit, config, policy
+from .. import audit, config, policy, session_context
 from ..deps import abuse_rate_limit, get_db, require_active_password, require_csrf
 from ..models import (
     ConsiliumAppointmentIn,
@@ -525,13 +525,19 @@ def resubmit_consilium_appointment(
 @router.post("/appointments/{appointment_id}/review", dependencies=[Depends(require_csrf), _DECISION_LIMIT])
 def start_consilium_review(
     appointment_id: str,
+    body: ConsiliumVersionIn,
     conn: sqlite3.Connection = Depends(get_db),
     user: policy.CurrentUser = Depends(require_active_password),
 ):
     _require_decision(conn, user)
     try:
         appointment = consilium.start_review(
-            conn, appointment_id, audit_hook=_required_audit(conn, user, audit.CONSILIUM_REVIEW_STARTED))
+            conn, user, appointment_id, body.version,
+            audit_hook=_required_audit(conn, user, audit.CONSILIUM_REVIEW_STARTED))
+    except consilium.ConsiliumAccessLost:
+        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
+    except consilium.ConsiliumVersionConflict as exc:
+        return _version_conflict(exc)
     except consilium.ConsiliumStateError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except audit.AuditWriteFailed:
@@ -553,10 +559,14 @@ def sign_consilium(
     _require_decision(conn, user)
     try:
         appointment = consilium.sign(
-            conn, user, appointment_id, body.treatmentType, body.treatmentScheme,
+            conn, user, appointment_id, body.version, body.treatmentType, body.treatmentScheme,
             body.treatmentSchemeCode, body.goc, body.goc65Plus,
             audit_hook=_required_audit(conn, user, audit.CONSILIUM_SIGNED),
         )
+    except consilium.ConsiliumAccessLost:
+        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
+    except consilium.ConsiliumVersionConflict as exc:
+        return _version_conflict(exc)
     except consilium.ConsiliumStateError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except audit.AuditWriteFailed:
@@ -579,10 +589,14 @@ def return_consilium_for_revision(
     try:
         # Текст комментария в аудит не пишется: он может содержать сведения о пациенте.
         appointment = consilium.return_for_revision(
-            conn, user, appointment_id, body.comment,
+            conn, user, appointment_id, body.version, body.comment,
             audit_hook=_required_audit(conn, user, audit.CONSILIUM_RETURNED, with_round=True))
     except consilium.ConsiliumCommentError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+    except consilium.ConsiliumAccessLost:
+        raise session_context.ContextChanged("ACCESS_CONTEXT_CHANGED") from None
+    except consilium.ConsiliumVersionConflict as exc:
+        return _version_conflict(exc)
     except consilium.ConsiliumStateError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except audit.AuditWriteFailed:

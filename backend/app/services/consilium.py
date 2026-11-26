@@ -44,9 +44,7 @@ class ConsiliumStateError(ValueError):
 
 
 class ConsiliumAccessLost(Exception):
-    """Inside the write transaction the patient is no longer in the user's
-    scope (treating doctor or departments changed meanwhile). Routes answer as
-    for an invisible record, without revealing anything about it."""
+    """The current user no longer has authority to perform the operation."""
 
 
 VERSION_CONFLICT_CODE = "consilium_version_conflict"
@@ -452,33 +450,38 @@ def create(
     return result
 
 
-def _transition(conn: sqlite3.Connection, appointment_id: str, sql: str, params: tuple, refusal: str,
-                audit_hook=None) -> dict | None:
-    """Apply a guarded UPDATE; the WHERE clause is the transition rule.
+def _chair_record(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str,
+                  expected_version: int) -> dict | None:
+    """Recheck authority and the version under the same lock as the write."""
+    fresh = _locked_user(conn, user)
+    if fresh is None or fresh.must_change_password or not policy.can_decide_consilium(fresh):
+        raise ConsiliumAccessLost()
+    # The chair has the existing institution-wide consilium scope.
+    record = get_for_management(conn, appointment_id)
+    if record is not None:
+        _require_version(record, expected_version)
+    return record
 
-    The status check and the write happen in one statement, so a concurrent
-    request cannot slip between them. Nothing is written when it is refused.
-    audit_hook writes the required audit row in the same transaction: if it
-    fails, the transition is rolled back and the record keeps its state.
-    """
-    if get_for_management(conn, appointment_id) is None:
-        return None
-    with conn:
+
+def _transition(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
+                sql: str, params: tuple, refusal: str, audit_hook=None) -> dict | None:
+    """Compare the version, apply the state transition, and record required audit together."""
+    with transaction(conn):
+        if _chair_record(conn, user, appointment_id, expected_version) is None:
+            return None
         cursor = conn.execute(sql, params)
-        if cursor.rowcount == 1 and audit_hook is not None:
+        if cursor.rowcount != 1:
+            raise ConsiliumStateError(refusal)
+        if audit_hook is not None:
             audit_hook(appointment_id)
-        # Ответ — в той же транзакции, что и переход (B2-01): после коммита
-        # запись могли бы изменить или удалить, и успех превратился бы в 404.
-        result = get_for_management(conn, appointment_id) if cursor.rowcount == 1 else None
-    if cursor.rowcount == 0:
-        raise ConsiliumStateError(refusal)
-    return result
+        return get_for_management(conn, appointment_id)
 
 
-def start_review(conn: sqlite3.Connection, appointment_id: str, *, audit_hook=None) -> dict | None:
+def start_review(conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
+                 *, audit_hook=None) -> dict | None:
     now = now_iso()
     return _transition(
-        conn, appointment_id,
+        conn, user, appointment_id, expected_version,
         f"""UPDATE oncology_consilium_appointments
             SET status = 'in_review', review_started_at = ?, updated_at = ?
             WHERE id = ? AND {_AWAITING_CHAIR}""",
@@ -492,6 +495,7 @@ def sign(
     conn: sqlite3.Connection,
     user: policy.CurrentUser,
     appointment_id: str,
+    expected_version: int,
     treatment_type: str,
     treatment_scheme: str,
     treatment_scheme_code: str,
@@ -502,7 +506,7 @@ def sign(
 ) -> dict | None:
     now = now_iso()
     return _transition(
-        conn, appointment_id,
+        conn, user, appointment_id, expected_version,
         """UPDATE oncology_consilium_appointments
            SET status = 'signed', treatment_type = ?, treatment_scheme = ?, treatment_scheme_code = ?,
                goc = ?, goc_65_plus = ?,
@@ -544,25 +548,17 @@ class ConsiliumCommentError(ValueError):
 
 
 def return_for_revision(
-    conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, comment: str, *, audit_hook=None
+    conn: sqlite3.Connection, user: policy.CurrentUser, appointment_id: str, expected_version: int,
+    comment: str, *, audit_hook=None,
 ) -> dict | None:
-    """Return a record under review to its author with a new comment.
-
-    Only from in_review: the chair returns what they are reviewing, and a
-    resubmitted record has to be reviewed again before a second return. The
-    comment is required (model) and must differ from the previous one, so
-    each round leaves its own instruction for the doctor.
-    """
-    existing = conn.execute(
-        "SELECT status, revision_comment FROM oncology_consilium_appointments WHERE id = ? AND deleted_at IS NULL",
-        (appointment_id,),
-    ).fetchone()
-    if existing is not None and existing["status"] == "in_review" and existing["revision_comment"] == comment:
-        raise ConsiliumCommentError("Комментарий должен отличаться от предыдущего возврата")
-    if existing is None:
-        return None
+    """Return a record under review and preserve its reason as one audited round."""
     now = now_iso()
-    with conn:
+    with transaction(conn):
+        existing = _chair_record(conn, user, appointment_id, expected_version)
+        if existing is None:
+            return None
+        if existing["status"] == "in_review" and existing["revisionComment"] == comment:
+            raise ConsiliumCommentError("Комментарий должен отличаться от предыдущего возврата")
         cursor = conn.execute(
             """UPDATE oncology_consilium_appointments
                SET status = 'recorded', revision_comment = ?, revision_submitted_at = NULL,
@@ -570,23 +566,19 @@ def return_for_revision(
                WHERE id = ? AND status = 'in_review' AND archived_at IS NULL AND deleted_at IS NULL""",
             (comment, now, appointment_id),
         )
-        if cursor.rowcount:
-            # В той же транзакции: раунд и его текст сохраняются навсегда.
-            conn.execute(
-                """INSERT INTO consilium_revision_history
-                       (id, appointment_id, round, comment, returned_by_user_id, returned_at)
-                   SELECT ?, id, revision_count, ?, ?, ? FROM oncology_consilium_appointments WHERE id = ?""",
-                (uuid.uuid4().hex, comment, user.id, now, appointment_id),
-            )
-            # Обязательный аудит возврата — в той же транзакции, что и раунд доработки.
-            if audit_hook is not None:
-                audit_hook(appointment_id)
-        # Ответ — в той же транзакции (B2-01): возвращенную запись врач может
-        # сразу отменить, и повторное чтение после коммита дало бы 404.
-        result = get_for_management(conn, appointment_id) if cursor.rowcount else None
-    if cursor.rowcount == 0:
-        raise ConsiliumStateError("Вернуть на доработку можно только запись, рассмотрение которой начато")
-    return result
+        if cursor.rowcount != 1:
+            raise ConsiliumStateError("Вернуть на доработку можно только запись, рассмотрение которой начато")
+        # Раунд, причина, автор и обязательный аудит входят в транзакцию возврата.
+        conn.execute(
+            """INSERT INTO consilium_revision_history
+                   (id, appointment_id, round, comment, returned_by_user_id, returned_at)
+               SELECT ?, id, revision_count, ?, ?, ? FROM oncology_consilium_appointments WHERE id = ?""",
+            (uuid.uuid4().hex, comment, user.id, now, appointment_id),
+        )
+        if audit_hook is not None:
+            audit_hook(appointment_id)
+        return get_for_management(conn, appointment_id)
+
 
 
 def resubmit(

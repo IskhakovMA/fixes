@@ -617,7 +617,7 @@ class ConsiliumAppointmentUpdateIn(ConsiliumAppointmentIn):
 
 
 class ConsiliumVersionIn(StrictRequestModel):
-    """Версия записи для архивирования, восстановления и повторной подачи."""
+    """Ожидаемая версия записи консилиума для серверной проверки."""
     version: int = Field(..., ge=1, le=2**63 - 1)
 
 
@@ -678,7 +678,7 @@ class ConsiliumBackdatedAppointmentIn(ConsiliumAppointmentIn):
         return _backdating_reason(v)
 
 
-class ConsiliumDecisionIn(StrictRequestModel):
+class ConsiliumDecisionIn(ConsiliumVersionIn):
     treatmentType: ConsiliumTreatmentType
     treatmentScheme: str = Field("", max_length=1000)
     treatmentSchemeCode: str = Field("", max_length=32)
@@ -700,7 +700,7 @@ class ConsiliumDecisionIn(StrictRequestModel):
         return self
 
 
-class ConsiliumRevisionIn(StrictRequestModel):
+class ConsiliumRevisionIn(ConsiliumVersionIn):
     comment: str = Field(..., min_length=1, max_length=4000)
 
     @field_validator("comment")

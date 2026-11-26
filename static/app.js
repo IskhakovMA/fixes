@@ -10900,7 +10900,7 @@ const app = {
         const ctx=this.consilium.decisionContext;ctx.busy=true;ctx.action=action;this.syncConsiliumReviewState(ctx.record);
         const errorId=action==='return'?'consiliumRevisionError':'consiliumDecisionError';
         try {
-            // The existing chair API atomically checks the source state, but accepts no version field.
+            // Preserve the displayed version for the server check, even after a fresh read.
             const fresh = await this.readConsiliumRecord(ctx.id);
             if (ctx !== this.consilium.decisionContext || ctx.epoch !== this.sessionEpoch ||
                 !this.can('decideConsilium') || !this.consiliumGridReady(ctx.generation)) return;
@@ -10912,7 +10912,10 @@ const app = {
                 }
                 throw new Error('Запись изменилась. Обновите данные.');
             }
-            const record=await apiPost(path || `/api/consilium/appointments/${encodeURIComponent(ctx.id)}/${action}`,payload);
+            const record = await apiPost(
+                path || `/api/consilium/appointments/${encodeURIComponent(ctx.id)}/${action}`,
+                {...payload, version: ctx.record.version},
+            );
             if(ctx!==this.consilium.decisionContext || ctx.epoch!==this.sessionEpoch)return;
             ctx.record=record;ctx.blocked=action!=='review';
             $(errorId).classList.add('is-hidden');
