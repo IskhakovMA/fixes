@@ -1,0 +1,1750 @@
+diff --git a/.github/workflows/fast-track-f5-browser.yml b/.github/workflows/fast-track-f5-browser.yml
+new file mode 100644
+index 0000000..c68a578
+--- /dev/null
++++ b/.github/workflows/fast-track-f5-browser.yml
+@@ -0,0 +1,141 @@
++name: Fast Track F5 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f5-analytics-reporting]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f5-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F4_SHA: f2e9e08dedf7c4287dd16f740f719ac7a28e810e
++  F4_TREE: 2b8289692114ca616c7d1d9b9064a881dfe7f8a3
++
++jobs:
++  f5-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 20
++    steps:
++      - name: Checkout exact F5 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F4_SHA^{tree}")" = "$F4_TREE"
++          git merge-base --is-ancestor "$F4_SHA" HEAD
++          test -z "$(git rev-list --merges "$F4_SHA..HEAD")"
++          test "$(git rev-list --reverse "$F4_SHA..HEAD" | sed -n '1p')" = 4bb4264c6889293dc936592dbab756b78e5c7034
++          git diff --exit-code "$F4_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml .github/workflows/fast-track-f2-browser.yml .github/workflows/fast-track-f3-browser.yml .github/workflows/fast-track-f4-browser.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f5-browser.yml|backend/tests/test_frontend_csp.py|index.html|static/app.js|static/f1-doctor.js|static/f1-management.js|static/styles.css|tools/tests/fast_track_f5/browser.cjs|tools/tests/fast_track_f5/run.py) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F4_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F5_CANDIDATE=$GITHUB_SHA"
++          echo "F5_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F5 and affected browser regressions
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          export F5_SCREENSHOTS=1
++          mkdir -m 700 "$RUNNER_TEMP/f5-public"
++          for suite in fast_track_f5 fast_track_f4 fast_track_f3 fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F5_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[12345]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] in {"fast_track_f2", "fast_track_f3", "fast_track_f4", "fast_track_f5"}:
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f5-public/$suite.json"
++          done
++          for scenario in navigation unknownDenial; do
++            out="$RUNNER_TEMP/history-$scenario"
++            if ! HISTORY_SCENARIO="$scenario" python -B tools/tests/wp_i_card/run.py --suite history --out "$out"; then
++              if test -f "$out/card.log"; then
++                grep -Eo 'history\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$out/history-results.json" "$scenario" "$RUNNER_TEMP/f5-public/history-$scenario.json" <<'PYTHON'
++          import json
++          from pathlib import Path
++          import sys
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          expected = {"navigation": 6, "unknownDenial": 1}[sys.argv[2]]
++          assert result["syntheticOnly"] is True and result["realBackend"] is True
++          assert result["phase"] == "complete" and len(result["check"]) == expected
++          Path(sys.argv[3]).write_text(json.dumps({"scenario": sys.argv[2], "groups": expected, "result": "PASS"}) + "\n")
++          PYTHON
++          done
++          out="$RUNNER_TEMP/inbox-fix1"
++          if ! python -B tools/tests/wp_i_notifications/run.py --suite fix1 --count 1000 --out "$out"; then
++            if test -f "$out/card.log"; then grep -Eo 'fix1\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true; fi
++            exit 1
++          fi
++          python - "$out/results.json" "$RUNNER_TEMP/f5-public/notifications-fix1.json" <<'PYTHON'
++          import json
++          import sys
++          from pathlib import Path
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          assert result["realBackend"] and len(result["checks"]) == 12
++          Path(sys.argv[2]).write_text(json.dumps({"groups": 12, "result": "PASS"}) + "\n")
++          PYTHON
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f5-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f5-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index 2dac3b3..6f52825 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,11 +138,11 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f4"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f5"></script>' in body
+     for path in F1_SCRIPTS:
+-        source = f'<script src="/static/{path.name}?v=fast-track-f4"></script>'
++        source = f'<script src="/static/{path.name}?v=fast-track-f5"></script>'
+         assert source in body
+         assert body.index(source) < body.index('<script src="/static/app.js')
+     # ни одного <style> и ни одного inline-скрипта в документе
+diff --git a/index.html b/index.html
+index c1f69f7..59231d0 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5">
+ </head>
+ <body>
+ 
+@@ -887,22 +887,26 @@
+                 <div id="f1Pulse"></div>
+             </section>
+ 
+-            <section class="view is-hidden" id="view-analytics">
++            <section class="view is-hidden" id="view-analytics" aria-labelledby="analyticsTitle">
+                 <div class="pagehead">
+                     <div class="pagehead__text">
+-                        <h1 class="pagehead__title">Аналитика</h1>
++                        <h1 class="pagehead__title" id="analyticsTitle" tabindex="-1">Аналитика</h1>
+                         <p class="pagehead__subtitle" id="analyticsSubtitle">Организационные показатели маршрутов, просрочек и заполненности данных</p>
++                        <p class="pagehead__subtitle" id="analyticsContext" role="status" hidden></p>
++                    </div>
++                    <div class="pagehead__actions" id="analyticsSourceActions">
++                        <button type="button" class="btn btn--ghost" id="backToAnalyticsSource" data-route-click hidden>Назад</button>
+                     </div>
+                 </div>
+ 
+-                <div class="analytics-controls">
++                <div class="analytics-controls" role="group" aria-label="Параметры аналитики">
+                     <div class="analytics-controls__period">
+                         <span class="analytics-controls__label">Период</span>
+                         <label class="visually-hidden" for="analyticsDateFrom">Дата от</label>
+                         <input class="input analytics-date" type="date" id="analyticsDateFrom">
+                         <label class="visually-hidden" for="analyticsDateTo">Дата до</label>
+                         <input class="input analytics-date" type="date" id="analyticsDateTo">
+-                        <div class="analytics-presets" aria-label="Быстрый выбор периода">
++                        <div class="analytics-presets" role="group" aria-label="Быстрый выбор периода">
+                             <button type="button" class="btn btn--ghost btn--sm analytics-preset" data-analytics-period="7">7 дней</button>
+                             <button type="button" class="btn btn--ghost btn--sm analytics-preset" data-analytics-period="30">30 дней</button>
+                             <button type="button" class="btn btn--ghost btn--sm analytics-preset" data-analytics-period="90">90 дней</button>
+@@ -910,7 +914,6 @@
+                     </div>
+                     <div class="analytics-controls__actions">
+                         <button type="button" class="btn btn--ghost btn--sm" id="analyticsRefreshBtn">Обновить</button>
+-                        <button type="button" class="btn btn--ghost btn--sm" id="analyticsExportBtn">CSV</button>
+                     </div>
+                     <div class="analytics-controls__filters">
+                         <label class="visually-hidden" for="analyticsStageFilter">Этап</label>
+@@ -925,11 +928,34 @@
+                         <select class="select" id="analyticsAttentionReasonFilter"></select>
+                         <button type="button" class="btn btn--ghost btn--sm" id="analyticsResetFiltersBtn">Сбросить фильтры</button>
+                     </div>
++                    <div class="analytics-export" id="analyticsExportControls" role="group" aria-label="Отчет CSV" aria-describedby="analyticsExportDescription" hidden>
++                        <div class="analytics-export__field">
++                            <label class="analytics-controls__label" for="analyticsReportType">Вид отчета</label>
++                            <select class="select" id="analyticsReportType">
++                                <option value="summary">Сводка</option>
++                                <option value="stages">Этапы</option>
++                                <option value="workload">Нагрузка</option>
++                                <option value="data_quality">Качество данных</option>
++                                <option value="checklists">Чек-листы</option>
++                                <option value="notifications">Уведомления</option>
++                            </select>
++                        </div>
++                        <div class="analytics-export__field">
++                            <label class="analytics-controls__label" for="analyticsReportDetail">Детализация отчета</label>
++                            <select class="select" id="analyticsReportDetail">
++                                <option value="aggregate">Сводно</option>
++                                <option value="details" disabled>По категориям</option>
++                            </select>
++                        </div>
++                        <button type="button" class="btn btn--ghost btn--sm" id="analyticsExportBtn" aria-describedby="analyticsExportDescription" disabled>Выгрузить CSV</button>
++                        <p class="analytics-export__hint" id="analyticsExportDescription">Текущее состояние на момент выгрузки. Выбранный период не применяется к CSV.</p>
++                    </div>
+                 </div>
+ 
+                 <div class="analytics-note">
+                     <span>Текущее состояние</span>
+-                    <span class="muted">Карточки, качество данных и нагрузка считаются на момент запроса; динамика и просрочки учитывают выбранный период.</span>
++                    <span class="muted">Карточки, качество данных, нагрузка и текущие просрочки считаются на момент запроса. Выбранный период применяется к графику динамики.</span>
++                    <p class="analytics-note__scope" id="analyticsScope" hidden></p>
+                 </div>
+ 
+                 <div class="analytics-dashboard">
+@@ -1915,8 +1941,8 @@
+ <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+ 
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+-<script src="/static/f1-management.js?v=fast-track-f4"></script>
+-<script src="/static/f1-doctor.js?v=fast-track-f4"></script>
+-<script src="/static/app.js?v=fast-track-f4"></script>
++<script src="/static/f1-management.js?v=fast-track-f5"></script>
++<script src="/static/f1-doctor.js?v=fast-track-f5"></script>
++<script src="/static/app.js?v=fast-track-f5"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index 3f271e1..23ec2b8 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -602,6 +602,8 @@ const app = {
+         notifications: null,
+         details: null,
+         detailsToken: 0,
++        source: null,
++        pendingDetails: null,
+         filters: {
+             dateFrom: '',
+             dateTo: '',
+@@ -2231,6 +2233,15 @@ const app = {
+         };
+     },
+ 
++    updateCardSourceAction() {
++        const back = $('backToF1');
++        const labels = {analytics: 'К аналитике', pulse: 'К пульсу клиники', myDay: 'К моему дню',
++            calendar: 'К расписанию', notifications: 'К уведомлениям'};
++        const label = labels[this.f1CardOrigin];
++        back.hidden = this.currentView !== 'patient' || !label || !this.navigationVisibility()[this.f1CardOrigin];
++        back.textContent = back.hidden ? '' : label;
++    },
++
+     showView(view, {cardOrigin} = {}) {
+         if (view==='create' && !this.can('createPatients')) view='patients';
+         if (this.currentView === 'create' && view !== 'create' && this.addFormActive && !this.sessionExpired) {
+@@ -2248,11 +2259,8 @@ const app = {
+         else if (previousView !== 'patient') {
+             this.f1CardOrigin = previousView === 'pulse' || previousView === 'myDay' ? previousView : null;
+         }
+-        const f1Back = $('backToF1');
+-        f1Back.hidden = view !== 'patient' || !this.f1CardOrigin || !this.navigationVisibility()[this.f1CardOrigin];
+-        f1Back.textContent = f1Back.hidden ? '' : {
+-            pulse: 'К пульсу клиники', myDay: 'К моему дню', calendar: 'К расписанию', notifications: 'К уведомлениям',
+-        }[this.f1CardOrigin];
++        this.updateCardSourceAction();
++        if (previousView === 'analytics' && view !== 'analytics') this.clearAnalyticsRelease();
+         if (previousView === 'pulse' && view !== 'pulse') f1Management.clear(this);
+         if (previousView === 'myDay' && view !== 'myDay') f1Doctor.clear(this);
+         if (this.qualityV1 && previousView !== view) {
+@@ -2386,6 +2394,8 @@ const app = {
+         f1Management.clear(this, true);
+         f1Doctor.clear(this, true);
+         this.clearQualityV1(accessChanged);
++        this.clearAnalyticsRelease();
++        this.analytics.pendingDetails = null;
+         if (this.sessionExpired || !this.user) return;
+         browserNavigation.invalidate();
+         this.sessionExpired = true;
+@@ -2425,6 +2435,7 @@ const app = {
+         f1Management.clear(this, true);
+         f1Doctor.clear(this, true);
+         this.clearQualityV1(true);
++        this.clearAnalyticsRelease();
+         document.body.classList.add('session-locked');
+         browserNavigation.invalidate();
+         this.sessionExpired = true;
+@@ -6223,6 +6234,72 @@ const app = {
+         return params.toString();
+     },
+ 
++    openWorkingAnalytics(source, {type, title, stage = ''}, allowed) {
++        return browserNavigation.navigate({screen: 'analytics', analytics: {
++            source,
++            filters: {dateFrom: '', dateTo: '', stage, nosology: '', doctor: '', department: '', attentionReason: ''},
++            detail: {type, title, extra: {}, offset: 0},
++        }}, {allowed});
++    },
++
++    analyticsReturnContext(patientId, focusIndex) {
++        const state = this.analytics.details;
++        return {
++            source: this.analytics.source,
++            filters: {...this.analytics.filters},
++            detail: state && {type: state.type, title: state.title, extra: {...state.extra}, offset: state.offset,
++                focusPatient: patientId, focusIndex: focusIndex ?? state.items.indexOf(state.openedItem)},
++        };
++    },
++
++    restoreAnalyticsContext(context) {
++        this.analytics.source = context?.source || null;
++        this.analytics.pendingDetails = context?.detail || null;
++        if (!context) return;
++        this.analytics.filters = {...context.filters};
++        $('analyticsDateFrom').value = context.filters.dateFrom;
++        $('analyticsDateTo').value = context.filters.dateTo;
++        $('analyticsStageFilter').value = context.filters.stage;
++    },
++
++    clearAnalyticsRelease() {
++        const state = this.analytics;
++        for (const key of ['dashboard', 'summary', 'stages', 'workload', 'dataQuality', 'details']) state[key] = null;
++        state.detailsToken += 1;
++        this.analyticsReadState = 'idle';
++        this.beginRead('analytics-dashboard');
++        for (const id of ['analyticsStatsRow', 'analyticsStageChart', 'analyticsQualityList', 'analyticsWorkloadList',
++            'analyticsProfileChart', 'analyticsRouteStateChart', 'analyticsTrendChart', 'analyticsAttentionList',
++            'analyticsOperationsList', 'analyticsDetailsPanel', 'analyticsContext', 'analyticsScope']) $(id).replaceChildren();
++        for (const id of ['analyticsDoctorFilter', 'analyticsDepartmentFilter']) $(id).replaceChildren();
++        this.updateAnalyticsExportControls();
++    },
++
++    renderAnalyticsContext(meta) {
++        const context = $('analyticsContext');
++        const back = $('backToAnalyticsSource');
++        const source = this.analytics.source;
++        const label = {pulse: 'Пульс клиники', myDay: 'Мой день'}[source];
++        back.hidden = !label || !this.navigationVisibility()[source];
++        back.textContent = source === 'pulse' ? 'К пульсу клиники' : 'К моему дню';
++        context.hidden = back.hidden;
++        context.textContent = back.hidden ? '' : 'Из раздела «' + label + '».';
++        const scope = $('analyticsScope');
++        scope.hidden = !meta;
++        if (!meta) { scope.textContent = ''; return; }
++        const scopeLabel = {by_treating_doctor: 'пациенты лечащего врача', by_department: 'разрешенные отделения',
++            global: 'все разрешенные пациенты', global_readonly: 'все разрешенные пациенты, чтение'}[meta.scope] ||
++            'разрешенная область доступа';
++        const {date_from: from, date_to: to} = meta.filters || {};
++        const selected = [from && 'с ' + from, to && 'по ' + to].filter(Boolean).join(' ');
++        const trend = this.analytics.dashboard.trend;
++        const actual = trend?.rows?.length ? trend.rows[0].date + ' — ' + trend.rows.at(-1).date : '';
++        const computed = new Date(meta.computed_at).toLocaleString('ru-RU', {timeZone: meta.timezone});
++        scope.textContent = 'Серверная аналитика. Область: ' + scopeLabel + '. Рассчитано: ' + computed +
++            ' (' + meta.timezone + '). Период: ' + (selected || 'по умолчанию') +
++            (actual ? '. График: ' + actual : '') + '.';
++    },
++
+     analyticsDateString(date) {
+         const year = date.getFullYear();
+         const month = String(date.getMonth() + 1).padStart(2, '0');
+@@ -6257,7 +6334,7 @@ const app = {
+ 
+     async loadAnalytics(params, ticket) {
+         const dashboard=await apiGetJson(`/api/analytics/dashboard?${params}`);
+-        if(!this.managementReadCurrent(ticket,this.analyticsParams().toString()))return false;
++        if(this.currentView !== 'analytics' || !this.managementReadCurrent(ticket,this.analyticsParams().toString()))return false;
+         Object.assign(this.analytics,{dashboard,summary:dashboard.summary,stages:dashboard.stages,workload:dashboard.workload,dataQuality:dashboard.data_quality});
+         return true;
+     },
+@@ -6269,15 +6346,17 @@ const app = {
+         }
+         const params=this.analyticsParams().toString(),ticket=this.managementReadTicket('analytics-dashboard',params);
+         this.analyticsDashboardTicket=ticket;this.analyticsReadState='loading';
+-        const current=()=>this.managementReadCurrent(ticket,this.analyticsParams().toString());
+-        $('analyticsExportBtn').disabled=true;
++        const current=()=>this.currentView === 'analytics' && this.managementReadCurrent(ticket,this.analyticsParams().toString());
++        const pending = this.analytics.pendingDetails;
++        this.analytics.pendingDetails = null;
++        this.renderAnalyticsContext(null);
++        this.updateAnalyticsExportControls();
+         document.querySelector('.analytics-dashboard').setAttribute('aria-busy','true');
+         $('analyticsSubtitle').textContent = 'Организационные показатели маршрутов, просрочек и заполненности данных';
+         $('chairAnalyticsDashboard').classList.add('is-hidden');
+         document.querySelector('.analytics-dashboard').classList.remove('is-hidden');
+         document.querySelector('.analytics-note').classList.remove('is-hidden');
+         document.querySelector('.analytics-controls__filters').classList.remove('is-hidden');
+-        $('analyticsExportBtn').classList.remove('is-hidden');
+         $('analyticsStatsRow').replaceChildren();
+         $('analyticsStageChart').replaceChildren(el('div', { class: 'empty', text: 'Загрузка…' }));
+         $('analyticsQualityList').replaceChildren();
+@@ -6293,6 +6372,7 @@ const app = {
+         $('analyticsDetailsPanel').replaceChildren();
+         try {
+             if(!await this.loadAnalytics(params,ticket)||!current())return;
++            this.renderAnalyticsContext(this.analytics.dashboard.meta);
+             this.renderAnalyticsFilterOptions();
+             this.updateAnalyticsPeriodPresetState();
+             this.renderAnalyticsSummary();
+@@ -6313,11 +6393,15 @@ const app = {
+                 onClick: row => row.detail_type ? this.renderAnalyticsDetails(row.detail_type, row.label, row.filter || {}) : null,
+             });
+             this.renderAnalyticsOperations();
+-            this.analyticsReadState='ready';$('analyticsExportBtn').disabled=false;
++            this.analyticsReadState='ready';
++            this.updateAnalyticsExportControls();
+         } catch (e) {
+             if(!current())return;this.analyticsReadState='error';
+             $('analyticsStageChart').replaceChildren(el('div', { class: 'empty', text: 'Не удалось загрузить аналитику. Попробуйте обновить данные.' }));
+         } finally {if(current())document.querySelector('.analytics-dashboard').setAttribute('aria-busy','false');}
++        if (pending && current() && this.analyticsReadState === 'ready') {
++            await this.renderAnalyticsDetails(pending.type, pending.title, pending.extra, pending);
++        }
+     },
+ 
+     chairAnalyticsRequestParams() {
+@@ -6337,12 +6421,15 @@ const app = {
+         if(!this.user||this.sessionExpired||this.sessionReconciling||!this.can('consiliumChair')){this.setChairAnalyticsReadState('error');return;}
+         const params=this.chairAnalyticsRequestParams(),ticket=this.managementReadTicket('chair-analytics',params);this.chairAnalyticsReadTicket=ticket;
+         const current=()=>this.can('consiliumChair')&&this.managementReadCurrent(ticket,this.chairAnalyticsRequestParams());
++        this.analytics.source = null;
++        this.analytics.pendingDetails = null;
++        this.renderAnalyticsContext(null);
+         this.setChairAnalyticsReadState('loading');
+         $('analyticsSubtitle').textContent = 'Назначения консилиума и фактическая загрузка расписания';
+         document.querySelector('.analytics-dashboard').classList.add('is-hidden');
+         document.querySelector('.analytics-note').classList.add('is-hidden');
+         document.querySelector('.analytics-controls__filters').classList.add('is-hidden');
+-        $('analyticsExportBtn').classList.add('is-hidden');
++        this.updateAnalyticsExportControls();
+         $('chairAnalyticsDashboard').classList.remove('is-hidden');
+         try {
+             const data=await apiGetJson(`/api/consilium/analytics${params?'?'+params:''}`);if(!current())return;
+@@ -6470,11 +6557,20 @@ const app = {
+         const nodes = cards.filter(card => visibleCodes.has(card.code)).map(card => el('button', {
+             type: 'button',
+             class: `stat stat--button ${this.analyticsCardToneClass(card.code)}`,
+-            on: { click: () => card.detail_type ? this.renderAnalyticsDetails(card.detail_type, card.label) : null },
++            'aria-describedby': 'analytics-definition-' + card.code,
++            on: {click: () => {
++                if (card.detail_type) this.renderAnalyticsDetails(card.detail_type, ({
++                    active_patients: 'Пациенты в выбранной области',
++                    patients_with_overdue: 'Просроченные события',
++                })[card.code] || card.label);
++            }},
+         }, [
+             el('div', { class: 'stat__label', text: card.label }),
+             el('div', { class: 'stat__value', text: String(card.value ?? 0) }),
+-            el('div', { class: 'stat__meta', text: card.kind === 'period' ? 'за период' : 'текущее состояние' }),
++            el('div', { class: 'stat__meta', text: card.code === 'active_patients' ? 'детализация: весь доступный набор' :
++                card.code === 'patients_with_overdue' ? 'детализация: события' :
++                card.kind === 'period' ? 'за период' : 'текущее состояние' }),
++            el('span', {id: 'analytics-definition-' + card.code, class: 'visually-hidden', text: card.definition}),
+         ]));
+         const qualitySummary = this.analytics.dataQuality && this.analytics.dataQuality.summary;
+         if (qualitySummary) {
+@@ -6816,30 +6912,79 @@ const app = {
+         );
+     },
+ 
+-    async renderAnalyticsDetails(type, title, extra = {}) {
+-        // Новая детализация начинается с первой страницы; ответы прежней игнорируются.
+-        this.analytics.detailsToken += 1;
+-        this.analytics.details = { token: this.analytics.detailsToken, type, title, extra, items: [], total: 0, loading: false, error: '' };
+-        await this.loadAnalyticsDetailsPage(this.analytics.details);
++    analyticsDetailCurrent(state) {
++        return this.currentView === 'analytics' && this.analyticsReadState === 'ready' &&
++            this.analytics.details === state && state.token === this.analytics.detailsToken &&
++            this.managementReadCurrent(this.analyticsDashboardTicket, this.analyticsParams().toString());
+     },
+ 
+-    async loadAnalyticsDetailsPage(state) {
+-        if (this.analytics.details !== state || state.loading) return;
++    async renderAnalyticsDetails(type, title, extra = {}, context = {}) {
++        if (this.currentView !== 'analytics' || this.analyticsReadState !== 'ready') return;
++        const state = {token: ++this.analytics.detailsToken, type, title, extra,
++            offset: context.offset || 0, items: [], total: 0, loading: false, error: '',
++            focusPatient: context.focusPatient, focusIndex: context.focusIndex};
++        this.analytics.details = state;
++        await this.loadAnalyticsDetailsPage(state);
++    },
++
++    async loadAnalyticsDetailsPage(state, offset = state.offset) {
++        if (!this.analyticsDetailCurrent(state) || state.loading) return;
++        const initialFocus = document.activeElement;
+         state.loading = true;
+         state.error = '';
++        state.items = [];
++        state.offset = offset;
+         this.drawAnalyticsDetails(state);
++        const heading = $('analyticsDetailTitle');
++        // A same-user workspace rebuild replaces every DOM node and may return focus to body.
++        const restoreAfterRebuild = state.focusPatient && initialFocus === document.body && !ui.topModal();
++        if ($('view-analytics').contains(initialFocus) || !initialFocus?.isConnected || restoreAfterRebuild) heading.focus();
+         try {
+-            const params = this.analyticsParams(Object.assign({}, state.extra, { offset: state.items.length }));
+-            const data = await apiGetJson(`/api/analytics/details?type=${encodeURIComponent(state.type)}&${params}`);
+-            if (this.analytics.details !== state || state.token !== this.analytics.detailsToken) return;
+-            state.items = state.items.concat(data.items || []);
+-            state.total = data.total || 0;
+-        } catch (e) {
+-            if (this.analytics.details !== state) return;
++            // These drilldowns describe current state. Date filters apply to the period chart,
++            // never to the patient/event list opened from a current dashboard metric.
++            const get = page => apiGetJson('/api/analytics/details?' +
++                this.analyticsParams({...state.extra, dateFrom: '', dateTo: '', offset: page}) + '&type=' + encodeURIComponent(state.type));
++            let data = await get(offset);
++            if (!this.analyticsDetailCurrent(state)) return;
++            if (offset && Number.isInteger(data.total) && data.total <= offset) {
++                offset = 0;
++                data = await get(offset);
++                if (!this.analyticsDetailCurrent(state)) return;
++            }
++            if (data.detail_type !== state.type || data.offset !== offset || data.limit !== 50 ||
++                !Number.isInteger(data.total) || data.total < 0 || !Array.isArray(data.items) ||
++                data.items.length !== Math.min(50, Math.max(0, data.total - offset))) throw new Error('Некорректная детализация');
++            Object.assign(state, {offset, items: data.items, total: data.total});
++        } catch {
++            if (!this.analyticsDetailCurrent(state)) return;
+             state.error = 'Не удалось загрузить детализацию. Попробуйте ещё раз.';
+         }
++        const restoreFocus = document.activeElement === heading;
+         state.loading = false;
+         this.drawAnalyticsDetails(state);
++        if (restoreFocus) {
++            const buttons = [...$('analyticsDetailsPanel').querySelectorAll('[data-analytics-patient]')];
++            const target = buttons.find(button => Number(button.dataset.analyticsPosition) === state.focusIndex &&
++                button.dataset.analyticsPatient === state.focusPatient) ||
++                buttons.find(button => button.dataset.analyticsPatient === state.focusPatient);
++            (target || $('analyticsDetailTitle')).focus();
++        }
++        state.focusPatient = null;
++        state.focusIndex = null;
++    },
++
++    openAnalyticsPatient(state, item) {
++        const current = () => this.analyticsDetailCurrent(state) && !state.loading && state.items.includes(item);
++        if (!current()) return;
++        state.openedItem = item;
++        // Preserve overview for ordinary Analytics, including existing History routes.
++        const tab = this.analytics.source ?
++            ({overdue_events: 'events', incomplete_checklists: 'checklist',
++                notifications_pending: 'notifications', notifications_failed: 'notifications'}[state.type] || 'overview') : 'overview';
++        void browserNavigation.navigate({screen: 'patient', patientId: item.patient_id, tab}, {
++            allowed: current,
++            denied: () => { if (current()) void this.loadAnalyticsDetailsPage(state); },
++        });
+     },
+ 
+     // Уточнение для нескольких проблем одного кода у пациента: где в маршруте она найдена.
+@@ -6855,63 +7000,154 @@ const app = {
+     drawAnalyticsDetails(state) {
+         const panel = $('analyticsDetailsPanel');
+         const rows = state.items;
+-        const firstLoad = state.loading && !rows.length;
+-        const more = !state.error && rows.length < state.total;
++        const unit = ({overdue_events: 'события', incomplete_checklists: 'пациенты с незаполненными пунктами',
++            notifications_pending: 'уведомления', notifications_failed: 'уведомления', quality_all: 'проблемы качества',
++            quality_actionable: 'проблемы качества', quality_critical: 'проблемы качества',
++            quality_warning: 'проблемы качества', quality_info: 'проблемы качества'})[state.type] || 'пациенты';
++        const pageAction = (text, offset) => el('button', {type: 'button', class: 'btn btn--ghost btn--sm', text,
++            on: {click: () => this.loadAnalyticsDetailsPage(state, offset)}});
++        panel.setAttribute('aria-busy', String(state.loading));
+         panel.replaceChildren(frag([
+-            el('h2', { class: 'panel__title', text: state.title || 'Детальный список' }),
+-            firstLoad ? null : el('p', { class: 'panel__text', role: 'status', text: `Показано ${rows.length} из ${state.total}. Данные ограничены текущей областью доступа.` }),
+-            rows.length ? el('div', { class: 'analytics-list' }, rows.map(item => el('div', { class: 'analytics-detail' }, [
++            el('h2', { id: 'analyticsDetailTitle', tabindex: '-1', class: 'panel__title', text: state.title || 'Детальный список' }),
++            !state.loading && !state.error ? el('p', {class: 'panel__text', role: 'status',
++                text: 'Текущее состояние · ' + unit + ' · ' +
++                    (rows.length ? (state.offset + 1) + '–' + (state.offset + rows.length) + ' из ' + state.total : '0') +
++                    '. Данные ограничены текущей областью доступа.'}) : null,
++            rows.length ? el('div', { class: 'analytics-list' }, rows.map((item, index) => el('div', { class: 'analytics-detail' }, [
+                 el('div', { class: 'person__name', text: item.patient_name || item.doctor_name || item.title || 'Запись' }),
+                 item.severity ? el('div', { class: 'person__meta', text: `${this.QUALITY_SEVERITY_LABELS[item.severity] || item.severity}: ${item.title || item.code_label || item.code}` }) : null,
+                 this.qualityIssueContextText(item.context) ? el('div', { class: 'person__meta', text: this.qualityIssueContextText(item.context) }) : null,
+                 item.issue_count ? el('div', { class: 'person__meta', text: `Проблем качества данных: ${item.issue_count}` }) : null,
+                 item.stage_label ? el('div', { class: 'person__meta', text: item.stage_label }) : null,
+                 item.treating_doctor_name ? el('div', { class: 'person__meta', text: item.treating_doctor_name }) : null,
++                state.type === 'overdue_events' && item.planned_date ? el('div', {class: 'person__meta',
++                    text: 'Плановая дата: ' + this.formatDeadlineDate(new Date(item.planned_date + 'T12:00:00'))}) : null,
+                 item.days_overdue ? el('div', { class: 'person__meta', text: `Просрочено: ${item.days_overdue} дн.` }) : null,
+                 item.error_code ? el('div', { class: 'person__meta', text: this.NOTIFICATION_REASON_LABELS[item.error_code] || item.error_code }) : null,
+                 item.patient_id ? el('button', {
+                     type: 'button',
+                     class: 'btn btn--ghost btn--sm',
+                     text: 'Открыть пациента',
+-                    on: { click: () => this.openPatient(item.patient_id) },
++                    'data-analytics-patient': item.patient_id,
++                    'data-analytics-position': String(index),
++                    on: { click: () => this.openAnalyticsPatient(state, item) },
+                 }) : null,
+             ]))) : null,
+-            firstLoad ? el('div', { class: 'empty', text: 'Загрузка…' }) : null,
++            state.loading ? el('div', {class: 'empty', role: 'status', text: 'Загрузка…'}) : null,
+             !state.loading && !state.error && !rows.length ? el('div', { class: 'empty', text: 'По выбранным условиям записей нет.' }) : null,
+             state.error ? el('div', { class: 'empty', role: 'alert', text: state.error }) : null,
+             state.error ? el('button', {
+                 type: 'button', class: 'btn btn--ghost btn--sm', text: 'Повторить',
+                 on: { click: () => this.loadAnalyticsDetailsPage(state) },
+             }) : null,
+-            more && rows.length ? el('button', {
+-                type: 'button',
+-                class: 'btn btn--ghost btn--sm',
+-                text: state.loading ? 'Загрузка…' : `Показать ещё (осталось ${state.total - rows.length})`,
+-                disabled: state.loading,
+-                on: { click: () => this.loadAnalyticsDetailsPage(state) },
+-            }) : null,
++            !state.loading && !state.error ? el('div', {class: 'f1-actions'}, [
++                state.offset > 0 ? pageAction('Предыдущая страница', Math.max(0, state.offset - 50)) : null,
++                state.offset + rows.length < state.total ? pageAction('Следующая страница', state.offset + 50) : null,
++            ]) : null,
+         ]));
+     },
+ 
++    analyticsExportChoice() {
++        const reportType = $('analyticsReportType').value;
++        if (!['summary', 'stages', 'workload', 'data_quality', 'checklists', 'notifications'].includes(reportType)) return null;
++        const supportsDetails = reportType === 'data_quality' || reportType === 'checklists';
++        const detailLevel = supportsDetails && $('analyticsReportDetail').value === 'details' ? 'details' : 'aggregate';
++        return { reportType, detailLevel, supportsDetails };
++    },
++
++    analyticsExportCurrent(ticket = this.analyticsDashboardTicket) {
++        return this.currentView === 'analytics' && !this.can('consiliumChair') &&
++            this.analyticsReadState === 'ready' && this.managementReadCurrent(ticket, this.analyticsParams());
++    },
++
++    updateAnalyticsExportControls() {
++        const controls = $('analyticsExportControls');
++        const type = $('analyticsReportType');
++        const detail = $('analyticsReportDetail');
++        const choice = this.analyticsExportChoice();
++        const ready = this.analyticsExportCurrent();
++        const pending = this.analyticsExportRequest && this.analyticsExportCurrent(this.analyticsExportRequest.ticket);
++        controls.hidden = !this.user || this.can('consiliumChair');
++        type.disabled = !ready || !!pending;
++        detail.disabled = !ready || !!pending || !choice?.supportsDetails;
++        const detailOption = detail.querySelector('[value="details"]');
++        detailOption.disabled = !choice?.supportsDetails;
++        detailOption.textContent = choice?.reportType === 'checklists' ? 'По этапам' : 'По кодам проблем';
++        if (!choice?.supportsDetails) detail.value = 'aggregate';
++        $('analyticsExportBtn').disabled = !ready || !!pending || !choice;
++
++        const description = $('analyticsExportDescription');
++        if (!ready || !choice) {
++            description.textContent = 'CSV доступен после загрузки актуальной аналитики.';
++            return;
++        }
++        const { dashboard, filters } = this.analytics;
++        const scope = {
++            global: 'Все пациенты в вашей области доступа',
++            global_readonly: 'Все пациенты в вашей области чтения',
++            by_department: 'Пациенты доступных вам отделений',
++            by_treating_doctor: 'Ваши пациенты',
++        }[dashboard.meta.scope] || 'Ваша область доступа';
++        const active = [
++            ['Этап', 'analyticsStageFilter', filters.stage],
++            ['Локализация', 'analyticsNosologyFilter', filters.nosology],
++            ['Лечащий врач', 'analyticsDoctorFilter', filters.doctor],
++            ['Отделение', 'analyticsDepartmentFilter', filters.department],
++            ['Причина внимания', 'analyticsAttentionReasonFilter', filters.attentionReason],
++        ].flatMap(([label, id, value]) => {
++            if (!value) return [];
++            const selected = $(id).selectedOptions[0];
++            return [selected?.value === value ? label + ' — ' + selected.textContent : label];
++        });
++        const filterText = active.length ? 'Фильтры: ' + active.join(', ') + '.' : 'Без дополнительных фильтров.';
++        const file = 'Файл: analytics_' + choice.reportType + '_дата_время.csv.';
++        const limit = choice.reportType === 'workload' ? ' До 50 строк нагрузки.' : '';
++        description.textContent = scope + '. ' + filterText + ' Текущее состояние на момент выгрузки. Выбранный период не применяется к CSV. ' + file + limit;
++    },
++
+     async exportAnalyticsCsv() {
++        const ticket = this.analyticsDashboardTicket;
++        if (!this.analyticsExportCurrent(ticket)) return;
++        if (this.analyticsExportRequest && this.analyticsExportCurrent(this.analyticsExportRequest.ticket)) return;
++        const choice = this.analyticsExportChoice();
++        if (!choice) return;
++        const { reportType, detailLevel } = choice;
++        const request = { ticket };
++        this.analyticsExportRequest = request;
++        this.updateAnalyticsExportControls();
++        const current = () => this.analyticsExportRequest === request && this.analyticsExportCurrent(ticket);
+         try {
+-            const params = this.analyticsParams();
+-            const response = await apiFetch(`/api/analytics/export?${params}`, {
++            const response = await apiFetch('/api/analytics/export?' + ticket.params, {
+                 method: 'POST',
+-                body: JSON.stringify({ reportType: 'summary', detailLevel: 'aggregate' }),
++                body: JSON.stringify({ reportType, detailLevel }),
++                rawResponse: true,
+             });
++            if (!current()) return;
++            const disposition = response?.headers.get('content-disposition') || '';
++            const match = /^attachment; filename="(analytics_([a-z_]+)_\d{8}_\d{6}\.csv)"$/.exec(disposition);
++            const contentType = response?.headers.get('content-type') || '';
++            if (!match || match[2] !== reportType || !/^text\/csv(?:\s*;|$)/i.test(contentType)) {
++                throw new Error('сервер не вернул ожидаемый CSV-файл');
++            }
+             const blob = await response.blob();
+-            const disposition = response.headers.get('content-disposition') || '';
+-            const match = disposition.match(/filename=\"([^\"]+)\"/);
+-            const filename = match ? match[1] : 'analytics_summary.csv';
+-            const link = el('a', { href: URL.createObjectURL(blob), download: filename });
++            if (!current()) return;
++            const url = URL.createObjectURL(blob);
++            const link = el('a', { href: url, download: match[1] });
+             document.body.append(link);
+-            link.click();
+-            URL.revokeObjectURL(link.href);
+-            link.remove();
+-            ui.toast('CSV отчёт сформирован.', 'good');
++            try {
++                link.click();
++            } finally {
++                link.remove();
++                URL.revokeObjectURL(url);
++            }
++            ui.toast('CSV-отчёт сформирован.', 'good');
+         } catch (e) {
+-            ui.toast(`Не удалось сформировать CSV: ${e.message}`, 'warning');
++            if (current()) ui.toast('Не удалось сформировать CSV: ' + e.message, 'warning');
++        } finally {
++            if (this.analyticsExportRequest === request) {
++                this.analyticsExportRequest = null;
++                this.updateAnalyticsExportControls();
++            }
+         }
+     },
+ 
+@@ -7437,7 +7673,7 @@ const app = {
+         }
+         // A row can be denied after returning from its previous card. Clear the
+         // hidden card, then let the active workspace refresh its own selection.
+-        if (this.currentPatientId === patientId && ['myDay', 'pulse', 'calendar', 'notifications'].includes(this.currentView)) {
++        if (this.currentPatientId === patientId && ['myDay', 'pulse', 'calendar', 'notifications', 'analytics'].includes(this.currentView)) {
+             this.clearPatientNavigationView();
+         }
+         if (this.currentPatientId !== patientId) {
+@@ -11917,8 +12153,14 @@ const app = {
+                 void browserNavigation.navigate({screen: origin, schedule: browserNavigation.committed?.route.scheduleReturn});
+             } else if (origin === 'notifications') {
+                 void browserNavigation.navigate({screen: origin, internalInbox: true});
++            } else if (origin === 'analytics') {
++                void browserNavigation.navigate({screen: origin, analytics: browserNavigation.committed?.route.analyticsReturn});
+             } else if (origin) this.navigateView(origin);
+         });
++        on('backToAnalyticsSource', 'click', () => {
++            const source = this.analytics.source;
++            if (source && this.navigationVisibility()[source]) this.navigateView(source);
++        });
+         on('backToScheduleSource', 'click', () => {
+             if (this.workspaceListState('events').source === 'myDay') this.navigateView('myDay');
+         });
+@@ -12205,6 +12447,7 @@ const app = {
+ 
+         // Аналитика
+         on('analyticsRefreshBtn', 'click', () => this.renderAnalytics());
++        on('analyticsReportType', 'change', () => this.updateAnalyticsExportControls());
+         on('analyticsExportBtn', 'click', () => this.exportAnalyticsCsv());
+         on('analyticsDateFrom', 'change', (event) => {
+             this.analytics.filters.dateFrom = event.target.value;
+@@ -12432,6 +12675,11 @@ const browserNavigation = {
+ 
+     snapshot() {
+         if (!this.committed || this.entry(history.state) !== this.committed) return null;
++        if (this.committed.route.screen === 'analytics' && app.currentView === 'analytics') {
++            const focused = document.activeElement?.dataset;
++            this.committed.route.analytics = app.analyticsReturnContext(
++                focused?.analyticsPatient, focused?.analyticsPosition && Number(focused.analyticsPosition));
++        }
+         return {nonce: this.nonce, committed: this.committed, entries: new Map(this.entries),
+             owner: app.user.id, access: app.accessSignature(app.user)};
+     },
+@@ -12449,7 +12697,12 @@ const browserNavigation = {
+         if (!this.canNavigate(route)) return false;
+         if (route.screen === 'patient' && (app.currentPatientId !== route.patientId || app.currentTab !== route.tab)) return false;
+         if (route.screen === 'create' && !app.addFormActive) return false;
++        if (route.screen === 'analytics') app.restoreAnalyticsContext(route.analytics);
+         if (app.currentView !== route.screen) app.showView(route.screen);
++        if (route.screen === 'patient' && route.f1Source === 'analytics') {
++            app.f1CardOrigin = route.f1Source;
++            app.updateCardSourceAction();
++        }
+         this.nonce = previous.nonce;
+         this.committed = previous.committed;
+         this.entries = previous.entries;
+@@ -12681,7 +12934,7 @@ const browserNavigation = {
+         if (!entry && route.screen === 'patient') {
+             const origin = cardOrigin || (sourceView === 'patient' && sourcePatient === route.patientId
+                 ? app.f1CardOrigin : sourceView === 'notifications' ? null : sourceView);
+-            if (['pulse', 'myDay', 'calendar', 'notifications'].includes(origin)) route = {...route, f1Source: origin};
++            if (['pulse', 'myDay', 'calendar', 'notifications', 'analytics'].includes(origin)) route = {...route, f1Source: origin};
+             if (['myDay', 'calendar', 'notifications'].includes(origin) && historyAction?.kind === 'day-event') route = {...route, historyAction};
+             if (sourceView === 'patient' && sourcePatient === route.patientId && this.committed?.route.scheduleReturn) {
+                 route = {...route, scheduleReturn: this.committed.route.scheduleReturn};
+@@ -12689,6 +12942,9 @@ const browserNavigation = {
+             const registryReturn = sourceView === 'patients' ? app.registryContext(route.patientId)
+                 : sourceView === 'patient' && sourcePatient === route.patientId ? this.committed?.route.registryReturn : null;
+             if (registryReturn) route = {...route, registryReturn};
++            if (origin === 'analytics' && sourceView === 'patient' && this.committed?.route.analyticsReturn) {
++                route = {...route, analyticsReturn: this.committed.route.analyticsReturn};
++            }
+         }
+         const sameIntent = () => generation === this.generation && epoch === (app.sessionEpoch || 0)
+             && user === app.user?.id && app.accessSignature(app.user) === access
+@@ -12761,6 +13017,11 @@ const browserNavigation = {
+                 state.rows = [];
+                 $('calendarPanel').replaceChildren();
+             }
++            if (sourceView === 'analytics' && this.committed?.route.screen === 'analytics') {
++                const analytics = app.analyticsReturnContext(route.patientId);
++                this.committed.route.analytics = analytics;
++                if (!entry && route.screen === 'patient') route = {...route, analyticsReturn: analytics};
++            }
+             this.render(route, patient, focus, replace);
+             if (entry) this.committed = entry;
+             else if (same) this.committed.route = route;
+@@ -12828,6 +13089,7 @@ const browserNavigation = {
+                 state.trail = schedule?.trail.slice() || [null];
+                 state.focusEventId = schedule?.eventId || null;
+             }
++            if (route.screen === 'analytics') app.restoreAnalyticsContext(route.analytics);
+             if (route.screen === 'notifications' && route.internalInbox) app.notifications.activeTab = 'inbox';
+             app.showView(route.screen);
+         }
+diff --git a/static/f1-doctor.js b/static/f1-doctor.js
+index 32d616d..305c10f 100644
+--- a/static/f1-doctor.js
++++ b/static/f1-doctor.js
+@@ -342,9 +342,19 @@ const f1Doctor = (() => {
+             const current = () => schedule.isConnected && permitted(app) && app.f1Doctor === state && state.mode === mode;
+             if (current()) void app.openWorkingSchedule('', current);
+         }, {id: 'f4MyDaySchedule'});
++        const analytics = button('Открыть персональную аналитику', () => {
++            const mode = state.mode;
++            const current = () => analytics.isConnected && permitted(app) && app.f1Doctor === state && state.mode === mode;
++            const [type, title] = {
++                patients: ['patients', 'Мои пациенты'],
++                events: ['overdue_events', 'Просроченные события'],
++                checklists: ['incomplete_checklists', 'Пациенты с невыполненными обязательными пунктами'],
++            }[mode];
++            if (current()) void app.openWorkingAnalytics('myDay', {type, title}, current);
++        }, {id: 'f5MyDayAnalytics'});
+         host.replaceChildren(
+             el('div', { class: 'f1-actions', role: 'group', 'aria-label': 'Разделы моего дня' }, controls),
+-            heading, detail, el('div', {class: 'f1-actions'}, [select, registry, schedule]), body,
++            heading, detail, el('div', {class: 'f1-actions'}, [select, registry, schedule, analytics]), body,
+         );
+ 
+         function show(message = '') {
+diff --git a/static/f1-management.js b/static/f1-management.js
+index db7b638..44e25c6 100644
+--- a/static/f1-management.js
++++ b/static/f1-management.js
+@@ -364,10 +364,19 @@ const f1Management = (() => {
+                 }, detailCurrent);
+             }},
+         });
++        const analytics = el('button', {
++            id: 'f5PulseAnalytics', type: 'button', class: 'btn btn--ghost btn--sm',
++            text: 'Открыть в аналитике',
++            on: {click: () => {
++                if (detailCurrent()) void app.openWorkingAnalytics('pulse', {
++                    stage, type: metric.type, title: metric.heading || metric.label || state.cards.get(state.selected)?.label,
++                }, detailCurrent);
++            }},
++        });
+         state.nodes.details.replaceChildren(
+             content.length ? el('p', {class: 'muted f1-pulse-result', role: 'status', text: summary + ' · ' + (metric.detailUnit || metric.unit)}) :
+                 message(data.total ? 'На этой странице записей нет.' : 'По выбранным условиям нет доступных записей.'),
+-            el('div', {class: 'f1-actions'}, [registry, !exactFilter ? el('span', {
++            el('div', {class: 'f1-actions'}, [registry, analytics, !exactFilter ? el('span', {
+                 class: 'f1-description', text: stage ? 'Все доступные пациенты этого этапа.' : 'Все доступные пациенты.',
+             }) : null]),
+             content.length ? el('ul', {class: 'f1-list f1-pulse-list'}, content) : null,
+diff --git a/static/styles.css b/static/styles.css
+index ad8cc34..a2d3df3 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -2212,6 +2212,40 @@ code { font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border
+     gap: var(--sp-2);
+ }
+ 
++#analyticsContext[hidden],
++#analyticsSourceActions:has(> [hidden]),
++#backToAnalyticsSource[hidden],
++.analytics-export[hidden],
++.analytics-note__scope[hidden] {
++    display: none;
++}
++
++.analytics-export {
++    grid-column: 1 / -1;
++    display: flex;
++    flex-wrap: wrap;
++    align-items: end;
++    gap: var(--sp-2);
++    min-width: 0;
++    padding-top: var(--sp-3);
++    border-top: 1px solid var(--border);
++}
++
++.analytics-export__field {
++    display: grid;
++    gap: var(--sp-1);
++    min-width: 0;
++}
++
++.analytics-export__hint,
++.analytics-note__scope {
++    flex: 1 0 100%;
++    min-width: 0;
++    color: var(--text-2);
++    font-size: var(--text-sm);
++    overflow-wrap: anywhere;
++}
++
+ .analytics-controls__label {
+     color: var(--text-2);
+     font-size: var(--text-sm);
+@@ -2753,6 +2787,14 @@ code { font-size: 0.92em; background: var(--surface-3); padding: 1px 5px; border
+     .analytics-controls__actions {
+         justify-content: flex-start;
+     }
++    .analytics-export__field {
++        flex: 1 1 10rem;
++    }
++    #backToAnalyticsSource {
++        min-width: 0;
++        white-space: normal;
++        overflow-wrap: anywhere;
++    }
+     .analytics-controls__filters > :not(.visually-hidden),
+     .analytics-date {
+         width: 100%;
+diff --git a/tools/tests/fast_track_f5/browser.cjs b/tools/tests/fast_track_f5/browser.cjs
+new file mode 100644
+index 0000000..50c8cb5
+--- /dev/null
++++ b/tools/tests/fast_track_f5/browser.cjs
+@@ -0,0 +1,573 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const {createHash} = require('node:crypto');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
++
++const fixture = JSON.parse(fs.readFileSync(process.env.F5_FIXTURE, 'utf8'));
++const {origin, users, patients} = fixture;
++assert(fixture.syntheticOnly);
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++const axeSource = fs.readFileSync(process.env.AXE_SOURCE, 'utf8');
++const receipt = {checks: [], axe: [], nativeZoom: [], responseProofs: [], injectedTransportFaults: [],
++    pageErrors: 0, unexpectedClinicalWrites: 0, legacyRegistryRequests: 0};
++const output = path.dirname(process.env.F5_RECEIPT);
++let active = 'initialization';
++const clinicalWrites = [];
++let csvBytes;
++const dashboardPath = '/api/analytics/dashboard';
++const detailsPath = '/api/analytics/details';
++const exportPath = '/api/analytics/export';
++function reply(page, pathname, matches = () => true, method = 'GET') {
++    return page.waitForResponse(response => {
++        const url = new URL(response.url());
++        return response.request().method() === method && url.pathname === pathname && matches(url.searchParams);
++    });
++}
++
++async function audited(response, kind) {
++    assert.equal(response.status(), 200, kind);
++    const raw = await response.body();
++    receipt.responseProofs.push({kind, sha256: createHash('sha256').update(raw).digest('hex')});
++    return JSON.parse(raw);
++}
++
++async function setup(context) {
++    await context.route('**/*', route => {
++        if (new URL(route.request().url()).origin === origin) return route.continue();
++        return route.abort('blockedbyclient');
++    });
++    const page = await context.newPage();
++    // Ordinary pagination is separated from deliberately concurrent scenarios.
++    // Forward each actual loopback API request once; no retry or response edit.
++    let queue = Promise.resolve();
++    await page.route(origin + '/api/**', route => {
++        const request = queue.then(async () => {
++            const response = await route.fetch();
++            if (new URL(route.request().url()).pathname === exportPath && response.ok()) {
++                assert.equal(csvBytes, undefined, 'only one successful export in this browser suite');
++                csvBytes = await response.body();
++            }
++            await route.fulfill({response});
++        });
++        queue = request.catch(() => {});
++        return request;
++    });
++    page.setDefaultTimeout(15000);
++    page.on('pageerror', () => { receipt.pageErrors++; });
++    page.on('request', request => {
++        const url = new URL(request.url());
++        if (url.pathname === '/api/patients' && request.method() === 'GET' &&
++            url.searchParams.get('view') !== 'page') receipt.legacyRegistryRequests++;
++        if (url.pathname.startsWith('/api/patients') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method()))
++            clinicalWrites.push({method: request.method(), path: url.pathname, body: request.postDataJSON()});
++    });
++    return page;
++}
++
++async function login(page, role) {
++    await page.goto(origin);
++    await page.locator('#username').fill(users[role]);
++    await page.locator('#password').fill(fixture.password);
++    await page.locator('#loginSubmit').click();
++    await ready(page);
++    assert.equal(await page.evaluate(() => app.user.username), users[role]);
++}
++
++async function ready(page, offset = null) {
++    await page.waitForFunction(offset => app.appReady && !app.sessionExpired && !app.sessionReconciling &&
++        app.currentView === 'patients' && app.patientListState === 'ready' &&
++        (offset === null || app.patientPage.page.offset === offset), offset);
++}
++
++async function keyboard(locator) {
++    await locator.waitFor({state: 'visible'});
++    await locator.focus();
++    assert(await locator.evaluate(el => el === document.activeElement && !el.disabled));
++    await locator.press('Enter');
++}
++
++async function view(page, key) {
++    await page.locator('[data-view="' + key + '"]').first().click();
++    await page.locator('#view-' + key).waitFor({state: 'visible'});
++}
++
++
++async function axe(page) {
++    return page.evaluate(async () => (await axe.run(document, {
++        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
++    })).violations.map(rule => ({id: rule.id, targets: rule.nodes.map(node => node.target)})));
++}
++
++async function theme(page, target) {
++    const html = page.locator('html');
++    if ((await html.getAttribute('data-theme')) !== target) await page.locator('#themeToggle').click();
++    assert.equal(await html.getAttribute('data-theme'), target);
++}
++
++async function geometry(page, viewName) {
++    return page.evaluate(viewName => {
++        window.scrollTo(0, 0);
++        const within = document.querySelector('#view-' + viewName);
++        const title = within.querySelector('h1, #crumbPatientName');
++        const heading = title.getBoundingClientRect();
++        const bar = document.querySelector('.topbar').getBoundingClientRect();
++        const hit = document.elementFromPoint(heading.left + Math.min(18, heading.width / 2), heading.top + heading.height / 2);
++        return {width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth, scale: visualViewport.scale,
++            titleVisible: heading.top + 1 >= bar.bottom && heading.bottom < innerHeight &&
++                !!hit && (title === hit || title.contains(hit))};
++    }, viewName);
++}
++
++async function narrower(page, viewName) {
++    await page.evaluate(axeSource);
++    for (const mode of ['light', 'dark']) {
++        await theme(page, mode);
++        for (const width of [320, 375, 768, 1440]) {
++            await page.setViewportSize({width, height: 1000});
++            const dimensions = await geometry(page, viewName);
++            assert.equal(dimensions.width, width);
++            assert.equal(dimensions.overflow, false);
++            assert.equal(dimensions.titleVisible, true, viewName + ' ' + width + ' title must be above the fold');
++            const violations = await axe(page);
++            assert.deepEqual(violations, [], viewName + ' ' + mode + ' ' + width);
++            receipt.axe.push({view: viewName, theme: mode, width, violations: 0, titleVisible: true});
++            if (process.env.F5_SCREENSHOTS === '1' && (width === 1440 && mode === 'light' || width === 375 && mode === 'dark'))
++                await page.screenshot({path: path.join(output, [viewName, mode, width].join('-') + '.png'), animations: 'disabled'});
++        }
++    }
++}
++
++async function nativeZoom() {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clinic-f5-native-'));
++    const extension = path.join(dir, 'extension');
++    fs.mkdirSync(extension);
++    fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({manifest_version: 3,
++        name: 'Local browser zoom verification', version: '1.0', permissions: ['tabs'],
++        background: {service_worker: 'worker.js'}}));
++    fs.writeFileSync(path.join(extension, 'worker.js'), 'chrome.runtime.onInstalled.addListener(()=>{});');
++    let context;
++    try {
++        context = await chromium.launchPersistentContext(path.join(dir, 'profile'), {
++            headless: true, viewport: null, reducedMotion: 'reduce', ignoreDefaultArgs: ['--disable-extensions'],
++            executablePath: process.env.WP_H_FULL_CHROMIUM || chromium.executablePath(),
++            args: ['--window-size=1280,1000', '--disable-background-networking',
++                '--disable-extensions-except=' + extension, '--load-extension=' + extension],
++        });
++        const page = await setup(context);
++        await login(page, 'doctor');
++        const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', {timeout: 12000});
++        const base = await page.evaluate(() => devicePixelRatio);
++        for (const viewName of ['analytics']) {
++            await worker.evaluate(async url => {
++                const tab = (await chrome.tabs.query({})).find(item => item.url === url);
++                if (!tab) throw new Error('missing synthetic browser tab');
++                await chrome.tabs.setZoom(tab.id, 1);
++            }, page.url());
++            await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base);
++            await view(page, viewName);
++            await analyticsReady(page);
++            for (const mode of ['light', 'dark']) {
++                await theme(page, mode);
++                for (const factor of [1, 2, 4]) {
++                    const zoom = await worker.evaluate(async ({url, factor}) => {
++                        const tab = (await chrome.tabs.query({})).find(item => item.url === url);
++                        if (!tab) throw new Error('missing synthetic browser tab');
++                        await chrome.tabs.setZoom(tab.id, factor);
++                        return chrome.tabs.getZoom(tab.id);
++                    }, {url: page.url(), factor});
++                    assert.equal(Math.round(zoom * 100), 100 * factor);
++                    await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base * factor);
++                    const dimensions = await geometry(page, viewName);
++                    assert.equal(dimensions.overflow, false);
++                    assert.equal(dimensions.scale, 1);
++                    assert.equal(dimensions.titleVisible, true);
++                    receipt.nativeZoom.push({view: viewName, theme: mode, percent: factor * 100, viewport: dimensions.width});
++                }
++            }
++        }
++    } finally {
++        await context?.close();
++        fs.rmSync(dir, {recursive: true, force: true});
++    }
++}
++
++const detailsPanel = page => page.locator('#analyticsDetailsPanel');
++const dashboard = page => page.locator('.analytics-dashboard');
++const metric = (payload, code) => payload.summary.cards.find(item => item.code === code);
++const overdue = params => params.get('type') === 'overdue_events';
++const detailReply = (page, offset = 0) => reply(page, detailsPath,
++    params => overdue(params) && params.get('limit') === '50' && Number(params.get('offset') || 0) === offset);
++
++async function analyticsReady(page) {
++    await page.locator('#view-analytics').waitFor();
++    await dashboard(page).and(page.locator('[aria-busy="false"]')).waitFor();
++    await page.locator('#analyticsStatsRow').getByRole('button').first().waitFor();
++}
++
++async function openAnalytics(page, control) {
++    const [dash, detail] = await Promise.all([reply(page, dashboardPath), detailReply(page), keyboard(control)]);
++    assert.equal(dash.status(), 200);
++    assert.equal(detail.status(), 200);
++    await analyticsReady(page);
++    await detailsPanel(page).getByRole('button', {name: 'Открыть пациента', exact: true}).first().waitFor();
++    return {cards: await audited(dash, 'scoped analytics dashboard'),
++        rows: await audited(detail, 'scoped analytics drilldown')};
++}
++
++function assertScoped(data, doctor = false) {
++    assert(data.items.length > 0);
++    assert(data.items.every(item => item.patient_id !== patients.foreign.id));
++    assert(data.items.every(item => !doctor || item.patient_id !== patients.paged.id));
++    assert(data.items.every(item => !doctor || item.patient_id !== patients.quality.id));
++}
++
++function assertOverdueRows(data) {
++    assert.equal(data.detail_type, 'overdue_events');
++    const count = new Set(data.items.map(item => item.patient_id)).size;
++    assert(data.items.length > count, 'event rows must be more numerous than patients');
++    assert.deepEqual(data.items.map(item => item.days_overdue),
++        data.items.map(item => item.days_overdue).sort((left, right) => right - left));
++}
++
++async function selectPatient(page, patient) {
++    const row = detailsPanel(page).locator('.analytics-detail').filter({hasText: patient.name}).first();
++    const action = row.getByRole('button', {name: 'Открыть пациента', exact: true});
++    const [read] = await Promise.all([reply(page, '/api/patients/' + patient.id), keyboard(action)]);
++    const body = await audited(read, 'analytics object authorization');
++    assert.equal(body.id, patient.id);
++    await page.waitForFunction(id => app.currentView === 'patient' && app.currentPatientId === id, patient.id);
++    await page.locator('#view-patient').getByText(patient.name, {exact: true}).first().waitFor();
++    return body;
++}
++
++async function verifyCSV(page, context, dashboardResponse) {
++    const button = page.locator('#analyticsExportBtn');
++    await page.locator('#analyticsReportType').selectOption('data_quality');
++    await page.locator('#analyticsReportDetail').selectOption('details');
++    const [response, download] = await Promise.all([
++        reply(page, exportPath, () => true, 'POST'), page.waitForEvent('download'), keyboard(button),
++    ]);
++    assert.equal(response.status(), 200);
++    assert.deepEqual(response.request().postDataJSON(), {reportType: 'data_quality', detailLevel: 'details'});
++    assert.equal(new URL(response.url()).searchParams.get('stage'), 'exam');
++    assert.match(download.suggestedFilename(), /^analytics_data_quality_\d{8}_\d{6}\.csv$/);
++    assert.match(response.headers()['content-disposition'], /^attachment; filename="analytics_data_quality_\d{8}_\d{6}\.csv"$/);
++    assert.match(response.headers()['content-type'], /^text\/csv; charset=utf-8/);
++    const bytes = await fs.promises.readFile(await download.path());
++    assert.deepEqual(bytes, csvBytes);
++    assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
++    const rows = bytes.subarray(3).toString('utf8').trim().split('\r\n');
++    assert.equal(rows.shift(), 'severity,code,label,count');
++    const counts = new Map();
++    for (const row of rows) {
++        const [severity, code, label, count] = row.split(',');
++        assert.equal(label, severity || code);
++        assert(/^[0-9]+$/.test(count));
++        if (code) counts.set(code, Number(count));
++    }
++    assert(counts.size >= 2 && counts.has('overdue_event'));
++    assert.equal([...counts.values()].reduce((sum, count) => sum + count, 0),
++        dashboardResponse.data_quality.summary.total_issues);
++    for (const patient of Object.values(patients)) assert(!bytes.includes(patient.name));
++    const rejected = await context.request.post(origin + exportPath, {
++        headers: {Origin: origin}, data: {reportType: 'data_quality', detailLevel: 'details'},
++    });
++    assert.equal(rejected.status(), 403);
++    assert(!rejected.headers()['content-disposition']);
++    receipt.csv = {rows: rows.length, detailCodes: counts.size, exactDownloadBytes: true,
++        sha256: createHash('sha256').update(bytes).digest('hex'), bom: true, authControl: 403};
++}
++
++async function manager(page, context) {
++    active = 'management Pulse to permitted analytics';
++    await login(page, 'head');
++    await view(page, 'pulse');
++    await page.locator('#f1PulseStage').waitFor();
++    const stageResponse = reply(page, '/api/analytics/summary',
++        params => params.get('stage') === 'exam');
++    await page.locator('#f1PulseStage').selectOption('exam');
++    const selected = page.locator('#f1Pulse [data-f1-metric="overdue_events"]');
++    await selected.waitFor();
++    // The clinical attention summary and analytics use distinct contracts.
++    await stageResponse;
++    await keyboard(selected);
++    const initial = await openAnalytics(page, page.locator('#f5PulseAnalytics'));
++    assert.equal(initial.cards.meta.filters.stage, 'exam');
++    assert.equal(initial.rows.total, metric(initial.cards, 'overdue_events').value);
++    assert.equal(initial.rows.offset, 0);
++    assert.equal(initial.rows.items.length, 50);
++    assert(initial.rows.total > 50);
++    assertScoped(initial.rows);
++    assertOverdueRows(initial.rows);
++
++    active = 'manager pagination and browser history';
++    const [next] = await Promise.all([detailReply(page, initial.rows.items.length),
++        keyboard(detailsPanel(page).getByRole('button', {name: 'Следующая страница', exact: true}))]);
++    assert.equal(next.status(), 200);
++    const pageTwo = await audited(next, 'scoped second analytics page');
++    assert.equal(pageTwo.total, initial.rows.total);
++    assertScoped(pageTwo);
++    assertOverdueRows({ ...pageTwo, items: [...initial.rows.items, ...pageTwo.items] });
++    const patient = patients.overdue;
++    assert(pageTwo.items.some(row => row.patient_id === patient.id), 'fixture must place recent overdue events on second page');
++    await selectPatient(page, patient);
++
++    const [restored, returnedDash] = await Promise.all([
++        detailReply(page, 50), reply(page, dashboardPath), page.goBack(),
++    ]);
++    assert.equal(restored.status(), 200);
++    assert.equal(returnedDash.status(), 200);
++    assert.deepEqual((await audited(restored, 'fresh back to drilldown')).items, pageTwo.items);
++    await detailsPanel(page).getByRole('button', {name: 'Предыдущая страница', exact: true}).waitFor();
++    await page.waitForFunction(id => document.activeElement?.dataset.analyticsPatient === id, patient.id);
++
++    active = 'passive same-identity analytics reconciliation';
++    const before = await page.evaluate(() => ({epoch: app.sessionEpoch || 0, user: app.user.id,
++        position: document.activeElement.dataset.analyticsPosition}));
++    // Trigger the public lifecycle event without re-focusing or modifying the app.
++    // The real session, dashboard and details responses must pass the normal barrier.
++    const [identity, newDashboard, newDetails] = await Promise.all([
++        reply(page, '/api/auth/me'), reply(page, dashboardPath), detailReply(page, 50),
++        page.evaluate(() => window.dispatchEvent(new FocusEvent('focus'))),
++    ]);
++    assert.equal(identity.status(), 200);
++    assert.equal((await identity.json()).user.id, before.user);
++    assert.equal((await audited(newDashboard, 'dashboard after passive session recheck')).meta.filters.stage, 'exam');
++    assert.deepEqual((await audited(newDetails, 'page two after passive session recheck')).items, pageTwo.items);
++    await page.waitForFunction(({user, epoch, position, patient}) => app.user?.id === user &&
++        app.sessionEpoch > epoch && !app.sessionExpired && !app.sessionReconciling &&
++        document.activeElement?.dataset.analyticsPatient === patient &&
++        document.activeElement.dataset.analyticsPosition === position, {...before, patient: patient.id}).catch(async error => {
++        const diagnostic = await page.evaluate(({user, epoch, position, patient}) => ({
++            sameUser: app.user?.id === user, freshEpoch: app.sessionEpoch > epoch, expired: app.sessionExpired,
++            reconciling: app.sessionReconciling, view: app.currentView, offset: app.analytics.details?.offset,
++            tag: document.activeElement?.tagName, id: document.activeElement?.id,
++            expectedPosition: position, activePosition: document.activeElement?.dataset.analyticsPosition,
++            matchesPatient: document.activeElement?.dataset.analyticsPatient === patient,
++        }), {...before, patient: patient.id});
++        throw new Error('Passive focus restoration failed: ' + JSON.stringify(diagnostic), {cause: error});
++    });
++    assert.equal(clinicalWrites.length, 0);
++    receipt.checks.push('passive same-user session recheck reloads real scoped dashboard and page two, restoring exact row focus and stage without writes');
++
++    active = 'manager browser Forward and explicit return';
++    const [forward] = await Promise.all([reply(page, '/api/patients/' + patient.id), page.goForward()]);
++    assert.equal((await audited(forward, 'analytics history forwards object')).id, patient.id);
++    const [explicit, fresh] = await Promise.all([
++        detailReply(page, 50), reply(page, dashboardPath), keyboard(page.locator('#backToF1')),
++    ]);
++    assert.equal(explicit.status(), 200);
++    assert.equal(fresh.status(), 200);
++    await analyticsReady(page);
++
++    active = 'CSV bytes, context and rejection';
++    await verifyCSV(page, context, await audited(fresh, 'fresh dashboard before export'));
++    receipt.checks.push('head Pulse, supported stage, full server pagination and event units, audited card, Back and Forward, fresh explicit return and real scoped CSV');
++}
++
++async function doctor(page, context) {
++    active = 'doctor My Day to personal analytics';
++    await login(page, 'doctor');
++    await view(page, 'myDay');
++    const eventMode = page.locator('#f1MyDay [data-f1-doctor-mode="events"]');
++    await keyboard(eventMode);
++    const initial = await openAnalytics(page, page.locator('#f5MyDayAnalytics'));
++    assertScoped(initial.rows, true);
++    assertOverdueRows(initial.rows);
++    assert.equal(initial.cards.workload.rows.length, 1);
++    assert.equal(initial.cards.workload.rows[0].doctor_user_id, fixture.accountIds.doctor);
++    const outside = await context.request.get(origin + '/api/patients/' + patients.foreign.id);
++    assert.equal(outside.status(), 404);
++    assert(!(await outside.text()).includes(patients.foreign.name));
++    const empty = await context.request.get(origin + detailsPath,
++        {params: {type: 'overdue_events', doctor_user_id: fixture.accountIds.foreign}});
++    assert.equal(empty.status(), 200);
++    assert.equal((await empty.json()).total, 0);
++    const forbidden = await context.request.get(origin + '/api/audit');
++    assert.equal(forbidden.status(), 403);
++
++    active = 'doctor real write and refreshed aggregate';
++    const [next] = await Promise.all([detailReply(page, 50),
++        keyboard(detailsPanel(page).getByRole('button', {name: 'Следующая страница', exact: true}))]);
++    assert.equal(next.status(), 200);
++    const patient = patients.overdue;
++    const id = patient.eventIds.at(-1);
++    const payload = await selectPatient(page, patient);
++    const event = payload.history[0].events.find(item => item.id === id);
++    assert(event && !event.actualDate);
++    const controls = page.locator('#patient-event-' + id);
++    await controls.getByRole('textbox', {name: 'Фактическая дата', exact: true}).evaluate((node, value) => {
++        node.value = value;
++        node.dispatchEvent(new Event('input', {bubbles: true}));
++    }, fixture.today);
++    assert.equal(clinicalWrites.length, 0);
++    const eventPath = '/api/patients/' + patient.id + '/events/' + id;
++    const [saved] = await Promise.all([reply(page, eventPath, () => true, 'PATCH'),
++        keyboard(controls.getByRole('button', {name: 'Сохранить: Фактическая дата', exact: true}))]);
++    assert.equal(saved.status(), 200);
++    const savedEvent = (await saved.json()).history[0].events.find(item => item.id === id);
++    assert.equal(savedEvent.actualDate, fixture.today);
++    assert.equal(savedEvent.version, event.version + 1);
++    assert.deepEqual(clinicalWrites, [{method: 'PATCH', path: eventPath,
++        body: {field: 'actualDate', value: fixture.today, version: event.version}}]);
++    await page.waitForFunction(() => !app.clinicalWriteInFlight);
++    const [back, refreshed] = await Promise.all([detailReply(page, 50), reply(page, dashboardPath),
++        keyboard(page.locator('#backToF1'))]);
++    assert.equal(back.status(), 200);
++    assert.equal(refreshed.status(), 200);
++    assert.equal((await audited(back, 'fresh post-commit details')).total, initial.rows.total - 1);
++    assert.equal(metric(await audited(refreshed, 'fresh post-commit dashboard'), 'overdue_events').value,
++        metric(initial.cards, 'overdue_events').value - 1);
++    await analyticsReady(page);
++    const [period] = await Promise.all([reply(page, dashboardPath,
++        params => params.has('date_from') && params.has('date_to')),
++    keyboard(page.locator('[data-analytics-period="7"]'))]);
++    assert.equal(period.status(), 200);
++    const dated = await period.json();
++    assert.equal(metric(dated, 'overdue_events').kind, 'current');
++    assert.equal(metric(dated, 'overdue_events').value, metric(initial.cards, 'overdue_events').value - 1);
++    assert.equal(dated.meta.timezone, initial.cards.meta.timezone);
++    assert.equal(dated.trend.rows.length, 7);
++    receipt.checks.push('doctor My Day, personal server scope including empty and foreign filters, real 404 and 403, only explicit versioned write, fresh aggregate drops one event');
++}
++
++async function authority(page, context, browser) {
++    active = 'stale analytic row and live object-scope reassignment';
++    await login(page, 'doctor');
++    await view(page, 'myDay');
++    await keyboard(page.locator('#f1MyDay [data-f1-doctor-mode="events"]'));
++    await openAnalytics(page, page.locator('#f5MyDayAnalytics'));
++    const [next] = await Promise.all([detailReply(page, 50),
++        keyboard(detailsPanel(page).getByRole('button', {name: 'Следующая страница', exact: true}))]);
++    assert.equal(next.status(), 200);
++    const patient = patients.revoked;
++    const action = detailsPanel(page).locator('.analytics-detail').filter({hasText: patient.name})
++        .first().getByRole('button', {name: 'Открыть пациента', exact: true});
++    await action.waitFor();
++    const object = '/api/patients/' + patient.id;
++    const admin = await browser.newContext({reducedMotion: 'reduce', viewport: {width: 1440, height: 1000}});
++    try {
++        const adminPage = await setup(admin);
++        await login(adminPage, 'admin');
++        const current = await admin.request.get(origin + object);
++        assert.equal(current.status(), 200);
++        const baseline = await current.json();
++        const csrf = (await admin.cookies()).find(item => item.name === 'clinic_csrf');
++        const changed = await admin.request.put(origin + object + '/treating-doctor', {
++            data: {userId: fixture.accountIds.foreign, expectedVersion: baseline.version},
++            headers: {'X-CSRF-Token': csrf.value},
++        });
++        assert.equal(changed.status(), 200);
++        assert.equal((await changed.json()).treatingDoctorUserId, fixture.accountIds.foreign);
++    } finally {
++        await admin.close();
++    }
++    const [objectDenied] = await Promise.all([reply(page, object), keyboard(action)]);
++    assert.equal(objectDenied.status(), 404);
++    assert(!(await objectDenied.text()).includes(patient.name));
++    await action.waitFor({state: 'detached'});
++    assert(!await page.locator('#view-patient').isVisible());
++    assert(!(await detailsPanel(page).textContent()).includes(patient.name));
++
++    active = 'late real HTTP 200 after session revoke';
++    let release;
++    let received;
++    let forwarded;
++    const gate = new Promise(resolve => { release = resolve; });
++    const fetched = new Promise(resolve => { received = resolve; });
++    const delivered = new Promise(resolve => { forwarded = resolve; });
++    const hold = async route => {
++        const response = await route.fetch();
++        received(response.status());
++        await gate;
++        await route.fulfill({response});
++        forwarded();
++    };
++    await page.route(origin + dashboardPath + '?*', hold, {times: 1});
++    const old = page.waitForResponse(response => response.status() === 200 &&
++        new URL(response.url()).pathname === dashboardPath);
++    try {
++        await keyboard(page.locator('#analyticsRefreshBtn'));
++        assert.equal(await fetched, 200);
++        const csrf = (await context.cookies()).find(item => item.name === 'clinic_csrf');
++        const logout = await context.request.post(origin + '/api/auth/logout', {
++            headers: {'X-CSRF-Token': csrf.value},
++        });
++        assert.equal(logout.status(), 200);
++        const [denied] = await Promise.all([reply(page, dashboardPath), keyboard(page.locator('#analyticsRefreshBtn'))]);
++        assert.equal(denied.status(), 401);
++        await page.locator('#loginScreen').waitFor();
++        assert(await page.evaluate(() => app.sessionExpired || !app.user));
++    } finally {
++        release();
++    }
++    await Promise.all([old, delivered]);
++    assert.equal(await page.locator('#analyticsStatsRow .analytics-kpi').count(), 0);
++    assert.equal(await detailsPanel(page).locator('.analytics-detail').count(), 0);
++    assert(!await page.locator('#view-patient').isVisible());
++    receipt.checks.push('authorized reassignment causes real object 404 and removes stale patient actions; live session revoke returns 401 and held real 200 cannot restore data');
++}
++
++
++async function anonymous(browser) {
++    const context = await browser.newContext();
++    try {
++        for (const resource of [dashboardPath, detailsPath + '?type=overdue_events']) {
++            assert.equal((await context.request.get(origin + resource)).status(), 401);
++        }
++        const denied = await context.request.post(origin + exportPath, {
++            headers: {Origin: origin}, data: {reportType: 'data_quality', detailLevel: 'details'},
++        });
++        assert.equal(denied.status(), 401);
++        assert(!denied.headers()['content-disposition']);
++        receipt.csv.anonymous = 401;
++    } finally {
++        await context.close();
++    }
++    receipt.checks.push('anonymous real 401 on dashboard, details and CSV; failed export delivers no file');
++}
++
++async function main() {
++    const browser = await chromium.launch({headless: true, executablePath: process.env.BROWSER_EXECUTABLE,
++        args: ['--disable-background-networking']});
++    receipt.chromium = browser.version();
++    try {
++        for (const exercise of [manager, doctor, authority]) {
++            const context = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++            const page = await setup(context);
++            await exercise(page, context, browser);
++            process.stdout.write('Browser group complete: ' + exercise.name + '\n');
++            await page.unrouteAll({behavior: 'wait'});
++            await context.close();
++        }
++        await anonymous(browser);
++        const visual = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const presentation = await setup(visual);
++        await login(presentation, 'head');
++        active = 'responsive analytics';
++        await view(presentation, 'analytics');
++        await analyticsReady(presentation);
++        await narrower(presentation, 'analytics');
++        process.stdout.write('Browser group complete: responsive Axe checks\n');
++        await presentation.unrouteAll({behavior: 'wait'});
++        await visual.close();
++    } finally {
++        await browser.close();
++    }
++    active = 'native zoom';
++    await nativeZoom();
++    assert.equal(clinicalWrites.length, 1);
++    assert.equal(receipt.legacyRegistryRequests, 0);
++    assert.equal(receipt.pageErrors, 0);
++    receipt.checks.push('keyboard actions, light and dark responsive axe states and real Chrome native zoom at 100, 200 and 400 percent');
++    fs.writeFileSync(process.env.F5_RECEIPT, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx', mode: 0o600});
++}
++
++main().catch(error => {
++    process.stderr.write(active + '\n' + error.stack + '\n');
++    process.exitCode = 1;
++});
+diff --git a/tools/tests/fast_track_f5/run.py b/tools/tests/fast_track_f5/run.py
+new file mode 100644
+index 0000000..d575e0e
+--- /dev/null
++++ b/tools/tests/fast_track_f5/run.py
+@@ -0,0 +1,190 @@
++"""Run the F5 analytics integration gate with the same isolated FastAPI server as F2."""
++import argparse
++from http.cookiejar import CookieJar
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
++from uuid import uuid4
++
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++sys.path.insert(0, str(APP))
++from tools.tests.fast_track_f2.run import snapshot, verify_manifest, wait_ready  # noqa: E402
++
++HOST = '127.0.0.1'
++OVERDUE_EVENT_COUNT = 52
++
++
++def seed_overdue_page(fixture):
++    jar = CookieJar()
++    opener = build_opener(ProxyHandler({}), HTTPCookieProcessor(jar))
++
++    def post(path, body, status):
++        csrf = next((cookie.value for cookie in jar if cookie.name == 'clinic_csrf'), None)
++        headers = {'Content-Type': 'application/json'}
++        if csrf:
++            headers.update({'X-CSRF-Token': csrf, 'Idempotency-Key': str(uuid4())})
++        req = Request(fixture['origin'] + path, json.dumps(body).encode(), headers, method='POST')
++        with opener.open(req, timeout=20) as response:
++            assert response.status == status
++            return json.load(response)
++
++    post('/api/auth/login', {'username': fixture['users']['admin'], 'password': fixture['password']}, 200)
++    from datetime import date, timedelta
++
++    today = date.fromisoformat(fixture['today'])
++    # More than one server page in the same period. A single patient has
++    # many events, so counting unique patients must differ from row totals.
++    events = [{"date": str(today - timedelta(days=offset % 15 + 8)), "time": "10:30"}
++              for offset in range(OVERDUE_EVENT_COUNT)]
++    card = post("/api/patients", {
++        "name": "Синтетический Страницы Аналитики", "age": 50, "priority": "normal",
++        "stage": "exam", "diagnosis": "C34.1", "nosology": "lung34",
++        "head": "Синтетический заведующий F5",
++        "treatingDoctorUserId": fixture["accountIds"]["doctor"], "events": events,
++    }, 201)
++    fixture["patients"]["pagination"] = {"id": card["id"], "name": card["name"]}
++    assert len(card["history"][0]["events"]) == OVERDUE_EVENT_COUNT
++    post('/api/auth/logout', {}, 200)
++
++
++def prove_commit(db, before, first_audit_id, fixture, csv_receipt):
++    patient = fixture['patients']['overdue']
++    event_id = patient['eventIds'][-1]
++    after, _ = snapshot(db)
++    expected = {key: {key_id: row.copy() for key_id, row in table.items()} for key, table in before.items()}
++    event = expected['events'][event_id]
++    event.update(actual_date=fixture['today'], matched_plan=0, version=event['version'] + 1)
++    expected['patients'][patient['id']]['updated_at'] = after['patients'][patient['id']]['updated_at']
++    reassigned = fixture["patients"]["revoked"]["id"]
++    prior = expected["patients"][reassigned]
++    updated = after["patients"][reassigned]
++    prior.update(version=prior["version"] + 1, updated_at=updated["updated_at"], doctor=updated["doctor"],
++                 treating_doctor_user_id=fixture["accountIds"]["foreign"])
++    event_facts = set(after['facts']) - set(expected['facts'])
++    assert len(event_facts) == 1
++    fact_id = event_facts.pop()
++    fact = after['facts'][fact_id]
++    assert fact['patient_id'] == patient['id'] and fact['event_id'] == event_id
++    assert fact['field'] == 'actual_date' and not fact['old_value'] and fact['new_value'] == fixture['today']
++    assert fact['actor_user_id'] == fixture['accountIds']['doctor'] and fact['source'] == 'event_update'
++    expected['facts'][fact_id] = fact
++    assert expected == after, 'only the authorized clinical action may alter clinical rows'
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        rows = conn.execute(
++            "SELECT event_type,actor_user_id,patient_id,result,detail FROM audit_events "
++            "WHERE id>? AND event_type IN ('patient_updated','analytics_report_exported','treating_doctor_changed') ORDER BY id",
++            (first_audit_id,),
++        ).fetchall()
++        export_manifests = conn.execute(
++            "SELECT m.snapshot_sha256,m.object_count,m.objects_json FROM read_access_manifests m "
++            "JOIN audit_events a ON a.id=m.audit_event_id "
++            "WHERE a.id>? AND a.event_type='analytics_report_exported'", (first_audit_id,)
++        ).fetchall()
++    assert len(export_manifests) == 1
++    digest, object_count, raw_manifest = export_manifests[0]
++    assert digest == csv_receipt["sha256"]
++    manifest = json.loads(raw_manifest)
++    assert object_count == len(manifest) and object_count > 0
++    authorized_patients = {data["id"] for key, data in fixture["patients"].items() if key != "foreign"}
++    assert {(obj["type"], obj["id"]) for obj in manifest} == {
++        ("patient", patient_id) for patient_id in authorized_patients
++    }
++    assert len(rows) == 3, "One export, one clinical action, and one authorized reassignment only"
++    export, write, scope = rows
++    assert scope[:4] == ("treating_doctor_changed", fixture["accountIds"]["admin"], reassigned, "ok")
++    assert export[:2] == ("analytics_report_exported", fixture["accountIds"]["head"])
++    assert not export[2] and export[3] == "ok"
++    assert "report_type=data_quality detail_level=details " in export[4]
++    assert "format=csv" in export[4] and "stage=exam" in export[4]
++    export_fields = dict(item.split("=", 1) for item in export[4].split())
++    assert int(export_fields["row_count"]) == csv_receipt["rows"]
++    assert write[:4] == ("patient_updated", fixture["accountIds"]["doctor"], patient["id"], "ok")
++    assert "action=event_update;field=actualDate" in write[4] and event_id in write[4]
++    return {"matchedWriteAudit": 1, "recordedFacts": 1, "matchedExportAudit": 1, "matchedScopeControlAudit": 1,
++            "matchedExactCsvDigest": True, "authorizedCsvManifestObjects": object_count,
++            "deniedExportsGeneratedNoAuditOrFile": True, "allOtherClinicalRowsUnchanged": True}
++
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--out', type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if output == APP or APP in output.parents:
++        parser.error('write private outputs outside the source checkout')
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    with socket.socket() as listener:
++        listener.bind((HOST, 0))
++        port = listener.getsockname()[1]
++    origin = f'http://{HOST}:{port}'
++    sha = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD'], text=True).strip()
++    tree = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD^{tree}'], text=True).strip()
++    dirty = bool(subprocess.check_output(['git', '-C', APP, 'status', '--porcelain']))
++    with tempfile.TemporaryDirectory(prefix='clinic-f2-') as working:
++        scratch = Path(working).resolve()
++        clean_env = {'PATH': os.environ['PATH'], 'HOME': str(scratch), 'TMPDIR': str(scratch),
++                     'LANG': 'C.UTF-8', 'PYTHONDONTWRITEBYTECODE': '1'}
++        fixture_file = scratch / 'fixture.json'
++        browser_env = {
++            **clean_env,
++            **{name: os.environ[name] for name in ('PLAYWRIGHT_MODULE', 'PLAYWRIGHT_BROWSERS_PATH',
++                                                  'BROWSER_EXECUTABLE', 'WP_H_FULL_CHROMIUM', 'AXE_SOURCE',
++                                                  'F5_SCREENSHOTS') if name in os.environ},
++            'F5_FIXTURE': str(fixture_file), 'F5_RECEIPT': str(output / 'browser-results.json'),
++        }
++        db = scratch / 'db/clinic.db'
++        with (output / 'server.local.log').open('wb') as log:
++            worker = subprocess.Popen(
++                [sys.executable, '-I', '-B', str(HERE.parent / 'fast_track_f2/server.py'),
++                 '--scratch', str(scratch), '--port', str(port)],
++                cwd=scratch, env=clean_env, stdout=log, stderr=subprocess.STDOUT,
++            )
++        try:
++            wait_ready(worker, origin, fixture_file)
++            fixture = json.loads(fixture_file.read_bytes())
++            assert fixture['origin'] == origin and fixture['syntheticOnly'] and fixture['schema'] == 33
++            seed_overdue_page(fixture)
++            fixture_file.write_text(json.dumps(fixture, ensure_ascii=False))
++            before, first_audit_id = snapshot(db)
++            with (output / 'browser.local.log').open('wb') as log:
++                run = subprocess.run(['node', str(HERE / 'browser.cjs')], cwd=scratch, env=browser_env,
++                                     stdout=log, stderr=subprocess.STDOUT, timeout=360, check=False)
++            if run.returncode:
++                return run.returncode
++            results = json.loads((output / 'browser-results.json').read_bytes())
++            audit = verify_manifest(db, results.pop('responseProofs'))
++            del audit['clinicalFixturesUnchanged']
++            audit.update(prove_commit(db, before, first_audit_id, fixture, results['csv']))
++            results.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty,
++                           syntheticOnly=True, syntheticPatients=len(before['patients']), schemaVersion=33, audit=audit)
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean_exit = worker.wait(timeout=15) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait(timeout=5)
++                clean_exit = False
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex((HOST, port)) != 0
++    results['cleanup'] = dict(cleanExit=clean_exit, databaseRemoved=not scratch.exists(), listenerClosed=closed)
++    assert all(results['cleanup'].values())
++    (output / 'public.json').write_text(json.dumps(results, indent=2, ensure_ascii=False) + '\n')
++    print(f"F5 Chromium: {len(results['checks'])} groups; exact read audit and clean shutdown")
++    return 0
++
++
++if __name__ == '__main__':
++    sys.exit(main())

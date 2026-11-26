@@ -1,0 +1,175 @@
+{
+  "productSha": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+  "productTree": "4df68d538f04f4c62f606fb90a96fe34f7332f4d",
+  "productBranch": "feature/fast-track-f5-analytics-reporting",
+  "approvedBase": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+  "approvedBaseTree": "2b8289692114ca616c7d1d9b9064a881dfe7f8a3",
+  "orderedHistoryFromProduct": [
+    {
+      "commit": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+      "tree": "4df68d538f04f4c62f606fb90a96fe34f7332f4d",
+      "parent": "3c3c88fa9a344193431f9b893f327b354e265a1b"
+    },
+    {
+      "commit": "3c3c88fa9a344193431f9b893f327b354e265a1b",
+      "tree": "057d92d9cd0fbb83819bfea3f1cb02e2be2b4eb9",
+      "parent": "4bb4264c6889293dc936592dbab756b78e5c7034"
+    },
+    {
+      "commit": "4bb4264c6889293dc936592dbab756b78e5c7034",
+      "tree": "c27c0fbfd805f3a2306e7472f51f52aac74dff8a",
+      "parent": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e"
+    }
+  ],
+  "firstInvalidHostedWorkflow": 45766105928,
+  "firstInvalidHostedLogSHA256": "3e918b7d208aae447f185ff2d89d2ed7fbbbeb8a3c11290c2d8c79dca2262f12",
+  "protectedSourcePathsUnchanged": [
+    "backend/app",
+    "backend/migrations",
+    "backend/requirements-dev.txt",
+    "tools/tests/wp_h/package-lock.json",
+    ".github/workflows/ci.yml"
+  ],
+  "protectedRefsBefore": {
+    "refs/heads/evidence/fast-track-f4-2026-11-26": "4e90ac962677dd93da70047dc98a054fb3d85c10",
+    "refs/heads/feature/fast-track-f1-management-doctor": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+    "refs/heads/feature/fast-track-f2-actionable-routes": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+    "refs/heads/feature/fast-track-f3-registry-stage35": "0b91473ffb65892ce8551755a8d31118c332a000",
+    "refs/heads/feature/fast-track-f4-schedule-notifications": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+    "refs/heads/fix/i9-b1-focus-history-review": "b5b408fe411f4431042eced96f0801cffb577a83",
+    "refs/heads/fix/wp-i-redesign-integration": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+    "refs/heads/main": "20a7505d8ba0302f298f3d6998bb0fa20d0278e9"
+  },
+  "exactLocalSHA256": {
+    "F5_LOCAL_EXACT.json": "f00833fe8bc9dc3e498391b08c5148022414480b3d51d20c171848579bdca35c",
+    "analytics-light-1440.png": "b4fc318b6d476e7cd73510d7f902a836808f0e7ea11960ee9d595f0f2340f86c",
+    "analytics-dark-375.png": "2bef32d53dac9816878e6d24eec4598cf8390cffb47e5c0ea1897d36e4029fd5"
+  },
+  "hostedRun": {
+    "conclusion": "success",
+    "event": "push",
+    "headBranch": "feature/fast-track-f5-analytics-reporting",
+    "headSha": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+    "jobs": [
+      {
+        "completedAt": "2026-11-26T06:14:51Z",
+        "conclusion": "success",
+        "databaseId": 139728782237,
+        "name": "f5-chromium",
+        "startedAt": "2026-11-26T06:12:16Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-26T06:12:18Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-26T06:12:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:12:23Z",
+            "conclusion": "success",
+            "name": "Checkout exact F5 candidate",
+            "number": 2,
+            "startedAt": "2026-11-26T06:12:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:12:24Z",
+            "conclusion": "success",
+            "name": "Check Git tree and protect existing medical contracts",
+            "number": 3,
+            "startedAt": "2026-11-26T06:12:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:12:24Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 4,
+            "startedAt": "2026-11-26T06:12:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:12:27Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 5,
+            "startedAt": "2026-11-26T06:12:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:13:08Z",
+            "conclusion": "success",
+            "name": "Install pinned synthetic test dependencies",
+            "number": 6,
+            "startedAt": "2026-11-26T06:12:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:46Z",
+            "conclusion": "success",
+            "name": "Run F5 and affected browser regressions",
+            "number": 7,
+            "startedAt": "2026-11-26T06:13:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:47Z",
+            "conclusion": "success",
+            "name": "Retain sanitized machine receipts",
+            "number": 8,
+            "startedAt": "2026-11-26T06:14:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:48Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 14,
+            "startedAt": "2026-11-26T06:14:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:48Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 15,
+            "startedAt": "2026-11-26T06:14:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:48Z",
+            "conclusion": "success",
+            "name": "Post Checkout exact F5 candidate",
+            "number": 16,
+            "startedAt": "2026-11-26T06:14:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:14:48Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-11-26T06:14:48Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/IskhakovMA/fixes/actions/runs/45766538644/job/139728782237"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45766538644",
+    "workflowName": "Fast Track F5 Chromium",
+    "receiptSHA256": {
+      "F1_REGRESSION.json": "5dfc9ce6082b1f8f8d181d9e8b15099af1438abfb1663419d9e41162c921f96d",
+      "F2_REGRESSION.json": "f7fb3579eba03a71afd0d9b3e677d4e44980deed95ecbd863734b6a3113fe7dc",
+      "F3_REGRESSION.json": "4528ca90a00a92da2bc8fb0c03bc95f99dd7f26798576a0c8011278369784c52",
+      "F4_REGRESSION.json": "5a64a06c1957c15d9c69208a0ac0e1e3465d734b5a8b5eb023088e8f729ea517",
+      "F5_HOSTED.json": "f00833fe8bc9dc3e498391b08c5148022414480b3d51d20c171848579bdca35c",
+      "HISTORY.json": "dc4023e93cedb5fb2f2539b30274f9f1295f985c3e2ef9ac1b0836a38ac263a3",
+      "NOTIFICATIONS_REGRESSION.json": "e107cb490a0ca7cddfb6975713e62a4aacc9940970a4df4bb441cb923fbba0af"
+    }
+  }
+}

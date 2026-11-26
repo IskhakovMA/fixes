@@ -1,0 +1,259 @@
+{
+  "checks": [
+    "real scoped 50+ events, exhaustive two-page IDs, chronology, no-time and second-page Back/Forward + explicit return",
+    "explicit versioned event fact, pending navigation blocked, real schedule and My Day refresh without completed event",
+    "server-generated internal event notifications, fresh exact event/return, one explicit read and server summary",
+    "bounded 410 and repeated 409, old actions removed, keyboard recovery",
+    "actual neutral 404 after authorized reassignment during navigation; inaccessible appointment row no longer visible",
+    "real session revoke returns 401 and clears old schedule actions",
+    "no implicit clinical or read-state mutation, no legacy list, 16 responsive axe states and 12 native zoom states"
+  ],
+  "axe": [
+    {
+      "view": "calendar",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    }
+  ],
+  "nativeZoom": [
+    {
+      "view": "calendar",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "calendar",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "calendar",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "calendar",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "notifications",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "notifications",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320
+    }
+  ],
+  "injectedTransportFaults": [
+    {
+      "scenario": "calendar cursor 410",
+      "attempts": 1
+    },
+    {
+      "scenario": "calendar repeated ordinary 409",
+      "attempts": 2
+    }
+  ],
+  "pageErrors": 0,
+  "unexpectedClinicalWrites": 0,
+  "legacyRegistryRequests": 0,
+  "chromium": "151.0.7922.34",
+  "schedule": {
+    "total": 58,
+    "pageSizes": [
+      50,
+      8
+    ],
+    "uniqueComplete": true,
+    "sortedDatesAndTime": true,
+    "syntheticExplicitNoTime": true
+  },
+  "postCommit": {
+    "absentFromSchedule": true,
+    "absentFromMyDay": true,
+    "pendingWriteStayedOnCard": true,
+    "explicitWrites": 1
+  },
+  "notifications": {
+    "exactEventFocus": true,
+    "openDidNotMarkRead": true,
+    "serverSummaryUpdated": true,
+    "completedEventNoticeAbsent": true,
+    "explicitReadRequests": 1,
+    "sameRouteDrawerVerifiedWithoutNewHistory": true
+  },
+  "candidateSha": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+  "candidateTree": "4df68d538f04f4c62f606fb90a96fe34f7332f4d",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "syntheticPatients": 10,
+  "schemaVersion": 33,
+  "audit": {
+    "matchedExactResponseDigests": 17,
+    "authorizedReads": 48,
+    "authorizedReadManifests": 48,
+    "matchedWriteAudit": 1,
+    "recordedFacts": 1,
+    "matchedAuthorityControlAudit": 1,
+    "allOtherClinicalRowsUnchanged": true,
+    "matchedExplicitNotificationReadAudit": 1,
+    "persistedReadState": 1
+  },
+  "cleanup": {
+    "cleanExit": true,
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}

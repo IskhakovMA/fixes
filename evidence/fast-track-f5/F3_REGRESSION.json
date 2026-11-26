@@ -1,0 +1,243 @@
+{
+  "checks": [
+    "server filter and sort, 52-row total over two pages; Back/Forward and explicit return restore page, context and row focus",
+    "expired cursor performs one bounded restart to first allowed page and retains search, stage and sorting",
+    "double 409 clears old results and counters, stops after one restart and offers focused explicit recovery",
+    "Pulse carries supported stage without pretending overdue analytics equals registry; true scoped object 404; return retains metric and stage",
+    "My Day carries confirmed filters, scope and context through registry and card, then restores original mode",
+    "one explicit versioned UI PATCH updates event, workspace and registry fact, with fresh scoped management KPI",
+    "eight established tabs, no legacy full-list requests or automatic medical writes, 16 responsive axe states and 12 native zoom states"
+  ],
+  "axe": [
+    {
+      "view": "patients",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "width": 320,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "width": 768,
+      "violations": 0,
+      "titleVisible": true
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0,
+      "titleVisible": true
+    }
+  ],
+  "nativeZoom": [
+    {
+      "view": "patients",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "patients",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "patients",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "patients",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "patient",
+      "theme": "light",
+      "percent": 400,
+      "viewport": 320
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "percent": 100,
+      "viewport": 1280
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "percent": 200,
+      "viewport": 640
+    },
+    {
+      "view": "patient",
+      "theme": "dark",
+      "percent": 400,
+      "viewport": 320
+    }
+  ],
+  "injectedTransportFaults": [
+    {
+      "code": "CURSOR_EXPIRED",
+      "cursorAttempts": 1,
+      "freshPageOffset": 0
+    },
+    {
+      "code": "PATIENT_QUERY_CHANGED",
+      "attempts": 2,
+      "staleRowsHidden": true,
+      "retryKeyboard": true
+    }
+  ],
+  "pageErrors": 0,
+  "unexpectedClinicalWrites": 0,
+  "legacyRegistryRequests": 0,
+  "chromium": "151.0.7922.34",
+  "postCommit": {
+    "eventAbsentFromWorkspace": true,
+    "registryCurrentFact": true,
+    "previousKpi": 25,
+    "currentKpi": 24,
+    "explicitWrites": 1,
+    "pendingWriteStayedOnCard": true
+  },
+  "candidateSha": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+  "candidateTree": "4df68d538f04f4c62f606fb90a96fe34f7332f4d",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "syntheticPatients": 61,
+  "schemaVersion": 33,
+  "audit": {
+    "matchedExactResponseDigests": 31,
+    "authorizedReads": 68,
+    "authorizedReadManifests": 68,
+    "matchedWriteAudit": 1,
+    "recordedFacts": 1,
+    "allOtherClinicalRowsUnchanged": true
+  },
+  "cleanup": {
+    "cleanExit": true,
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}
