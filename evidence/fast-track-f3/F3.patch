@@ -1,0 +1,1430 @@
+diff --git a/.github/workflows/fast-track-f3-browser.yml b/.github/workflows/fast-track-f3-browser.yml
+new file mode 100644
+index 0000000000000000000000000000000000000000..044dec326457fe785e888e3d4bfd49197340c560
+--- /dev/null
++++ b/.github/workflows/fast-track-f3-browser.yml
+@@ -0,0 +1,125 @@
++name: Fast Track F3 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f3-registry-stage35]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f3-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F2_SHA: f255c279212a5c1d8e44b22b904238cb4d32381f
++  F2_TREE: b150cdeb41d0c104436e621a8234bb7af9d0bcc8
++
++jobs:
++  f3-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 20
++    steps:
++      - name: Checkout exact F3 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F2_SHA^{tree}")" = "$F2_TREE"
++          test "$(git rev-list --parents -n1 HEAD)" = "$GITHUB_SHA $F2_SHA"
++          git diff --exit-code "$F2_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml .github/workflows/fast-track-f2-browser.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f3-browser.yml|backend/tests/test_frontend_csp.py|index.html|static/app.js|static/f1-doctor.js|static/f1-management.js|static/styles.css|tools/tests/fast_track_f3/*) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F2_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F3_CANDIDATE=$GITHUB_SHA"
++          echo "F3_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F3 and affected browser regressions
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          export F3_SCREENSHOTS=1
++          mkdir -m 700 "$RUNNER_TEMP/f3-public"
++          for suite in fast_track_f3 fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F3_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[123]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] in {"fast_track_f2", "fast_track_f3"}:
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f3-public/$suite.json"
++          done
++          for scenario in navigation unknownDenial; do
++            out="$RUNNER_TEMP/history-$scenario"
++            if ! HISTORY_SCENARIO="$scenario" python -B tools/tests/wp_i_card/run.py --suite history --out "$out"; then
++              if test -f "$out/card.log"; then
++                grep -Eo 'history\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$out/history-results.json" "$scenario" "$RUNNER_TEMP/f3-public/history-$scenario.json" <<'PYTHON'
++          import json
++          from pathlib import Path
++          import sys
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          expected = {"navigation": 6, "unknownDenial": 1}[sys.argv[2]]
++          assert result["syntheticOnly"] is True and result["realBackend"] is True
++          assert result["phase"] == "complete" and len(result["check"]) == expected
++          Path(sys.argv[3]).write_text(json.dumps({"scenario": sys.argv[2], "groups": expected, "result": "PASS"}) + "\n")
++          PYTHON
++          done
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f3-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f3-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index b70e98f8c3d47470164285eb81044e3f9744e37d..0cde3c052808b3ac1ea59d8c1f1661b6c7386355 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,11 +138,11 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f2"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f3"></script>' in body
+     for path in F1_SCRIPTS:
+-        source = f'<script src="/static/{path.name}?v=fast-track-f2"></script>'
++        source = f'<script src="/static/{path.name}?v=fast-track-f3"></script>'
+         assert source in body
+         assert body.index(source) < body.index('<script src="/static/app.js')
+     # ни одного <style> и ни одного inline-скрипта в документе
+diff --git a/index.html b/index.html
+index d28d1f006b6c56c8cb99ef4299ad32b2c7fccfbd..26493834d22763ffa804ddbfb5e85326b3573ffb 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3">
+ </head>
+ <body>
+ 
+@@ -196,6 +196,7 @@
+                         <p class="pagehead__subtitle">Пациенты в вашей области доступа</p>
+                     </div>
+                     <div class="pagehead__actions">
++                        <button type="button" class="btn btn--ghost" id="backToRegistrySource" data-route-click hidden></button>
+                         <!-- На узком экране импорт и экспорт прячутся под одну кнопку «Данные» -->
+                         <button type="button" class="btn btn--ghost only-wide" id="triggerImportBtn">
+                             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+@@ -210,11 +211,16 @@
+                     </div>
+                 </div>
+ 
++                <div id="patientRegistrySummary">
++                    <p class="registry-summary-note">Показатели по всей доступной выборке, без фильтров</p>
++                    <div class="stats registry-stats" id="statsRow"></div>
++                </div>
++
+                 <div class="toolbar registry-toolbar">
+                     <div class="search">
+                         <svg class="icon search__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                         <label class="visually-hidden" for="searchInput">Поиск пациентов</label>
+-                        <input class="input search__input" type="search" id="searchInput" placeholder="Поиск по ФИО, полису ОМС, диагнозу, врачу…">
++                        <input class="input search__input" type="search" id="searchInput" maxlength="200" placeholder="Поиск по ФИО, полису ОМС, диагнозу, врачу…">
+                     </div>
+                     <button type="button" class="btn btn--ghost only-narrow" id="openFiltersSheetBtn" aria-expanded="false">
+                         <span id="filtersBtnLabel">Фильтры</span>
+@@ -228,6 +234,10 @@
+                                 <div class="registry-filter"><label for="filterDeadline">Срок</label><select class="select" id="filterDeadline"></select></div>
+                                 <div class="registry-filter"><label for="filterAttention">Отметка внимания</label><select class="select" id="filterAttention"></select></div>
+                                 <div class="registry-filter"><label for="filterAttentionReason">Причина внимания</label><select class="select" id="filterAttentionReason"></select></div>
++                                <label class="checkbox registry-inclusion" for="filterIncludeTerminal">
++                                    <input type="checkbox" id="filterIncludeTerminal">
++                                    <span>Показывать завершенные маршруты в общем списке</span>
++                                </label>
+                             </div>
+                         </details>
+                         <div class="registry-filter"><label for="sortOrderSelect">Сортировка</label><select class="select" id="sortOrderSelect"></select></div>
+@@ -250,9 +260,6 @@
+                 </div>
+ 
+                 <div id="patientRegistryResults">
+-                <p class="registry-summary-note">Показатели по всей доступной выборке, без фильтров</p>
+-                <div class="stats registry-stats" id="statsRow"></div>
+-
+                 <div class="panel registry-panel">
+                     <div class="table-wrap">
+                         <table class="table registry-table" id="patientsTable">
+@@ -1905,8 +1912,8 @@
+ <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+ 
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+-<script src="/static/f1-management.js?v=fast-track-f2"></script>
+-<script src="/static/f1-doctor.js?v=fast-track-f2"></script>
+-<script src="/static/app.js?v=fast-track-f2"></script>
++<script src="/static/f1-management.js?v=fast-track-f3"></script>
++<script src="/static/f1-doctor.js?v=fast-track-f3"></script>
++<script src="/static/app.js?v=fast-track-f3"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index 9ee74820484f61451ed7e221fbc686b29a68ba2a..e620a7f6bedb0457ac5b4f44608ece609a8881c6 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -494,6 +494,8 @@ const app = {
+     attentionFilter: null,
+     attentionReasonFilter: null,
+     sortOrder: 'updated-newest',
++    includeTerminal: false,
++    registrySource: null,
+     attentionModalPatientId: null,
+     attentionCloseTarget: null,
+     quality: {
+@@ -2030,6 +2032,7 @@ const app = {
+     patientPageQuery(cursor = null, extra = {}) {
+         const p = new URLSearchParams({view: 'page', limit: '50', sort: this.sortOrder || 'updated-newest', ...extra});
+         for (const [key, value] of Object.entries({q: this.searchQuery, stage: this.stageFilter, head: this.headFilter, deadline: this.deadlineFilter, attention: this.attentionFilter, attention_reason: this.attentionReasonFilter})) if (value) p.set(key, value);
++        if (this.includeTerminal && !p.has('include_terminal')) p.set('include_terminal', 'true');
+         if (cursor) p.set('cursor', cursor);
+         return p;
+     },
+@@ -2041,18 +2044,22 @@ const app = {
+         $('patientListLoading').hidden = !busy;
+         $('patientListError').hidden = state !== 'error';
+         $('patientListErrorText').textContent = message;
+-        $('patientRegistryResults').hidden = state === 'error';
++        $('patientRegistrySummary').hidden = state !== 'ready';
++        $('patientRegistryResults').hidden = state !== 'ready';
+         $('patientRegistryResults').inert = busy || state === 'error';
+-        if (state === 'error') $('patientRegistryCount').textContent = '—';
+-        else if (state === 'ready' && this.patientPage) $('patientRegistryCount').textContent = String(this.patientPage.summary.total);
++        if (state !== 'ready') $('patientRegistryCount').textContent = '—';
++        else if (this.patientPage) $('patientRegistryCount').textContent = String(this.patientPage.summary.total);
+     },
+ 
+     async loadPatients(cursor = null, restarted = false) {
+         const version = this.beginRead('patients');
++        const query = String(this.patientPageQuery());
+         this.setPatientListState('loading');
+         this.renderPatientFilterChips();
+         try {
+-            const path = '/api/patients?' + this.patientPageQuery(cursor);
++            const params = new URLSearchParams(query);
++            if (cursor) params.set('cursor', cursor);
++            const path = '/api/patients?' + params;
+             let data;
+             try { data = await apiGetJson(path); }
+             catch (error) {
+@@ -2060,14 +2067,18 @@ const app = {
+                 if (!restarted && [409, 410].includes(error.status) && ['PATIENT_QUERY_CHANGED', 'CURSOR_EXPIRED'].includes(error.data?.code)) {
+                     ui.toast('Список изменился. Выдача обновлена; фильтры, выбранная карточка и черновики сохранены.', 'warning');
+                     // Exactly one controlled restart, never a retry loop.
+-                    data = await apiGetJson('/api/patients?' + this.patientPageQuery());
+-                    await this.reconcileSelectedDetails(version);
++                    data = await apiGetJson('/api/patients?' + query);
++                    if (await this.reconcileSelectedDetails(version)) {
++                        throw Object.assign(new Error('Доступ к карточке изменился. Обновите список.'),
++                            {status: 409, data: {code: 'PATIENT_QUERY_CHANGED'}});
++                    }
+                     if (this.isCurrentRead('patients', version)) { this.pageTrail = [null]; this.pageIndex = 0; }
+                 } else throw error;
+             }
+-            if (!this.isCurrentRead('patients', version)) return;
++            if (!this.isCurrentRead('patients', version) || query !== String(this.patientPageQuery())) return;
+             if (!cursor) { this.pageTrail = [null]; this.pageIndex = 0; }
+             this.patientRows = data.patients; this.patientPage = data; this.patientListDirty=false;
++            this.releasedRegistryQuery = query;
+             this.renderPatientPagination();
+             this.setPatientListState('ready');
+         } catch (error) {
+@@ -2084,8 +2095,9 @@ const app = {
+         const allowed=new Set(fresh.map(p=>p.id));
+         this.sessionFieldDrafts=this.collectSessionFieldDrafts(this.user,fresh,allowed);
+         this.patientDetails=new Map(fresh.map(p=>[p.id,p]));
+-        if (this.currentPatientId && !allowed.has(this.currentPatientId)) this.forgetDeniedPatient(this.currentPatientId);
++        if (this.currentPatientId && !allowed.has(this.currentPatientId)) this.forgetDeniedPatient(this.currentPatientId, {refreshRegistry: false});
+         this.renderSessionFieldDrafts();
++        return ids.some(id => !allowed.has(id));
+     },
+ 
+     async changePatientPage(direction) {
+@@ -2261,7 +2273,13 @@ const app = {
+         $('sidebarScrim').hidden = true;
+         $('sidebarToggle').setAttribute('aria-expanded', 'false');
+ 
+-        if (view === 'patients') {this.renderPatients();if(this.patientListDirty)this.reloadPatientsAndRender();}
++        if (view === 'patients') {
++            const source = $('backToRegistrySource');
++            source.hidden = !this.registrySource || !this.navigationVisibility()[this.registrySource];
++            source.textContent = source.hidden ? '' : this.registrySource === 'pulse' ? 'К пульсу клиники' : 'К моему дню';
++            this.renderPatients();
++            if (this.patientListDirty) void this.reloadPatientsAndRender(this.pageTrail[this.pageIndex]);
++        }
+         if (view === 'consilium') {
+             if (previousView !== 'consilium' && !this.can('consiliumChair')) {
+                 this.consilium.loaded = false;
+@@ -2290,6 +2308,28 @@ const app = {
+         return browserNavigation.navigate({screen});
+     },
+ 
++    registrySettings() {
++        const {searchQuery, stageFilter, headFilter, deadlineFilter, attentionFilter, attentionReasonFilter,
++            sortOrder, includeTerminal} = this;
++        return {searchQuery, stageFilter, headFilter, deadlineFilter, attentionFilter, attentionReasonFilter,
++            sortOrder, includeTerminal};
++    },
++
++    registryContext(patientId = null) {
++        const current = this.patientListState === 'ready' && this.releasedRegistryQuery === String(this.patientPageQuery());
++        return {settings: this.registrySettings(), source: this.registrySource, patientId,
++            index: current ? this.pageIndex : 0, trail: current ? this.pageTrail.slice(0, this.pageIndex + 1) : [null]};
++    },
++
++    openWorkingRegistry(source, filters, allowed) {
++        if (source !== this.currentView || !['pulse', 'myDay'].includes(source)) return false;
++        return browserNavigation.navigate({screen: 'patients', registry: {source, index: 0, trail: [null], settings: {
++            searchQuery: '', stageFilter: filters.stage || null, headFilter: null, deadlineFilter: filters.deadline || null,
++            attentionFilter: filters.attention || null, attentionReasonFilter: null,
++            sortOrder: filters.sort || 'updated-newest', includeTerminal: filters.include_terminal === 'true',
++        }}}, {allowed});
++    },
++
+     openPatient(id, tab = 'overview', options) {
+         return browserNavigation.navigate({screen: 'patient', tab, patientId: id}, options);
+     },
+@@ -2402,7 +2442,7 @@ const app = {
+         }
+         const heads = await apiFetch('/api/patients/head-options', {reconcileUser:user});
+         if(!Array.isArray(page.patients)||!page.page||!page.summary||!Array.isArray(heads.heads))throw new Error('Не удалось проверить структуру рабочего пространства. Повторите вход.');
+-        const listSettings = Object.fromEntries(['searchQuery','stageFilter','headFilter','deadlineFilter','attentionFilter','attentionReasonFilter','sortOrder'].map(k=>[k,this[k]]));
++        const listSettings = this.registrySettings();
+         const doctors = user.permissions.createPatients && !['doctor', 'consilium_chair'].includes(user.roleId)
+             ? (await apiFetch('/api/users/doctors', {reconcileUser: user})).doctors || [] : [];
+         const final = await this.serverIdentity();
+@@ -2481,7 +2521,7 @@ const app = {
+         this.doctors = doctors;
+         this.applyRoleUI();
+         this.fillStaticSelects();
+-        for(const [id,value] of Object.entries({searchInput:this.searchQuery,filterStage:this.stageFilter,filterHead:this.headFilter,filterDeadline:this.deadlineFilter,filterAttention:this.attentionFilter,filterAttentionReason:this.attentionReasonFilter,sortOrderSelect:this.sortOrder}))$(id).value=value||'';
++        this.syncRegistryControls();
+         this.showView('patients');
+         this.appReady = true;
+         this.internalNotifications.pollTimer = window.setInterval(() => {
+@@ -3220,7 +3260,7 @@ const app = {
+ 
+     /** Счётчик у мобильной кнопки «Фильтры»: сколько условий сейчас активно. */
+     activeFilterCount() {
+-        return [this.stageFilter, this.headFilter, this.deadlineFilter, this.attentionFilter, this.attentionReasonFilter].filter(Boolean).length;
++        return [this.stageFilter, this.headFilter, this.deadlineFilter, this.attentionFilter, this.attentionReasonFilter, this.includeTerminal].filter(Boolean).length;
+     },
+ 
+     updateFiltersButton() {
+@@ -3262,22 +3302,38 @@ const app = {
+         $('filterDeadline').value = '';
+         $('filterAttention').value = '';
+         $('filterAttentionReason').value = '';
++        this.includeTerminal = $('filterIncludeTerminal').checked = false;
+         this.reloadPatientsAndRender();
+     },
+ 
+-    async reloadPatientsAndRender() {
++    syncRegistryControls() {
++        for (const [id, value] of Object.entries({searchInput: this.searchQuery, filterStage: this.stageFilter,
++            filterHead: this.headFilter, filterDeadline: this.deadlineFilter, filterAttention: this.attentionFilter,
++            filterAttentionReason: this.attentionReasonFilter, sortOrderSelect: this.sortOrder})) $(id).value = value || '';
++        $('filterIncludeTerminal').checked = this.includeTerminal;
++    },
++
++    async reloadPatientsAndRender(cursor = null) {
++        const request = this.loadPatients(cursor);
++        const read = this.readVersions.patients;
+         try {
+-            await this.loadPatients();
++            await request;
++            if (!this.isCurrentRead('patients', read)) return;
+             this.fillStaticSelects();
+-            $('filterStage').value = this.stageFilter || '';
+-            $('filterHead').value = this.headFilter || '';
+-            $('filterDeadline').value = this.deadlineFilter || '';
+-            $('filterAttention').value = this.attentionFilter || '';
+-            $('filterAttentionReason').value = this.attentionReasonFilter || '';
+-            $('sortOrderSelect').value = this.sortOrder;
++            this.syncRegistryControls();
+             this.renderPatients();
++            const restore = this.registryFocus;
++            if (restore?.read === read) {
++                this.registryFocus = null;
++                if (this.currentView === 'patients' && document.activeElement === restore.anchor && !ui.topModal()) {
++                    const button = [...$('patientsBody').querySelectorAll('[data-registry-patient]')]
++                        .find(node => node.dataset.registryPatient === restore.patientId);
++                    button?.focus();
++                }
++            }
+         } catch (e) {
+-            ui.toast(`Не удалось обновить список пациентов: ${e.message}`, 'warning');
++            if (this.registryFocus?.read === read) this.registryFocus = null;
++            if (this.isCurrentRead('patients', read) && !e.obsolete) ui.toast(`Не удалось обновить список пациентов: ${e.message}`, 'warning');
+         }
+     },
+ 
+@@ -3316,7 +3372,7 @@ const app = {
+             on:{click:()=>{ const field=$(chip.id);field.value='';field.dispatchEvent(new Event(chip.event,{bubbles:true})); }},
+         }))));
+         $('resetPatientFiltersBtn').classList.toggle('is-hidden', !this.activeFilterCount());
+-        const count=[this.deadlineFilter,this.attentionFilter,this.attentionReasonFilter].filter(Boolean).length;
++        const count=[this.deadlineFilter,this.attentionFilter,this.attentionReasonFilter,this.includeTerminal].filter(Boolean).length;
+         $('registryMoreFilterCount').textContent = count ? `· ${count}` : '';
+     },
+ 
+@@ -3361,7 +3417,7 @@ const app = {
+             }, [
+                 el('td', {}, el('div', { class: 'person' }, [
+                     el('div', {}, [
+-                        el('button', {type:'button', class:'person__name patient-open', text:p.name, 'aria-label':`Открыть карточку: ${p.name}`, on:{click:event=>{event.stopPropagation();this.openPatient(p.id);}}}),
++                        el('button', {type:'button', class:'person__name patient-open', dataset:{registryPatient:p.id}, text:p.name, 'aria-label':`Открыть карточку: ${p.name}`, on:{click:event=>{event.stopPropagation();this.openPatient(p.id);}}}),
+                         el('div', { class: 'person__meta', text: `${p.age} лет · ${p.diagnosis || 'диагноз не указан'}` }),
+                         p.priority !== 'normal' ? el('span', {class:'registry-priority', text:p.priority === 'urgent' ? 'Срочно' : 'Высокий приоритет'}) : null,
+                         attentionBadge,
+@@ -3375,7 +3431,13 @@ const app = {
+                         el('span', { class: 'progress__value', text: `${percent}%` }),
+                     ]),
+                 ]),
+-                el('td', { class: 'cell-deadline' }, el('span', {class:'registry-deadline', text:p.currentFact ? 'Факт отмечен' : p.deadlineDays == null ? 'Дата не назначена' : p.deadlineDays < 0 ? `Плановая дата прошла · ${Math.abs(p.deadlineDays)} дн.` : p.deadlineDays === 0 ? 'Сегодня' : `Через ${p.deadlineDays} дн.`})),
++                el('td', { class: 'cell-deadline' }, el('span', {
++                    class: p.currentFact || p.deadlineDays == null ? 'registry-deadline'
++                        : `registry-deadline chip chip--${p.deadlineDays < 0 ? 'danger' : p.deadlineDays <= 3 ? 'warning' : 'good'}`,
++                    text: p.currentFact ? 'Факт отмечен' : p.deadlineDays == null ? 'Дата не назначена'
++                        : p.deadlineDays < 0 ? `Плановая дата прошла · ${Math.abs(p.deadlineDays)} дн.`
++                        : p.deadlineDays === 0 ? 'Сегодня' : `Через ${p.deadlineDays} дн.`,
++                })),
+                 el('td', { class: 'cell-when' }, [
+                     el('div', { class: 'cell-when__time', text: this.formatDateTime(p.updatedAt || p.arrival) }),
+                     activity ? el('div', { class: 'cell-when__what', text: activity }) : null,
+@@ -3447,6 +3509,10 @@ const app = {
+     renderPatientSide(p) {
+         const percent = this.stageProgressPercent(p.stage);
+         const nextNode = this.buildTimelineNodes(p).find(n => n.status === 'future' && n.isNext);
++        const occurrence = p.history?.at(-1);
++        const planned = occurrence?.stage === p.stage ? (occurrence.events || [])
++            .filter(event => event.date && !event.actualDate)
++            .sort((left, right) => (left.date + (left.time || '')).localeCompare(right.date + (right.time || '')))[0] : null;
+ 
+         $('patientSide').replaceChildren(frag([
+             el('div', { class: 'pcard' }, [
+@@ -3466,6 +3532,9 @@ const app = {
+                 el('div', { class: 'pcard__block' }, [
+                     el('div', { class: 'pcard__label', text: 'Этап лечения' }),
+                     el('div', { class: 'pcard__value', text: this.getCurrentStageLabel(p) }),
++                    el('div', { class: 'pcard__sub', text: planned
++                        ? 'Плановая дата этапа: ' + planned.date.split('-').reverse().join('.') + (planned.time ? ' · ' + planned.time : '')
++                        : 'Плановая дата этапа не указана' }),
+                     el('div', { class: 'progress' }, [
+                         el('div', { class: 'progress__track' },
+                             el('div', { class: `progress__bar ${this.stageProgressClass(p.stage)} ${this.stageToneClass(p.stage)}` })),
+@@ -7212,7 +7281,7 @@ const app = {
+         }
+     },
+ 
+-    forgetDeniedPatient(patientId) {
++    forgetDeniedPatient(patientId, {refreshRegistry = true} = {}) {
+         browserNavigation.forget(patientId);
+         // Object access can change without a role/access-context change.
+         this.patientDetails.delete(patientId);
+@@ -7222,6 +7291,14 @@ const app = {
+         this.patientRows = this.patientRows.filter(patient => patient.id !== patientId);
+         this.patientListDirty = true;
+         this.renderSessionFieldDrafts();
++        if (this.currentView === 'patients') {
++            if (this.currentPatientId === patientId) this.clearPatientNavigationView();
++            this.patientRows = [];
++            $('patientsBody').replaceChildren();
++            this.patientPage = null;
++            if (refreshRegistry) void this.reloadPatientsAndRender(this.pageTrail[this.pageIndex]);
++            return;
++        }
+         // A row can be denied after returning from its previous card. Clear the
+         // hidden card, then let the active workspace refresh its own selection.
+         if (this.currentPatientId === patientId && ['myDay', 'pulse'].includes(this.currentView)) {
+@@ -11693,7 +11770,11 @@ const app = {
+         for (const item of document.querySelectorAll('.nav__item')) {
+             item.addEventListener('click', () => this.navigateView(item.dataset.view));
+         }
+-        on('backToList', 'click', () => this.navigateView('patients'));
++        on('backToList', 'click', () => browserNavigation.navigate({screen: 'patients',
++            registry: browserNavigation.committed?.route.registryReturn}));
++        on('backToRegistrySource', 'click', () => {
++            if (this.registrySource && this.navigationVisibility()[this.registrySource]) this.navigateView(this.registrySource);
++        });
+         on('backToF1', 'click', () => {
+             if (this.f1CardOrigin) this.navigateView(this.f1CardOrigin);
+         });
+@@ -11810,6 +11891,8 @@ const app = {
+         on('searchInput', 'input', (event) => {
+             this.searchQuery = event.target.value;
+             clearTimeout(this.patientSearchTimer);
++            this.beginRead('patients');
++            this.setPatientListState('loading');
+             this.patientSearchTimer = setTimeout(() => this.reloadPatientsAndRender(), this.searchQuery ? 300 : 0);
+         });
+         on('filterStage', 'change', (event) => {
+@@ -11833,6 +11916,10 @@ const app = {
+             if (this.attentionReasonFilter && !this.attentionFilter) this.attentionFilter = 'active';
+             this.reloadPatientsAndRender();
+         });
++        on('filterIncludeTerminal', 'change', event => {
++            this.includeTerminal = event.target.checked;
++            this.reloadPatientsAndRender();
++        });
+         on('sortOrderSelect', 'change', (event) => {
+             this.sortOrder = event.target.value;
+             this.reloadPatientsAndRender();
+@@ -12450,6 +12537,9 @@ const browserNavigation = {
+             const origin = sourceView === 'patient' && sourcePatient === route.patientId ? app.f1CardOrigin : sourceView;
+             if (origin === 'pulse' || origin === 'myDay') route = {...route, f1Source: origin};
+             if (origin === 'myDay' && historyAction?.kind === 'day-event') route = {...route, historyAction};
++            const registryReturn = sourceView === 'patients' ? app.registryContext(route.patientId)
++                : sourceView === 'patient' && sourcePatient === route.patientId ? this.committed?.route.registryReturn : null;
++            if (registryReturn) route = {...route, registryReturn};
+         }
+         const sameIntent = () => generation === this.generation && epoch === (app.sessionEpoch || 0)
+             && user === app.user?.id && app.accessSignature(app.user) === access
+@@ -12499,6 +12589,14 @@ const browserNavigation = {
+                 }
+                 focus = () => f1Doctor.focusAction(route.historyAction);
+             }
++            if (sourceView === 'patients' && this.committed?.route.screen === 'patients') {
++                const registry = app.registryContext(route.patientId);
++                this.committed.route.registry = registry;
++                if (!entry && route.screen === 'patient') route = {...route, registryReturn: registry};
++                clearTimeout(app.patientSearchTimer);
++                app.pageLoading = false;
++                app.beginRead('patients');
++            }
+             this.render(route, patient, focus, replace);
+             if (entry) this.committed = entry;
+             else if (replace) this.reset(route);
+@@ -12547,6 +12645,12 @@ const browserNavigation = {
+                 app.patientRows = [];
+                 app.patientPage = null;
+                 app.patientListDirty = true;
++                const registry = clearPatient ? null : route.registry;
++                app.registrySource = registry?.source || null;
++                app.pageTrail = registry?.trail.slice() || [null];
++                app.pageIndex = registry?.index || 0;
++                if (registry) Object.assign(app, registry.settings);
++                app.syncRegistryControls();
+                 $('patientRegistryCount').textContent = '—';
+                 app.setPatientListState('loading');
+             }
+@@ -12556,6 +12660,9 @@ const browserNavigation = {
+         if (target) {
+             if (!target.matches('button, input, select, textarea, a[href], [tabindex]')) target.tabIndex = -1;
+             target.focus({preventScroll: true});
++            if (route.screen === 'patients' && route.registry?.patientId && !clearPatient) {
++                app.registryFocus = {anchor: target, patientId: route.registry.patientId, read: app.readVersions.patients};
++            }
+         }
+     },
+ };
+diff --git a/static/f1-doctor.js b/static/f1-doctor.js
+index 5ec1e5857f47d5dd30769f023c945fd2527e814c..016e270828307a51ea322b2f9a309c644f0194c5 100644
+--- a/static/f1-doctor.js
++++ b/static/f1-doctor.js
+@@ -320,9 +320,19 @@ const f1Doctor = (() => {
+             state.mode = key;
+             show();
+         }, { 'data-f1-doctor-mode': key }));
++        const registry = button('Мои пациенты в реестре', () => {
++            const {mode, deadline} = state;
++            const current = () => registry.isConnected && permitted(app) && app.f1Doctor === state &&
++                state.mode === mode && state.deadline === deadline;
++            if (!current()) return;
++            void app.openWorkingRegistry('myDay', {
++                deadline: mode === 'patients' ? deadline : '',
++                sort: 'name', include_terminal: 'true',
++            }, current);
++        }, { id: 'f3MyDayRegistry' });
+         host.replaceChildren(
+             el('div', { class: 'f1-actions', role: 'group', 'aria-label': 'Разделы моего дня' }, controls),
+-            heading, detail, select, body,
++            heading, detail, el('div', {class: 'f1-actions'}, [select, registry]), body,
+         );
+ 
+         function show(message = '') {
+diff --git a/static/f1-management.js b/static/f1-management.js
+index 1d755a0e9b4767c0f099d8fb902df2b4ae18929c..db7b638432516c5bb131f3ad9163518952e7935c 100644
+--- a/static/f1-management.js
++++ b/static/f1-management.js
+@@ -352,9 +352,24 @@ const f1Management = (() => {
+                 void loadDetails(app, state, true);
+             }},
+         });
++        const attention = metric.type === 'attention_patients';
++        const exactFilter = attention || metric.type === 'patients';
++        const stage = state.stage;
++        const registry = el('button', {
++            id: 'f3PulseRegistry', type: 'button', class: 'btn btn--ghost btn--sm',
++            text: attention ? 'Пациенты с отметкой внимания в реестре' : stage ? 'Реестр по выбранному этапу' : 'Открыть общий реестр',
++            on: {click: () => {
++                if (detailCurrent()) void app.openWorkingRegistry('pulse', {
++                    stage, attention: attention ? 'active' : '', include_terminal: 'true',
++                }, detailCurrent);
++            }},
++        });
+         state.nodes.details.replaceChildren(
+             content.length ? el('p', {class: 'muted f1-pulse-result', role: 'status', text: summary + ' · ' + (metric.detailUnit || metric.unit)}) :
+                 message(data.total ? 'На этой странице записей нет.' : 'По выбранным условиям нет доступных записей.'),
++            el('div', {class: 'f1-actions'}, [registry, !exactFilter ? el('span', {
++                class: 'f1-description', text: stage ? 'Все доступные пациенты этого этапа.' : 'Все доступные пациенты.',
++            }) : null]),
+             content.length ? el('ul', {class: 'f1-list f1-pulse-list'}, content) : null,
+             data.offset > 0 || end < data.total ? el('div', {class: 'f1-actions'}, [
+                 data.offset > 0 ? action('Предыдущая страница', Math.max(0, data.offset - pageSize)) : null,
+diff --git a/static/styles.css b/static/styles.css
+index 1e26763912489a44d48761eddd45a3b3bbc6724f..8e5dd4b9cf94fd84eea5663fb579f8a40bb0956c 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -2947,11 +2947,11 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ @media (max-width:375px) { .topbar__brand { max-width:5rem; } }
+ @media print { .skip-link { display:none; } }
+ 
+-/* WP-I I-2: registry presentation. Querying and authorization stay server-side. */
++/* Stage 3.5 summary strip and responsive patient rows. */
+ .registry .pagehead { margin-bottom:var(--sp-5); }
+ .registry__count { margin-left:var(--sp-3); color:var(--text-2); font-size:.7em; font-weight:400; }
+ .registry-summary-note { color:var(--text-3); font-size:var(--text-sm); margin-bottom:var(--sp-2); }
+-.registry-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border-block:1px solid var(--border); margin-bottom:var(--sp-5); }
++.registry-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); margin-bottom:var(--sp-5); }
+ .registry-stats .stat { background:transparent; border:0; border-radius:0; padding:var(--sp-3) var(--sp-4); min-width:0; }
+ .registry-stats .stat + .stat { border-left:1px solid var(--border); }
+ .registry-stats .stat__value { font-size:var(--text-xl); margin-top:var(--sp-1); }
+@@ -2962,6 +2962,8 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .registry-filter label { font-size:var(--text-xs); color:var(--text-2); }
+ .registry-toolbar .registry-filter { flex:0 1 160px; }
+ .registry-toolbar .select { min-width:0; width:100%; }
++.registry-inclusion { padding-block:var(--sp-1); color:var(--text); font-size:var(--text-md); }
++#backToRegistrySource[hidden] { display:none; }
+ .registry-more { position:relative; flex:none; }
+ .registry-more summary { min-height:40px; display:flex; align-items:center; gap:var(--sp-2); padding:0 var(--sp-3); border:1px solid var(--border-field); border-radius:var(--r-md); background:var(--surface); color:var(--text); cursor:pointer; list-style:none; }
+ .registry-more summary::after { content:'⌄'; }
+@@ -2974,23 +2976,33 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .registry-status { color:var(--text-2); padding:var(--sp-3) 0; }
+ .registry-error { margin-bottom:var(--sp-4); }
+ .registry-error p { margin-bottom:var(--sp-3); }
+-.registry-panel { border-radius:var(--r-md); }
+-.registry-table td { padding:var(--sp-3) var(--sp-4); vertical-align:top; }
+-.registry-table .person__name { font-weight:500; }
++.registry-panel { border-radius:var(--r-lg); }
++.registry-table td { padding:10px var(--sp-4); vertical-align:middle; }
++.registry-table tr:focus-within td { background:var(--surface-2); }
++.registry-table .person__name { font-weight:600; overflow-wrap:anywhere; }
++.registry-table .patient-open:hover { text-decoration:underline; text-underline-offset:2px; }
++.registry-table .patient-open,
++.registry #patientPageStatus { scroll-margin-block-start:calc(var(--topbar-h) + var(--sp-3)); }
+ .registry-table .cell-stage { min-width:150px; }
+ .registry-table .progress { gap:var(--sp-2); max-width:150px; }
+ .registry-table .progress__track { height:3px; }
+-.registry-table .cell-head { max-width:250px; }
++.registry-table .cell-head { max-width:250px; overflow-wrap:anywhere; }
+ .registry-table .cell-head__content { align-items:start; }
+ .registry-doctor { font-size:var(--text-sm); }
+-.registry-deadline { font-size:var(--text-sm); color:var(--text-2); }
++.registry-deadline { font-size:var(--text-sm); }
++.registry-deadline:not(.chip) { color:var(--text-2); }
++.registry-table .registry-deadline.chip { padding:2px 6px; }
+ .registry-table .cell-when { white-space:normal; }
+ .registry-table .patient-attention-badge { margin-top:var(--sp-1); padding:2px 6px; font-size:var(--text-xs); }
+ .registry .pagination { border-top:1px solid var(--border); }
+ @media (max-width:1100px) and (min-width:861px) { .registry-toolbar .search { flex-basis:100%; } }
+ @media (max-width:860px) {
+     .registry-table thead { display:none; }
+-    .registry-table .patient-row { padding:var(--sp-4); }
++    .registry-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
++    .registry-stats .stat { padding:var(--sp-3); }
++    .registry-stats .stat:nth-child(3) { border-left:0; }
++    .registry-stats .stat:nth-child(n+3) { border-top:1px solid var(--border); }
++    .registry-table .patient-row { padding:var(--sp-3) var(--sp-4); }
+     .registry-table .cell-head::before { content:none; }
+     .registry-table .cell-stage::before { content:'Этап: '; color:var(--text-3); }
+     .registry-table .cell-deadline::before { content:'Срок: '; color:var(--text-3); }
+@@ -3002,10 +3014,6 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+     .topbar__brand { display:none; }
+     .registry-toolbar { display:flex; align-items:center; }
+     .registry-toolbar .search { flex:1 1 0; }
+-    .registry-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+-    .registry-stats .stat { padding:var(--sp-3); }
+-    .registry-stats .stat:nth-child(3) { border-left:0; }
+-    .registry-stats .stat:nth-child(n+3) { border-top:1px solid var(--border); }
+     .registry-chip { min-height:40px; }
+ }
+ #filtersSheetBody .registry-filter { margin-bottom:var(--sp-3); }
+@@ -3016,7 +3024,7 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .registry-priority { display:inline-block; margin-top:var(--sp-1); margin-right:var(--sp-2); color:var(--warning); font-size:var(--text-xs); font-weight:600; }
+ @media (max-width:860px) {
+     .registry-table td { padding:0; }
+-    .registry-table td + td { margin-top:var(--sp-3); }
++    .registry-table td + td { margin-top:var(--sp-2); }
+     .registry-table .registry-doctor::before { content:'Врач: '; color:var(--text-3); }
+ }
+ 
+@@ -3039,6 +3047,11 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .patient-route .tl-step { position:relative; flex:1 0 115px; border:0; background:transparent; border-radius:0; padding:var(--sp-2); }
+ .patient-route .tl-step::after { content:''; position:absolute; height:2px; background:var(--border-strong); left:calc(50% + 18px); right:calc(-50% + 18px); top:23px; }
+ .patient-route .tl-step:last-child::after { display:none; }
++.patient-route .tl-step--done::after { background:var(--accent); }
++.patient-route .tl-step--current .tl-step__mark { box-shadow:0 0 0 3px var(--accent-soft); }
++.patient-route button.tl-step:focus-visible { outline-offset:-2px; }
++.patient-route .tl-step--current .tl-step__label { font-weight:700; }
++.patient-workspace .crumbs { flex-wrap:wrap; }
+ .patient-route .tl-step.is-selected .tl-step__label { color:var(--accent-text); text-decoration:underline; text-underline-offset:4px; }
+ .patient-route .tl-step__state { font-weight:500; text-transform:none; }
+ .patient-workspace .tabs { flex-wrap:wrap; border:0; border-bottom:1px solid var(--border); border-radius:0; padding:0; gap:var(--sp-2); background:transparent; }
+@@ -3067,7 +3080,7 @@ html[data-theme="light"] .chip--warning { color:#854300; }
+ .patient-workspace .alert--info { color:var(--accent-text); }
+ .patient-workspace .chip--danger { color:#fca5a5; }
+ 
+-html[data-theme="light"] :is(.patient-workspace, .f1-workspace) .chip--danger { color:#b91c1c; }
++html[data-theme="light"] :is(.patient-workspace, .f1-workspace, .registry) .chip--danger { color:#b91c1c; }
+ 
+ /* WP-I I-4: Staff-UX full creation page; original medical controls and IDs. */
+ .create-patient { min-width:0; }
+@@ -3416,8 +3429,7 @@ html[data-theme="light"] #consiliumForm .alert--danger { color:#b91c1c; }
+ .f1-workspace :is(.f1-pulse-result, h2[tabindex="-1"]) {
+     scroll-margin-top: calc(var(--topbar-h) + var(--sp-3));
+ }
+-.f1-workspace .f1-actions > .select,
+-#f1MyDay > .input {
++.f1-workspace .f1-actions > :is(.select, .input) {
+     width: auto;
+     max-width: 100%;
+     min-width: 0;
+diff --git a/tools/tests/fast_track_f3/browser.cjs b/tools/tests/fast_track_f3/browser.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..115e3a36f595785423dab4b8f78e6e7162ed7421
+--- /dev/null
++++ b/tools/tests/fast_track_f3/browser.cjs
+@@ -0,0 +1,515 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const {createHash} = require('node:crypto');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
++
++const fixture = JSON.parse(fs.readFileSync(process.env.F3_FIXTURE, 'utf8'));
++const {origin, users, patients} = fixture;
++assert(fixture.syntheticOnly);
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++const axeSource = fs.readFileSync(process.env.AXE_SOURCE, 'utf8');
++const receipt = {checks: [], axe: [], nativeZoom: [], responseProofs: [], injectedTransportFaults: [],
++    pageErrors: 0, unexpectedClinicalWrites: 0, legacyRegistryRequests: 0};
++const output = path.dirname(process.env.F3_RECEIPT);
++const query = 'Синтетический Реестр F3';
++const registryHead = 'Синтетический заведующий F3';
++const tabs = ['overview', 'notifications', 'data', 'complaints', 'events', 'checklist', 'notes', 'history'];
++let active = 'initialization';
++const clinicalWrites = [];
++
++function reply(page, pathname, matches = () => true, method = 'GET') {
++    return page.waitForResponse(response => {
++        const url = new URL(response.url());
++        return response.request().method() === method && url.pathname === pathname && matches(url.searchParams);
++    });
++}
++
++async function audited(response, kind) {
++    assert.equal(response.status(), 200, kind);
++    const raw = await response.body();
++    receipt.responseProofs.push({kind, sha256: createHash('sha256').update(raw).digest('hex')});
++    return JSON.parse(raw);
++}
++
++async function setup(context) {
++    await context.route('**/*', route => {
++        if (new URL(route.request().url()).origin === origin) return route.continue();
++        return route.abort('blockedbyclient');
++    });
++    const page = await context.newPage();
++    // Ordinary pagination is separated from deliberately concurrent scenarios.
++    // Forward each actual loopback API request once; no retry or response edit.
++    let queue = Promise.resolve();
++    await page.route(origin + '/api/**', route => {
++        const request = queue.then(async () => {
++            const response = await route.fetch();
++            await route.fulfill({response});
++        });
++        queue = request.catch(() => {});
++        return request;
++    });
++    page.setDefaultTimeout(15000);
++    page.on('pageerror', () => { receipt.pageErrors++; });
++    page.on('request', request => {
++        const url = new URL(request.url());
++        if (url.pathname === '/api/patients' && request.method() === 'GET' &&
++            url.searchParams.get('view') !== 'page') receipt.legacyRegistryRequests++;
++        if (url.pathname.startsWith('/api/patients') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method()))
++            clinicalWrites.push({method: request.method(), path: url.pathname, body: request.postDataJSON()});
++    });
++    return page;
++}
++
++async function login(page, role) {
++    await page.goto(origin);
++    await page.locator('#username').fill(users[role]);
++    await page.locator('#password').fill(fixture.password);
++    await page.locator('#loginSubmit').click();
++    await ready(page);
++    assert.equal(await page.evaluate(() => app.user.username), users[role]);
++}
++
++async function ready(page, offset = null) {
++    await page.waitForFunction(offset => app.appReady && !app.sessionExpired && !app.sessionReconciling &&
++        app.currentView === 'patients' && app.patientListState === 'ready' &&
++        (offset === null || app.patientPage.page.offset === offset), offset);
++}
++
++async function keyboard(locator) {
++    await locator.focus();
++    assert(await locator.evaluate(el => el === document.activeElement && !el.disabled));
++    await locator.press('Enter');
++}
++
++async function view(page, key) {
++    await page.locator('[data-view="' + key + '"]').first().click();
++    await page.locator('#view-' + key).waitFor({state: 'visible'});
++}
++
++async function search(page, value) {
++    const read = reply(page, '/api/patients', params => (params.get('q') || '') === value);
++    await page.locator('#searchInput').fill(value);
++    const pageData = await audited(await read, 'registry search');
++    await ready(page, 0);
++    return pageData;
++}
++
++async function select(page, selector, key, value) {
++    const read = reply(page, '/api/patients', params => (params.get(key) || '') === value);
++    await page.locator(selector).selectOption(value);
++    const result = await audited(await read, 'registry filter');
++    await ready(page, 0);
++    return result;
++}
++
++function row(page, name) {
++    return page.locator('#patientsBody .patient-open').filter({hasText: name});
++}
++
++function isCursor(params) { return Boolean(params.get('cursor')); }
++
++async function next(page) {
++    const read = reply(page, '/api/patients', isCursor);
++    await keyboard(page.getByRole('button', {name: 'Следующая страница', exact: true}));
++    const data = await audited(await read, 'registry cursor');
++    await ready(page, 50);
++    assert.equal(data.page.offset, 50);
++    return data;
++}
++
++async function card(page, button, patient, viaKeyboard = true) {
++    const [read] = await Promise.all([reply(page, '/api/patients/' + patient.id),
++        viaKeyboard ? keyboard(button) : button.click()]);
++    const data = await audited(read, 'registry object');
++    assert.equal(data.id, patient.id);
++    await page.locator('#view-patient').waitFor({state: 'visible'});
++    assert.deepEqual(await page.locator('#patientTabs [role=tab]').evaluateAll(nodes =>
++        nodes.map(node => node.id.replace(/^tab-/, ''))), tabs);
++    return data;
++}
++
++async function registryHistory(page) {
++    active = 'search, filter and sort';
++    await select(page, '#sortOrderSelect', 'sort', 'name');
++    await select(page, '#filterStage', 'stage', 'exam');
++    await select(page, '#filterHead', 'head', registryHead);
++    const terminal = page.locator('#filterIncludeTerminal');
++    if (!(await terminal.isVisible())) await page.locator('#registryMoreFilters summary').click();
++    const inclusion = reply(page, '/api/patients', params => params.get('include_terminal') === 'true');
++    await terminal.check();
++    const included = await audited(await inclusion, 'authorized terminal filter');
++    await ready(page, 0);
++    assert.equal(included.page.total, 52);
++    const first = await search(page, query);
++    assert.equal(first.page.total, 52);
++    assert.equal(first.patients.length, 50);
++    assert.equal(await page.locator('#patientsBody tr').count(), 50);
++    assert(first.page.hasNext);
++    const second = await next(page);
++    assert.equal(second.page.total, 52);
++    assert.equal(second.patients.length, 2);
++    const patient = second.patients[0];
++
++    active = 'history and explicit return';
++    const name = patient.name;
++    await card(page, row(page, name), patient);
++    const fromHistory = reply(page, '/api/patients', params => isCursor(params) && params.get('q') === query);
++    await page.goBack();
++    const restored = await audited(await fromHistory, 'registry history cursor');
++    await ready(page, 50);
++    assert.deepEqual(restored.patients.map(item => item.id), second.patients.map(item => item.id));
++    assert.equal(await page.locator('#searchInput').inputValue(), query);
++    assert.equal(await page.locator('#filterStage').inputValue(), 'exam');
++    assert.equal(await page.locator('#sortOrderSelect').inputValue(), 'name');
++    assert.equal(await page.locator('#filterHead').inputValue(), registryHead);
++    assert.equal(await page.locator('#filterIncludeTerminal').isChecked(), true);
++    await row(page, name).waitFor({state: 'visible'});
++    await page.waitForFunction(label => document.activeElement?.textContent.trim() === label, name);
++    const freshCard = reply(page, '/api/patients/' + patient.id);
++    await page.goForward();
++    await audited(await freshCard, 'registry history object');
++    await page.locator('#view-patient').waitFor({state: 'visible'});
++    const explicit = reply(page, '/api/patients', isCursor);
++    await keyboard(page.locator('#backToList'));
++    await audited(await explicit, 'registry explicit return cursor');
++    await ready(page, 50);
++    await page.waitForFunction(label => document.activeElement?.textContent.trim() === label, name);
++    receipt.checks.push('server filter and sort, 52-row total over two pages; Back/Forward and explicit return restore page, context and row focus');
++    return patient;
++}
++
++async function expiredCursor(page, patient) {
++    active = 'controlled cursor expiration';
++    await card(page, row(page, patient.name), patient);
++    let interceptions = 0;
++    const old = async route => {
++        const params = new URL(route.request().url()).searchParams;
++        if (isCursor(params) && ++interceptions === 1) {
++            return route.fulfill({status: 410, json: {code: 'CURSOR_EXPIRED'}});
++        }
++        return route.fallback();
++    };
++    await page.route('**/api/patients?*', old);
++    const first = reply(page, '/api/patients', params => !isCursor(params) && params.get('q') === query);
++    await keyboard(page.locator('#backToList'));
++    const current = await audited(await first, 'registry cursor restart first page');
++    await ready(page, 0);
++    assert.equal(interceptions, 1);
++    assert.equal(current.page.total, 52);
++    assert(!current.patients.some(item => item.id === patient.id));
++    assert.equal(await page.locator('#searchInput').inputValue(), query);
++    assert.equal(await page.locator('#filterStage').inputValue(), 'exam');
++    assert.equal(await page.locator('#sortOrderSelect').inputValue(), 'name');
++    assert.equal(await page.locator('#filterHead').inputValue(), registryHead);
++    assert.equal(await page.locator('#filterIncludeTerminal').isChecked(), true);
++    await page.unroute('**/api/patients?*', old);
++    receipt.injectedTransportFaults.push({code: 'CURSOR_EXPIRED', cursorAttempts: 1, freshPageOffset: 0});
++    receipt.checks.push('expired cursor performs one bounded restart to first allowed page and retains search, stage and sorting');
++}
++
++async function repeatedConflict(page) {
++    active = 'bounded double query conflict';
++    let attempts = 0;
++    const fault = route => {
++        attempts++;
++        return route.fulfill({status: 409, json: {code: 'PATIENT_QUERY_CHANGED'}});
++    };
++    await page.route('**/api/patients?*', fault);
++    await keyboard(page.getByRole('button', {name: 'Следующая страница', exact: true}));
++    await page.locator('#patientListError').waitFor({state: 'visible'});
++    await page.locator('#patientRegistryResults').waitFor({state: 'hidden'});
++    assert.equal(attempts, 2);
++    assert.equal(await page.locator('#patientRegistryCount').textContent(), '—');
++    await page.waitForFunction(() => document.activeElement?.id === 'retryPatientListBtn');
++    await page.unroute('**/api/patients?*', fault);
++    const fresh = reply(page, '/api/patients', params => !isCursor(params) && params.get('q') === query);
++    await keyboard(page.locator('#retryPatientListBtn'));
++    await audited(await fresh, 'registry explicit recovery');
++    await ready(page, 0);
++    receipt.injectedTransportFaults.push({code: 'PATIENT_QUERY_CHANGED', attempts, staleRowsHidden: true, retryKeyboard: true});
++    receipt.checks.push('double 409 clears old results and counters, stops after one restart and offers focused explicit recovery');
++}
++
++async function pulse(page) {
++    active = 'Pulse handoff';
++    await view(page, 'pulse');
++    const stage = page.locator('#f1PulseStage');
++    const readyPulse = reply(page, '/api/analytics/summary', params => params.get('stage') === 'exam');
++    await stage.selectOption('exam');
++    const summary = await audited(await readyPulse, 'pulse stage');
++    const details = reply(page, '/api/analytics/details', params => params.get('type') === 'overdue_events');
++    await keyboard(page.locator('[data-f1-metric=overdue_events]'));
++    await audited(await details, 'pulse overdue');
++    const list = reply(page, '/api/patients', params => params.get('stage') === 'exam' && !params.get('q'));
++    await keyboard(page.locator('#f3PulseRegistry'));
++    const data = await audited(await list, 'pulse authorized registry handoff');
++    await ready(page, 0);
++    assert.equal(data.page.total, 60);
++    assert.equal(await page.locator('#filterStage').inputValue(), 'exam');
++    assert(!data.patients.some(item => item.id === patients.foreign.id));
++    const deny = await page.context().request.get(origin + '/api/patients/' + patients.foreign.id);
++    assert.equal(deny.status(), 404);
++    assert(!(await deny.text()).includes(patients.foreign.name));
++    const restored = reply(page, '/api/analytics/details', params => params.get('stage') === 'exam' &&
++        params.get('type') === 'overdue_events');
++    await keyboard(page.locator('#backToRegistrySource'));
++    await audited(await restored, 'pulse restored details');
++    await page.locator('#view-pulse').waitFor({state: 'visible'});
++    assert.equal(await stage.inputValue(), 'exam');
++    assert.equal(await page.locator('[data-f1-metric=overdue_events]').getAttribute('aria-pressed'), 'true');
++    receipt.checks.push('Pulse carries supported stage without pretending overdue analytics equals registry; true scoped object 404; return retains metric and stage');
++    return summary.cards.find(item => item.code === 'overdue_events').value;
++}
++
++async function doctor(page) {
++    active = 'My Day handoff';
++    await view(page, 'myDay');
++    const filter = page.getByRole('combobox', {name: 'Фильтр по плановому сроку'});
++    const input = reply(page, '/api/patients', params => params.get('deadline') === 'overdue' && params.get('limit') === '20');
++    await filter.selectOption('overdue');
++    const dayPage = await audited(await input, 'doctor deadline');
++    assert(dayPage.page.total > 0);
++    const list = reply(page, '/api/patients', params => params.get('deadline') === 'overdue' &&
++        params.get('limit') === '50' && params.get('sort') === 'name' && params.get('include_terminal') === 'true');
++    await keyboard(page.locator('#f3MyDayRegistry'));
++    const registry = await audited(await list, 'doctor authorized registry handoff');
++    await ready(page, 0);
++    assert.equal(registry.page.total, dayPage.page.total);
++    assert(!registry.patients.some(item => item.id === patients.foreign.id));
++    const patient = registry.patients[0];
++    await card(page, row(page, patient.name), patient);
++    await keyboard(page.locator('#backToList'));
++    await ready(page, 0);
++    const returnRead = reply(page, '/api/patients', params => params.get('deadline') === 'overdue' && params.get('limit') === '20');
++    await keyboard(page.locator('#backToRegistrySource'));
++    await audited(await returnRead, 'doctor restored workspace');
++    await page.locator('#view-myDay').waitFor({state: 'visible'});
++    assert.equal(await filter.inputValue(), 'overdue');
++    assert.equal(await page.locator('[data-f1-doctor-mode=patients]').getAttribute('aria-pressed'), 'true');
++    receipt.checks.push('My Day carries confirmed filters, scope and context through registry and card, then restores original mode');
++}
++
++async function recordFactAndRefresh(page, management, previousKpi) {
++    active = 'explicit event save, verified registry and management refresh';
++    const patient = patients.overdue;
++    const eventId = patient.eventIds.at(-1);
++    const pending = reply(page, '/api/patients/workspace/events');
++    await keyboard(page.locator('[data-f1-doctor-mode=events]'));
++    const entries = await audited(await pending, 'events before explicit save');
++    assert(entries.events.some(row => row.id === eventId));
++    const matchingRows = page.locator('[data-f1-doctor-row=events]').filter({hasText: patient.name});
++    await matchingRows.nth(1).waitFor();
++    const data = await card(page, matchingRows.nth(1).getByRole('button', {name: /^К событию/}), patient);
++    const event = data.history[0].events.find(item => item.id === eventId);
++    assert(event && !event.actualDate);
++    const eventCard = page.locator('#patient-event-' + eventId);
++    await eventCard.getByRole('textbox', {name: 'Фактическая дата', exact: true}).evaluate((node, value) => {
++        node.value = value;
++        node.dispatchEvent(new Event('input', {bubbles: true}));
++    }, fixture.today);
++    assert.equal(clinicalWrites.length, 0);
++    const eventPath = '/api/patients/' + patient.id + '/events/' + eventId;
++    let release;
++    const pendingCommit = new Promise(resolve => { release = resolve; });
++    const hold = async route => {
++        if (route.request().method() === 'PATCH') await pendingCommit;
++        return route.fallback();
++    };
++    await page.route(origin + eventPath, hold);
++    const confirmed = reply(page, eventPath, () => true, 'PATCH');
++    try {
++        const sent = page.waitForRequest(request =>
++            request.method() === 'PATCH' && new URL(request.url()).pathname === eventPath);
++        await eventCard.getByRole('button', {name: 'Сохранить: Фактическая дата', exact: true}).click();
++        await sent;
++        assert(await page.evaluate(() => !!app.clinicalWriteInFlight));
++        await keyboard(page.locator('#backToF1'));
++        await page.getByText('Дождитесь результата сохранения.', {exact: false}).first().waitFor();
++        assert.equal(await page.evaluate(() => app.currentView), 'patient');
++        assert.equal(clinicalWrites.length, 1);
++    } finally {
++        release();
++    }
++    const mutation = await confirmed;
++    await page.unroute(origin + eventPath, hold);
++    assert.equal(mutation.status(), 200);
++    assert.equal((await mutation.json()).history[0].events.find(item => item.id === eventId).actualDate, fixture.today);
++    assert.deepEqual(clinicalWrites, [{method: 'PATCH', path: eventPath,
++        body: {field: 'actualDate', value: fixture.today, version: event.version}}]);
++    await page.waitForFunction(({id, eventId, today}) => !app.clinicalWriteInFlight &&
++        app.getPatient(id).history[0].events.find(event => event.id === eventId).actualDate === today,
++    {id: patient.id, eventId, today: fixture.today});
++    const events = reply(page, '/api/patients/workspace/events');
++    await keyboard(page.locator('#backToF1'));
++    const refreshed = await audited(await events, 'workspace after committed fact');
++    assert(!refreshed.events.some(item => item.id === eventId));
++    assert(refreshed.events.some(item => item.id === patient.eventIds[0]));
++    const listing = reply(page, '/api/patients', params => params.get('limit') === '50');
++    await keyboard(page.locator('#f3MyDayRegistry'));
++    const pageData = await audited(await listing, 'registry after committed fact');
++    await ready(page, 0);
++    const current = pageData.patients.find(item => item.id === patient.id) || (await search(page, patient.name)).patients[0];
++    assert.equal(current.id, patient.id);
++    // Registry deadline is still its original plan; the server fact is a separate field.
++    assert.equal(current.currentFact, true);
++    const deadlineCell = page.locator('#patientsBody tr').filter({hasText: patient.name}).locator('.cell-deadline');
++    assert.equal((await deadlineCell.textContent()).trim(), 'Факт отмечен');
++    const pulseRead = reply(management, '/api/analytics/summary', params => params.get('stage') === 'exam');
++    await keyboard(management.locator('#f1PulseRefresh'));
++    const pulse = await audited(await pulseRead, 'management after committed fact');
++    const currentKpi = pulse.cards.find(item => item.code === 'overdue_events').value;
++    assert.equal(currentKpi, previousKpi - 1);
++    receipt.postCommit = {eventAbsentFromWorkspace: true, registryCurrentFact: true, previousKpi, currentKpi, explicitWrites: 1, pendingWriteStayedOnCard: true};
++    receipt.checks.push('one explicit versioned UI PATCH updates event, workspace and registry fact, with fresh scoped management KPI');
++}
++
++async function axe(page) {
++    return page.evaluate(async () => (await axe.run(document, {
++        runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
++    })).violations.map(rule => ({id: rule.id, targets: rule.nodes.map(node => node.target)})));
++}
++
++async function theme(page, target) {
++    const html = page.locator('html');
++    if ((await html.getAttribute('data-theme')) !== target) await page.locator('#themeToggle').click();
++    assert.equal(await html.getAttribute('data-theme'), target);
++}
++
++async function geometry(page, viewName) {
++    return page.evaluate(viewName => {
++        window.scrollTo(0, 0);
++        const within = document.querySelector('#view-' + viewName);
++        const title = within.querySelector('h1, #crumbPatientName');
++        const heading = title.getBoundingClientRect();
++        const bar = document.querySelector('.topbar').getBoundingClientRect();
++        const hit = document.elementFromPoint(heading.left + Math.min(18, heading.width / 2), heading.top + heading.height / 2);
++        return {width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth, scale: visualViewport.scale,
++            titleVisible: heading.top + 1 >= bar.bottom && heading.bottom < innerHeight &&
++                !!hit && (title === hit || title.contains(hit))};
++    }, viewName);
++}
++
++async function narrower(page, viewName) {
++    await page.evaluate(axeSource);
++    for (const mode of ['light', 'dark']) {
++        await theme(page, mode);
++        for (const width of [320, 375, 768, 1440]) {
++            await page.setViewportSize({width, height: 1000});
++            const dimensions = await geometry(page, viewName);
++            assert.equal(dimensions.width, width);
++            assert.equal(dimensions.overflow, false);
++            assert.equal(dimensions.titleVisible, true, viewName + ' ' + width + ' title must be above the fold');
++            const violations = await axe(page);
++            assert.deepEqual(violations, [], viewName + ' ' + mode + ' ' + width);
++            receipt.axe.push({view: viewName, theme: mode, width, violations: 0, titleVisible: true});
++            if (process.env.F3_SCREENSHOTS === '1' && (width === 1440 && mode === 'light' || width === 375 && mode === 'dark'))
++                await page.screenshot({path: path.join(output, [viewName, mode, width].join('-') + '.png'), animations: 'disabled'});
++        }
++    }
++}
++
++async function nativeZoom() {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'clinic-f3-native-'));
++    const extension = path.join(dir, 'extension');
++    fs.mkdirSync(extension);
++    fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({manifest_version: 3,
++        name: 'Local browser zoom verification', version: '1.0', permissions: ['tabs'],
++        background: {service_worker: 'worker.js'}}));
++    fs.writeFileSync(path.join(extension, 'worker.js'), 'chrome.runtime.onInstalled.addListener(()=>{});');
++    let context;
++    try {
++        context = await chromium.launchPersistentContext(path.join(dir, 'profile'), {
++            headless: true, viewport: null, reducedMotion: 'reduce', ignoreDefaultArgs: ['--disable-extensions'],
++            executablePath: process.env.WP_H_FULL_CHROMIUM || chromium.executablePath(),
++            args: ['--window-size=1280,1000', '--disable-background-networking',
++                '--disable-extensions-except=' + extension, '--load-extension=' + extension],
++        });
++        const page = await setup(context);
++        await login(page, 'doctor');
++        const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', {timeout: 12000});
++        const base = await page.evaluate(() => devicePixelRatio);
++        for (const viewName of ['patients', 'patient']) {
++            if (viewName === 'patient') {
++                const item = (await search(page, patients.healthy.name)).patients[0];
++                await card(page, row(page, item.name), item);
++            }
++            for (const mode of ['light', 'dark']) {
++                await theme(page, mode);
++                for (const factor of [1, 2, 4]) {
++                    const zoom = await worker.evaluate(async ({url, factor}) => {
++                        const tab = (await chrome.tabs.query({})).find(item => item.url === url);
++                        if (!tab) throw new Error('missing synthetic browser tab');
++                        await chrome.tabs.setZoom(tab.id, factor);
++                        return chrome.tabs.getZoom(tab.id);
++                    }, {url: page.url(), factor});
++                    assert.equal(Math.round(zoom * 100), 100 * factor);
++                    await page.waitForFunction(target => Math.abs(devicePixelRatio - target) < 0.01, base * factor);
++                    const dimensions = await geometry(page, viewName);
++                    assert.equal(dimensions.overflow, false);
++                    assert.equal(dimensions.scale, 1);
++                    assert.equal(dimensions.titleVisible, true);
++                    receipt.nativeZoom.push({view: viewName, theme: mode, percent: factor * 100, viewport: dimensions.width});
++                }
++            }
++        }
++    } finally {
++        await context?.close();
++        fs.rmSync(dir, {recursive: true, force: true});
++    }
++}
++
++async function main() {
++    const browser = await chromium.launch({headless: true, executablePath: process.env.BROWSER_EXECUTABLE,
++        args: ['--disable-background-networking']});
++    receipt.chromium = browser.version();
++    try {
++        const head = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const management = await setup(head);
++        await login(management, 'head');
++        const patient = await registryHistory(management);
++        await expiredCursor(management, patient);
++        await repeatedConflict(management);
++        const previousKpi = await pulse(management);
++        const care = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const workday = await setup(care);
++        await login(workday, 'doctor');
++        await doctor(workday);
++        await recordFactAndRefresh(workday, management, previousKpi);
++        await management.unrouteAll({behavior: 'wait'});
++        await head.close();
++        await view(workday, 'patients');
++        await ready(workday);
++        await search(workday, patients.healthy.name);
++        active = 'responsive registry';
++        await narrower(workday, 'patients');
++        await workday.unrouteAll({behavior: 'wait'});
++        await care.close();
++        active = 'responsive card';
++        const visual = await browser.newContext({viewport: {width: 1440, height: 1000}, reducedMotion: 'reduce'});
++        const chart = await setup(visual);
++        await login(chart, 'doctor');
++        await search(chart, patients.healthy.name);
++        await card(chart, row(chart, patients.healthy.name), patients.healthy, false);
++        await narrower(chart, 'patient');
++        await chart.unrouteAll({behavior: 'wait'});
++        await visual.close();
++    } finally {
++        await browser.close();
++    }
++    active = 'native zoom';
++    await nativeZoom();
++    assert.equal(clinicalWrites.length, 1);
++    assert.equal(receipt.legacyRegistryRequests, 0);
++    assert.equal(receipt.pageErrors, 0);
++    receipt.checks.push('eight established tabs, no legacy full-list requests or automatic medical writes, 16 responsive axe states and 12 native zoom states');
++    fs.writeFileSync(process.env.F3_RECEIPT, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx', mode: 0o600});
++}
++
++main().catch(error => {
++    process.stderr.write(active + '\n' + error.stack + '\n');
++    process.exitCode = 1;
++});
+diff --git a/tools/tests/fast_track_f3/run.py b/tools/tests/fast_track_f3/run.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6c7d297b7ee637f82cd9492b4f6d49bacd96b503
+--- /dev/null
++++ b/tools/tests/fast_track_f3/run.py
+@@ -0,0 +1,150 @@
++"""Run the F3 integration gate with the same isolated FastAPI server as F2."""
++import argparse
++from http.cookiejar import CookieJar
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
++from uuid import uuid4
++
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++sys.path.insert(0, str(APP))
++from tools.tests.fast_track_f2.run import snapshot, verify_manifest, wait_ready  # noqa: E402
++
++HOST = '127.0.0.1'
++ROW_COUNT = 52
++
++
++def seed_registry(fixture):
++    jar = CookieJar()
++    opener = build_opener(ProxyHandler({}), HTTPCookieProcessor(jar))
++
++    def post(path, body, status):
++        csrf = next((cookie.value for cookie in jar if cookie.name == 'clinic_csrf'), None)
++        headers = {'Content-Type': 'application/json'}
++        if csrf:
++            headers.update({'X-CSRF-Token': csrf, 'Idempotency-Key': str(uuid4())})
++        req = Request(fixture['origin'] + path, json.dumps(body).encode(), headers, method='POST')
++        with opener.open(req, timeout=20) as response:
++            assert response.status == status
++            return json.load(response)
++
++    post('/api/auth/login', {'username': fixture['users']['admin'], 'password': fixture['password']}, 200)
++    for index in range(ROW_COUNT):
++        post('/api/patients', {
++            'name': f'Синтетический Реестр F3 {index:03d}',
++            'age': 50, 'priority': 'normal', 'stage': 'exam', 'diagnosis': 'C34.1',
++            'nosology': 'lung34', 'treatingDoctorUserId': fixture['accountIds']['doctor'],
++            'head': 'Синтетический заведующий F3', 'phone': f'+70000010{index:03d}',
++        }, 201)
++    post('/api/auth/logout', {}, 200)
++
++
++def prove_commit(db, before, first_audit_id, fixture):
++    patient = fixture['patients']['overdue']
++    event_id = patient['eventIds'][-1]
++    after, _ = snapshot(db)
++    expected = {key: {key_id: row.copy() for key_id, row in table.items()} for key, table in before.items()}
++    event = expected['events'][event_id]
++    event.update(actual_date=fixture['today'], matched_plan=0, version=event['version'] + 1)
++    expected['patients'][patient['id']]['updated_at'] = after['patients'][patient['id']]['updated_at']
++    event_facts = set(after['facts']) - set(expected['facts'])
++    assert len(event_facts) == 1
++    fact_id = event_facts.pop()
++    fact = after['facts'][fact_id]
++    assert fact['patient_id'] == patient['id'] and fact['event_id'] == event_id
++    assert fact['field'] == 'actual_date' and not fact['old_value'] and fact['new_value'] == fixture['today']
++    assert fact['actor_user_id'] == fixture['accountIds']['doctor'] and fact['source'] == 'event_update'
++    expected['facts'][fact_id] = fact
++    assert expected == after, 'only the authorized clinical action may alter clinical rows'
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        rows = conn.execute(
++            "SELECT event_type,actor_user_id,patient_id,result,detail FROM audit_events "
++            "WHERE id>? AND event_type IN ('patient_updated','treating_doctor_changed')", (first_audit_id,)
++        ).fetchall()
++    assert len(rows) == 1
++    assert rows[0][:4] == ('patient_updated', fixture['accountIds']['doctor'], patient['id'], 'ok')
++    assert 'action=event_update;field=actualDate' in rows[0][4] and event_id in rows[0][4]
++    return {'matchedWriteAudit': 1, 'recordedFacts': 1, 'allOtherClinicalRowsUnchanged': True}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--out', type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if output == APP or APP in output.parents:
++        parser.error('write private outputs outside the source checkout')
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    with socket.socket() as listener:
++        listener.bind((HOST, 0))
++        port = listener.getsockname()[1]
++    origin = f'http://{HOST}:{port}'
++    sha = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD'], text=True).strip()
++    tree = subprocess.check_output(['git', '-C', APP, 'rev-parse', 'HEAD^{tree}'], text=True).strip()
++    dirty = bool(subprocess.check_output(['git', '-C', APP, 'status', '--porcelain']))
++    with tempfile.TemporaryDirectory(prefix='clinic-f2-') as working:
++        scratch = Path(working).resolve()
++        clean_env = {'PATH': os.environ['PATH'], 'HOME': str(scratch), 'TMPDIR': str(scratch),
++                     'LANG': 'C.UTF-8', 'PYTHONDONTWRITEBYTECODE': '1'}
++        fixture_file = scratch / 'fixture.json'
++        browser_env = {
++            **clean_env,
++            **{name: os.environ[name] for name in ('PLAYWRIGHT_MODULE', 'PLAYWRIGHT_BROWSERS_PATH',
++                                                  'BROWSER_EXECUTABLE', 'WP_H_FULL_CHROMIUM', 'AXE_SOURCE',
++                                                  'F3_SCREENSHOTS') if name in os.environ},
++            'F3_FIXTURE': str(fixture_file), 'F3_RECEIPT': str(output / 'browser-results.json'),
++        }
++        db = scratch / 'db/clinic.db'
++        with (output / 'server.local.log').open('wb') as log:
++            worker = subprocess.Popen(
++                [sys.executable, '-I', '-B', str(HERE.parent / 'fast_track_f2/server.py'),
++                 '--scratch', str(scratch), '--port', str(port)],
++                cwd=scratch, env=clean_env, stdout=log, stderr=subprocess.STDOUT,
++            )
++        try:
++            wait_ready(worker, origin, fixture_file)
++            fixture = json.loads(fixture_file.read_bytes())
++            assert fixture['origin'] == origin and fixture['syntheticOnly'] and fixture['schema'] == 33
++            seed_registry(fixture)
++            before, first_audit_id = snapshot(db)
++            with (output / 'browser.local.log').open('wb') as log:
++                run = subprocess.run(['node', str(HERE / 'browser.cjs')], cwd=scratch, env=browser_env,
++                                     stdout=log, stderr=subprocess.STDOUT, timeout=360, check=False)
++            if run.returncode:
++                return run.returncode
++            results = json.loads((output / 'browser-results.json').read_bytes())
++            audit = verify_manifest(db, results.pop('responseProofs'))
++            del audit['clinicalFixturesUnchanged']
++            audit.update(prove_commit(db, before, first_audit_id, fixture))
++            results.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty,
++                           syntheticOnly=True, syntheticPatients=len(before['patients']), schemaVersion=33, audit=audit)
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean_exit = worker.wait(timeout=15) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait(timeout=5)
++                clean_exit = False
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex((HOST, port)) != 0
++    results['cleanup'] = dict(cleanExit=clean_exit, databaseRemoved=not scratch.exists(), listenerClosed=closed)
++    assert all(results['cleanup'].values())
++    (output / 'public.json').write_text(json.dumps(results, indent=2, ensure_ascii=False) + '\n')
++    print(f"F3 Chromium: {len(results['checks'])} groups; exact read audit and clean shutdown")
++    return 0
++
++
++if __name__ == '__main__':
++    sys.exit(main())

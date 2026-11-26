@@ -1,0 +1,1088 @@
+{
+  "candidateRuntime": "0b91473ffb65892ce8551755a8d31118c332a000",
+  "source": "WP-I browser gate ran on final runtime source before the candidate commit. Functional checks.",
+  "cases": [
+    {
+      "count": 100,
+      "realBackend": true,
+      "syntheticOnly": true,
+      "roles": [
+        {
+          "role": "developer",
+          "total": 100,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.0999999046325684,
+            "dom": 2828,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 35,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "doctor",
+          "total": 20,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 1.1999998092651367,
+            "dom": 2157,
+            "rows": 20,
+            "details": 0
+          },
+          "requests": 16,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "department_head",
+          "total": 80,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2,
+            "dom": 2827,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "consilium_chair",
+          "total": 0,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 0.20000028610229492,
+            "dom": 1715,
+            "rows": 0,
+            "details": 0
+          },
+          "requests": 1,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "total": 100,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.4000000953674316,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "caop_head",
+          "total": 100,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.200000286102295,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        }
+      ],
+      "checks": [
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "intentional sessions commit: data_version409; exactly one restart to offset0; repeated409 stops; no stale second page",
+        "loading/inert; held stale response; real release409 once/persistent; transport410/503; explicit recovery",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "401 and ACCESS_CONTEXT_CHANGED: one request, locked session, no list retry"
+      ],
+      "axe": [
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "realBackend": true,
+      "syntheticOnly": true,
+      "roles": [
+        {
+          "role": "developer",
+          "total": 1000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.1999998092651367,
+            "dom": 2828,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 35,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "doctor",
+          "total": 200,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.1999998092651367,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "department_head",
+          "total": 800,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.299999713897705,
+            "dom": 2828,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "consilium_chair",
+          "total": 0,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 0.10000038146972656,
+            "dom": 1715,
+            "rows": 0,
+            "details": 0
+          },
+          "requests": 1,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "total": 1000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.4000000953674316,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "caop_head",
+          "total": 1000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        }
+      ],
+      "checks": [
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "intentional sessions commit: data_version409; exactly one restart to offset0; repeated409 stops; no stale second page",
+        "loading/inert; held stale response; real release409 once/persistent; transport410/503; explicit recovery",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "401 and ACCESS_CONTEXT_CHANGED: one request, locked session, no list retry"
+      ],
+      "axe": [
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "realBackend": true,
+      "syntheticOnly": true,
+      "roles": [
+        {
+          "role": "developer",
+          "total": 10000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.8000001907348633,
+            "dom": 2828,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 35,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "doctor",
+          "total": 2000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.4000000953674316,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "department_head",
+          "total": 8000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.0999999046325684,
+            "dom": 2828,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "consilium_chair",
+          "total": 0,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 0.09999990463256836,
+            "dom": 1715,
+            "rows": 0,
+            "details": 0
+          },
+          "requests": 1,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "total": 10000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.200000286102295,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        },
+        {
+          "role": "caop_head",
+          "total": 10000,
+          "legacy": 0,
+          "medicalWrites": 0,
+          "rendered": {
+            "ms": 2.0999999046325684,
+            "dom": 2817,
+            "rows": 50,
+            "details": 0
+          },
+          "requests": 18,
+          "technicalCommits": [
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            },
+            {
+              "status": 409,
+              "table": "sessions",
+              "before": 2,
+              "after": 3
+            }
+          ]
+        }
+      ],
+      "checks": [
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "intentional sessions commit: data_version409; exactly one restart to offset0; repeated409 stops; no stale second page",
+        "loading/inert; held stale response; real release409 once/persistent; transport410/503; explicit recovery",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "ordinary paging: exact offset50, deterministic single forwarding of API requests",
+        "401 and ACCESS_CONTEXT_CHANGED: one request, locked session, no list retry"
+      ],
+      "axe": [
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "developer",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "doctor",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "department_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "consilium_chair",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "deputy_chief_oncology",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "dark",
+          "width": 375,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 1440,
+          "violations": []
+        },
+        {
+          "role": "caop_head",
+          "theme": "light",
+          "width": 375,
+          "violations": []
+        }
+      ]
+    }
+  ]
+}
