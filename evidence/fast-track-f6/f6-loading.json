@@ -1,0 +1,12 @@
+{
+  "suite": "loading",
+  "checks": 7,
+  "axe": 0,
+  "xlsx": [],
+  "exit": 0,
+  "candidateSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "candidateTree": "bc26b4164c7322881e6943d3c0a82c0714c39273",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "screenshots": {}
+}

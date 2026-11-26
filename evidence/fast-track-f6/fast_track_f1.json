@@ -1,0 +1,87 @@
+{
+  "checks": [
+    "pulse head: real summary, stage/overdue drilldown, exact object, Back/Forward retains filters",
+    "pulse: server Quality warning for missing registration field and neutral real out-of-scope 404",
+    "pulse: both themes, desktop/narrow layout, keyboard activation",
+    "my-day: scoped patients, actual stage/assignee, no-plan state and no foreign data",
+    "my-day: two real overdue events, event card action and Back preserve task mode",
+    "my-day: one controlled GET retry after injected 409",
+    "my-day: both themes, desktop/narrow layout, keyboard activation",
+    "my-day: empty authorization scope using real zero-row response",
+    "my-day: actual revoked session receives 401 and locks view",
+    "my-day: real same-profile identity changes scope on fresh login",
+    "zero page errors and zero automatic non-auth writes"
+  ],
+  "injectedTransportFaults": [
+    "my-day CHECKLISTS 409 PATIENT_QUERY_CHANGED -> real retry"
+  ],
+  "axe": [
+    {
+      "route": "pulse",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0
+    },
+    {
+      "route": "pulse",
+      "theme": "light",
+      "width": 375,
+      "violations": 0
+    },
+    {
+      "route": "pulse",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0
+    },
+    {
+      "route": "pulse",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0
+    },
+    {
+      "route": "my-day",
+      "theme": "light",
+      "width": 1440,
+      "violations": 0
+    },
+    {
+      "route": "my-day",
+      "theme": "light",
+      "width": 375,
+      "violations": 0
+    },
+    {
+      "route": "my-day",
+      "theme": "dark",
+      "width": 1440,
+      "violations": 0
+    },
+    {
+      "route": "my-day",
+      "theme": "dark",
+      "width": 375,
+      "violations": 0
+    }
+  ],
+  "unexpectedMedicalWrites": 0,
+  "pageErrors": 0,
+  "chromium": "151.0.7922.34",
+  "syntheticOnly": true,
+  "audit": {
+    "matchedExactResponseDigests": 10,
+    "authorizedReads": 34,
+    "authorizedReadManifests": 34,
+    "clinicalFixturesUnchanged": true
+  },
+  "candidateSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "dirtyCheckout": false,
+  "syntheticPatients": 5,
+  "schemaVersion": 33,
+  "cleanup": {
+    "cleanExit": true,
+    "databaseRemoved": true,
+    "listenerClosed": true
+  }
+}

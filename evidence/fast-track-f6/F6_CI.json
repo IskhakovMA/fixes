@@ -1,0 +1,722 @@
+{
+  "conclusion": "success",
+  "event": "push",
+  "headBranch": "feature/fast-track-f6-consilium-staffux",
+  "headSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "jobs": [
+    {
+      "completedAt": "2026-11-26T06:43:34Z",
+      "conclusion": "success",
+      "databaseId": 139740483946,
+      "name": "backend-test-plan",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify locked dependency declarations",
+          "conclusion": "success"
+        },
+        {
+          "name": "Collect every backend test and plan the shards",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740483946"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:19Z",
+      "conclusion": "success",
+      "databaseId": 139740484002,
+      "name": "workflow-policy",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install policy test dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate workflow policy",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484002"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:23Z",
+      "conclusion": "success",
+      "databaseId": 139740484124,
+      "name": "backend-smoke",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check temporary database",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile Python sources",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484124"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:14Z",
+      "conclusion": "success",
+      "databaseId": 139740484128,
+      "name": "secret-scan",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Gitleaks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify that planted secrets are detected",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan working tree for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan Git history for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scan changes made inside merge commits for secrets",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484128"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:26Z",
+      "conclusion": "success",
+      "databaseId": 139740484140,
+      "name": "dependency-audit",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pip-audit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Audit backend dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484140"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:22Z",
+      "conclusion": "success",
+      "databaseId": 139740484193,
+      "name": "sast-bandit",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Bandit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Self-test the Bandit gate",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Bandit",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484193"
+    },
+    {
+      "completedAt": "2026-11-26T06:43:51Z",
+      "conclusion": "success",
+      "databaseId": 139740484238,
+      "name": "frontend-security",
+      "startedAt": "2026-11-26T06:43:06Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check JavaScript syntax",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Staff-UX prototype tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run frontend security tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740484238"
+    },
+    {
+      "completedAt": "2026-11-26T06:53:14Z",
+      "conclusion": "success",
+      "databaseId": 139740670732,
+      "name": "backend-tests (2/6)",
+      "startedAt": "2026-11-26T06:43:35Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740670732"
+    },
+    {
+      "completedAt": "2026-11-26T06:58:45Z",
+      "conclusion": "success",
+      "databaseId": 139740670812,
+      "name": "backend-tests (3/6)",
+      "startedAt": "2026-11-26T06:43:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740670812"
+    },
+    {
+      "completedAt": "2026-11-26T06:54:28Z",
+      "conclusion": "success",
+      "databaseId": 139740670826,
+      "name": "backend-tests (6/6)",
+      "startedAt": "2026-11-26T06:43:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740670826"
+    },
+    {
+      "completedAt": "2026-11-26T06:52:59Z",
+      "conclusion": "success",
+      "databaseId": 139740670844,
+      "name": "backend-tests (1/6)",
+      "startedAt": "2026-11-26T06:43:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740670844"
+    },
+    {
+      "completedAt": "2026-11-26T06:54:36Z",
+      "conclusion": "success",
+      "databaseId": 139740670863,
+      "name": "backend-tests (5/6)",
+      "startedAt": "2026-11-26T06:43:35Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740670863"
+    },
+    {
+      "completedAt": "2026-11-26T06:54:32Z",
+      "conclusion": "success",
+      "databaseId": 139740671140,
+      "name": "backend-tests (4/6)",
+      "startedAt": "2026-11-26T06:43:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install dependencies",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run backend test shard",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Node",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Setup Python",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139740671140"
+    },
+    {
+      "completedAt": "2026-11-26T06:58:50Z",
+      "conclusion": "success",
+      "databaseId": 139746408607,
+      "name": "backend-tests-verify",
+      "startedAt": "2026-11-26T06:58:47Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Require the plan and every shard to have succeeded",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139746408607"
+    },
+    {
+      "completedAt": "2026-11-26T06:58:54Z",
+      "conclusion": "success",
+      "databaseId": 139746434585,
+      "name": "release-gate",
+      "startedAt": "2026-11-26T06:58:52Z",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Require every gate to succeed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805/job/139746434585"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770122805",
+  "workflowName": "CI",
+  "proof": {
+    "baselineRun": 45766538571,
+    "baselineCandidate": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+    "collectionDigest": "9beb662926e4644205a2fc6cf6cb44a483cfec90add0e602c3f375538597e920",
+    "collectionMatchesBaseline": true,
+    "files": 122,
+    "collected": 2842,
+    "passed": 2842,
+    "failed": 0,
+    "skipped": 0,
+    "exactOnce": true,
+    "shards": {
+      "1": 474,
+      "2": 474,
+      "3": 474,
+      "4": 474,
+      "5": 473,
+      "6": 473
+    },
+    "rawLogSha256": "49e09eb55d13f270c44a6b7a5959ef4956bd216d5cd2cc10c69aed498e23d2cf",
+    "supplementaryPassed": {
+      "workflowPolicyPassed": 53,
+      "staffUxPassed": 81,
+      "cspXssPassed": 35
+    }
+  }
+}

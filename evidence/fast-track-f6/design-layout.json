@@ -1,0 +1,199 @@
+{
+  "syntheticOnly": true,
+  "realBackend": true,
+  "case": "200-character name + 4000-character comment",
+  "checks": [
+    {
+      "theme": "light",
+      "viewport": 320,
+      "panelWidth": 320,
+      "panelRight": 320,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 375,
+      "panelWidth": 375,
+      "panelRight": 375,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 768,
+      "panelWidth": 768,
+      "panelRight": 768,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 1024,
+      "panelWidth": 563,
+      "panelRight": 1024,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 1440,
+      "panelWidth": 700,
+      "panelRight": 1440,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 320,
+      "panelWidth": 320,
+      "panelRight": 320,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 375,
+      "panelWidth": 375,
+      "panelRight": 375,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 768,
+      "panelWidth": 768,
+      "panelRight": 768,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 1024,
+      "panelWidth": 563,
+      "panelRight": 1024,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 1440,
+      "panelWidth": 700,
+      "panelRight": 1440,
+      "overflow": false,
+      "scrollable": true,
+      "headerVisible": true,
+      "footerVisible": true,
+      "violations": []
+    }
+  ],
+  "scopedList": [
+    {
+      "theme": "light",
+      "viewport": 320,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 375,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 768,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 1024,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "light",
+      "viewport": 1440,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 320,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 375,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 768,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 1024,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    },
+    {
+      "theme": "dark",
+      "viewport": 1440,
+      "heading": "Доступные записи",
+      "overflow": false,
+      "xsCellLabels": true,
+      "violations": []
+    }
+  ]
+}

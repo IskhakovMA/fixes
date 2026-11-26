@@ -1,0 +1,1569 @@
+diff --git a/.github/workflows/fast-track-f6-browser.yml b/.github/workflows/fast-track-f6-browser.yml
+new file mode 100644
+index 0000000..68ce225
+--- /dev/null
++++ b/.github/workflows/fast-track-f6-browser.yml
+@@ -0,0 +1,163 @@
++name: Fast Track F6 Chromium
++
++on:
++  push:
++    branches: [feature/fast-track-f6-consilium-staffux]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: fast-track-f6-${{ github.ref }}
++  cancel-in-progress: true
++
++env:
++  F5_SHA: 78f02d0f4c278b9e2a836993519816604ea11cc3
++  F5_TREE: 4df68d538f04f4c62f606fb90a96fe34f7332f4d
++
++jobs:
++  f6-chromium:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 30
++    steps:
++      - name: Checkout exact F6 candidate
++        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++      - name: Check Git tree and protect existing medical contracts
++        shell: bash
++        run: |
++          set -euo pipefail
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test "$(git rev-parse "$F5_SHA^{tree}")" = "$F5_TREE"
++          git merge-base --is-ancestor "$F5_SHA" HEAD
++          test -z "$(git rev-list --merges "$F5_SHA..HEAD")"
++          git diff --exit-code "$F5_SHA" HEAD -- backend/app backend/migrations backend/requirements-dev.txt tools/tests/wp_h/package-lock.json .github/workflows/ci.yml .github/workflows/fast-track-f2-browser.yml .github/workflows/fast-track-f3-browser.yml .github/workflows/fast-track-f4-browser.yml .github/workflows/fast-track-f5-browser.yml
++          while IFS= read -r path; do
++            case "$path" in
++              .github/workflows/fast-track-f6-browser.yml|backend/tests/test_frontend_csp.py|backend/tests/test_wp23b1_consilium_history.py|index.html|static/app.js|static/styles.css|tools/tests/fast_track_f6/journey.cjs|tools/tests/fast_track_f6/run.py|tools/tests/wp_i_consilium/decisions.cjs|tools/tests/wp_i_consilium/decisionzoom.cjs|tools/tests/wp_i_consilium/records.cjs) ;;
++              *) printf 'Unexpected changed path: %s\n' "$path"; exit 1 ;;
++            esac
++          done < <(git diff --name-only "$F5_SHA" HEAD)
++          test -z "$(git status --porcelain)"
++          echo "F6_CANDIDATE=$GITHUB_SHA"
++          echo "F6_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")"
++      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
++        with:
++          python-version: '3.13.18'
++      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: '22.23.5'
++      - name: Install pinned synthetic test dependencies
++        run: |
++          python -m pip install --disable-pip-version-check -r backend/requirements-dev.txt
++          npm ci --ignore-scripts --prefix tools/tests/wp_h
++          tools/tests/wp_h/node_modules/.bin/playwright install --with-deps chromium
++      - name: Run F6 and affected browser regressions
++        shell: bash
++        run: |
++          set -euo pipefail
++          umask 077
++          export AXE_SOURCE="$PWD/tools/tests/wp_h/node_modules/axe-core/axe.min.js"
++          export PLAYWRIGHT_MODULE="$PWD/tools/tests/wp_h/node_modules/playwright"
++          export BROWSER_EXECUTABLE
++          BROWSER_EXECUTABLE="$(node -p 'require(process.env.PLAYWRIGHT_MODULE).chromium.executablePath()')"
++          export WP_H_FULL_CHROMIUM="$BROWSER_EXECUTABLE"
++          test "$(node -p 'require(process.env.PLAYWRIGHT_MODULE+"/package.json").version')" = 1.62.1
++          test "$(node -p 'require(require("node:path").dirname(process.env.AXE_SOURCE)+"/package.json").version')" = 4.11.0
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          test -z "$(git status --porcelain)"
++          mkdir -m 700 "$RUNNER_TEMP/f6-public"
++          for suite in journey schedule workflows loading decisions records zoom decisionzoom recordszoom; do
++            receipt="$RUNNER_TEMP/f6-$suite"
++            printf 'F6_BROWSER_SUITE=%s\n' "$suite"
++            if ! python -B tools/tests/fast_track_f6/run.py --suite "$suite" --out "$receipt"; then
++              for log in "$receipt/browser.local.log" "$receipt/card.log"; do
++                if test -f "$log"; then
++                  grep -Eo '(fast_track_f6|wp_i_consilium)/[a-z_-]+\.(cjs|py):[0-9]+(:[0-9]+)?' "$log" | head -12 || true
++                fi
++              done
++              exit 1
++            fi
++            python - "$receipt/public.json" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert receipt["candidateTree"] == sys.argv[2]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f6-public/f6-$suite.json"
++          done
++          for suite in fast_track_f5 fast_track_f4 fast_track_f3 fast_track_f2 fast_track_f1; do
++            receipt="$RUNNER_TEMP/$suite"
++            printf 'F6_REGRESSION_SUITE=%s\n' "$suite"
++            if ! python -B "tools/tests/$suite/run.py" --out "$receipt"; then
++              # Report source frames only: fixture IDs, session values and response bodies stay private.
++              if test -f "$receipt/browser.local.log"; then
++                grep -Eo 'fast_track_f[12345]/[a-z_-]+\.(cjs|py):[0-9]+:[0-9]+' "$receipt/browser.local.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$receipt/public.json" "$suite" "$(git rev-parse 'HEAD^{tree}')" <<'PYTHON'
++          import json
++          import os
++          import sys
++
++          with open(sys.argv[1]) as file:
++              receipt = json.load(file)
++          assert receipt["candidateSha"] == os.environ["GITHUB_SHA"]
++          assert not receipt["dirtyCheckout"] and receipt["syntheticOnly"]
++          if sys.argv[2] in {"fast_track_f2", "fast_track_f3", "fast_track_f4", "fast_track_f5"}:
++              assert receipt["candidateTree"] == sys.argv[3]
++          PYTHON
++            cp "$receipt/public.json" "$RUNNER_TEMP/f6-public/$suite.json"
++          done
++          for scenario in navigation unknownDenial; do
++            out="$RUNNER_TEMP/history-$scenario"
++            if ! HISTORY_SCENARIO="$scenario" python -B tools/tests/wp_i_card/run.py --suite history --out "$out"; then
++              if test -f "$out/card.log"; then
++                grep -Eo 'history\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true
++              fi
++              exit 1
++            fi
++            python - "$out/history-results.json" "$scenario" "$RUNNER_TEMP/f6-public/history-$scenario.json" <<'PYTHON'
++          import json
++          from pathlib import Path
++          import sys
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          expected = {"navigation": 6, "unknownDenial": 1}[sys.argv[2]]
++          assert result["syntheticOnly"] is True and result["realBackend"] is True
++          assert result["phase"] == "complete" and len(result["check"]) == expected
++          Path(sys.argv[3]).write_text(json.dumps({"scenario": sys.argv[2], "groups": expected, "result": "PASS"}) + "\n")
++          PYTHON
++          done
++          out="$RUNNER_TEMP/inbox-fix1"
++          if ! python -B tools/tests/wp_i_notifications/run.py --suite fix1 --count 1000 --out "$out"; then
++            if test -f "$out/card.log"; then grep -Eo 'fix1\.cjs:[0-9]+:[0-9]+' "$out/card.log" | head -12 || true; fi
++            exit 1
++          fi
++          python - "$out/results.json" "$RUNNER_TEMP/f6-public/notifications-fix1.json" <<'PYTHON'
++          import json
++          import sys
++          from pathlib import Path
++
++          result = json.loads(Path(sys.argv[1]).read_bytes())
++          assert result["realBackend"] and len(result["checks"]) == 12
++          Path(sys.argv[2]).write_text(json.dumps({"groups": 12, "result": "PASS"}) + "\n")
++          PYTHON
++          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
++          git diff --exit-code
++      - name: Retain sanitized machine receipts
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
++        with:
++          name: fast-track-f6-browser-${{ github.sha }}
++          path: ${{ runner.temp }}/f6-public/*.json
++          if-no-files-found: error
++          retention-days: 14
+diff --git a/backend/tests/test_frontend_csp.py b/backend/tests/test_frontend_csp.py
+index 6f52825..ea6a872 100644
+--- a/backend/tests/test_frontend_csp.py
++++ b/backend/tests/test_frontend_csp.py
+@@ -138,9 +138,9 @@ def test_canonical_page_is_served(client):
+     response = client.get("/")
+     assert response.status_code == 200
+     body = response.text
+-    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5">' in body
++    assert '<link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6">' in body
+     assert '<script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>' in body
+-    assert '<script src="/static/app.js?v=fast-track-f5"></script>' in body
++    assert '<script src="/static/app.js?v=fast-track-f6"></script>' in body
+     for path in F1_SCRIPTS:
+         source = f'<script src="/static/{path.name}?v=fast-track-f5"></script>'
+         assert source in body
+diff --git a/backend/tests/test_wp23b1_consilium_history.py b/backend/tests/test_wp23b1_consilium_history.py
+index f69d688..63d9b06 100644
+--- a/backend/tests/test_wp23b1_consilium_history.py
++++ b/backend/tests/test_wp23b1_consilium_history.py
+@@ -767,7 +767,7 @@ def test_static_app_sends_versions_and_handles_conflicts():
+     js = (PROJECT_ROOT / "static" / "app.js").read_text(encoding="utf-8")
+     html = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+     assert "version: this.consilium.editingVersion" in js                       # PUT
+-    assert "?version=${encodeURIComponent(item.version)}" in js                # DELETE
++    assert "?version=${encodeURIComponent(owner.editingVersion)}" in js                # DELETE
+     assert "{ version: item.version }" in js                                    # archive / restore
+     assert "/resubmit`, { version: saved.version }" in js                       # повторная подача
+     assert "error.data.code === 'consilium_version_conflict'" in js
+diff --git a/index.html b/index.html
+index 59231d0..eaaf764 100644
+--- a/index.html
++++ b/index.html
+@@ -6,7 +6,7 @@
+     <meta name="color-scheme" content="dark light">
+     <title>Система планирования — маршрут лечения</title>
+     <link rel="icon" href="/static/logo.png">
+-    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5">
++    <link rel="stylesheet" href="/static/styles.css?v=consilium-stage2-closeout-v36-wp-i-consilium-v5a-wp-i-quality-v1-fast-track-f1-fast-track-f2-fast-track-f3-fast-track-f4-fast-track-f5-fast-track-f6">
+ </head>
+ <body>
+ 
+@@ -391,9 +391,11 @@
+                 </section>
+                 <div class="stats" id="consiliumStatsRow"></div>
+ 
+-                <div class="panel is-hidden" id="consiliumAppointmentsPanel">
++                <section class="panel panel--pad is-hidden" id="consiliumAppointmentsPanel" aria-labelledby="consiliumAppointmentsTitle">
++                    <h2 class="panel__title" id="consiliumAppointmentsTitle">Доступные записи</h2>
++                    <p class="field__hint">Записи в вашей области доступа.</p>
+                     <div class="table-wrap">
+-                        <table class="table" id="consiliumTable">
++                        <table class="table consilium-registry-table" id="consiliumTable">
+                             <thead>
+                                 <tr>
+                                     <th scope="col">Дата и время</th>
+@@ -402,14 +404,14 @@
+                                     <th scope="col">Диагноз</th>
+                                     <th scope="col">Участники</th>
+                                     <th scope="col">Статус</th>
+-                                    <th scope="col"><span class="visually-hidden">Действия</span></th>
++                                    <th scope="col">Действия</th>
+                                 </tr>
+                             </thead>
+                             <tbody id="consiliumBody"></tbody>
+                         </table>
+                     </div>
+                     <div class="empty is-hidden" id="consiliumEmpty"></div>
+-                </div>
++                </section>
+ 
+                 <section class="panel panel--pad is-hidden" id="consiliumInsights" aria-labelledby="consiliumInsightsTitle">
+                     <h2 id="consiliumInsightsTitle">Показатели консилиума</h2>
+@@ -1398,7 +1400,7 @@
+ </div>
+ 
+ <!-- МОДАЛКА: РЕШЕНИЕ ПРЕДСЕДАТЕЛЯ КОНСИЛИУМА -->
+-<div class="modal" id="consiliumDecisionModal" role="dialog" aria-modal="true" aria-labelledby="consiliumDecisionTitle" hidden>
++<div class="modal consilium-work-panel" id="consiliumDecisionModal" role="dialog" aria-modal="true" aria-labelledby="consiliumDecisionTitle" hidden>
+     <div class="modal__box consilium-decision-workspace">
+         <div class="modal__head">
+             <h2 class="modal__title" id="consiliumDecisionTitle">Решение консилиума</h2>
+@@ -1479,7 +1481,7 @@
+ </div>
+ 
+ <!-- МОДАЛКА: ПРОСМОТР ЗАПИСИ НА КОНСИЛИУМ -->
+-<div class="modal" id="consiliumDetailsModal" role="dialog" aria-modal="true" aria-labelledby="consiliumDetailsTitle" hidden>
++<div class="modal consilium-work-panel" id="consiliumDetailsModal" role="dialog" aria-modal="true" aria-labelledby="consiliumDetailsTitle" hidden>
+     <div class="modal__box">
+         <div class="modal__head">
+             <h2 class="modal__title" id="consiliumDetailsTitle">Запись на онкологический консилиум</h2>
+@@ -1487,16 +1489,19 @@
+                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+             </button>
+         </div>
+-        <div class="alert alert--warning is-hidden" id="consiliumDetailsConflict" role="alert">
+-            <p id="consiliumDetailsConflictText"></p>
+-            <button type="button" class="btn btn--primary btn--sm" id="consiliumDetailsConflictRefreshBtn">Обновить данные</button>
++        <div class="modal__body" role="region" aria-label="Сведения о записи" tabindex="0">
++            <div class="alert alert--warning is-hidden" id="consiliumDetailsConflict" role="alert">
++                <p id="consiliumDetailsConflictText"></p>
++                <button type="button" class="btn btn--primary btn--sm" id="consiliumDetailsConflictRefreshBtn">Обновить данные</button>
++            </div>
++            <div class="form" id="consiliumDetailsBody"></div>
++            <section class="consilium-revision-history is-hidden" id="consiliumDetailsRevisions" aria-label="История доработок"></section>
+         </div>
+-        <div class="modal__body form" id="consiliumDetailsBody"></div>
+-        <section class="consilium-revision-history is-hidden" id="consiliumDetailsRevisions" aria-label="История доработок"></section>
+         <div class="modal__foot">
+             <button type="button" class="btn btn--ghost is-hidden" id="consiliumBackdatingReasonsBtn">Показать причины</button>
+             <button type="button" class="btn btn--ghost is-hidden" id="consiliumArchiveToggleBtn"></button>
+-            <button type="button" class="btn btn--primary" id="closeConsiliumDetailsBtn">Закрыть</button>
++            <button type="button" class="btn btn--ghost" id="closeConsiliumDetailsBtn">Закрыть</button>
++            <div id="consiliumDetailsPrimaryAction"></div>
+         </div>
+     </div>
+ </div>
+@@ -1943,6 +1948,6 @@
+ <script src="/static/quality-v1.js?v=wp-i-quality-v1"></script>
+ <script src="/static/f1-management.js?v=fast-track-f5"></script>
+ <script src="/static/f1-doctor.js?v=fast-track-f5"></script>
+-<script src="/static/app.js?v=fast-track-f5"></script>
++<script src="/static/app.js?v=fast-track-f6"></script>
+ </body>
+ </html>
+diff --git a/static/app.js b/static/app.js
+index 23ec2b8..c3c9d4d 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -3869,6 +3869,7 @@ const app = {
+             el('div', {}, [
+                 this.patientAttentionCard(p),
+                 this.patientPortalAccessCard(p),
++                this.can('accessConsilium') ? this.patientConsiliumCard(p.id) : null,
+                 el('div', { class: 'panel panel--pad', id: 'patientQualityBlock' }, [
+                     el('h2', { class: 'section-title', text: 'Качество данных' }),
+                     el('div', { class: 'empty', text: 'Загрузка…' }),
+@@ -3882,6 +3883,46 @@ const app = {
+         ]);
+     },
+ 
++    patientConsiliumCard(patientId) {
++        const results = el('div', {id: 'patientConsiliumRecords', role: 'status'});
++        const load = el('button', {
++            id: 'loadPatientConsiliumBtn', class: 'btn btn--ghost btn--sm', type: 'button',
++            text: 'Показать записи',
++            on: {click: () => this.loadPatientConsiliumRecords(patientId, results, load)},
++        });
++        return el('section', {class: 'panel panel--pad', 'aria-labelledby': 'patientConsiliumTitle'}, [
++            el('h2', {id: 'patientConsiliumTitle', class: 'section-title', text: 'Онкологический консилиум'}),
++            load, results,
++        ]);
++    },
++
++    async loadPatientConsiliumRecords(patientId, results, load) {
++        if (load.disabled || !this.can('accessConsilium') || this.sessionExpired) return;
++        const epoch = this.sessionEpoch;
++        const current = () => results.isConnected && this.currentView === 'patient' && this.currentTab === 'overview' &&
++            this.currentPatientId === patientId && this.sessionEpoch === epoch && !this.sessionExpired;
++        load.disabled = true;
++        results.textContent = 'Проверяем доступ…';
++        try {
++            const {appointments} = await apiGetJson('/api/consilium/appointments');
++            if (!current()) return;
++            const records = appointments.filter(item => item.patientId === patientId);
++            results.replaceChildren(records.length ? el('ul', {class: 'f1-list'}, records.map(item =>
++                el('li', {}, el('button', {
++                    type: 'button', class: 'btn btn--ghost btn--sm',
++                    text: [this.formatConsiliumDate(item.scheduledDate, item.scheduledTime), item.statusLabel].join(' · '),
++                    on: {click: () => { if (current()) void this.openConsiliumDetails(item); }},
++                })))) : el('p', {text: 'Доступных записей нет.'}));
++        } catch {
++            if (current()) results.textContent = 'Не удалось загрузить записи. Попробуйте обновить.';
++        } finally {
++            if (current()) {
++                load.textContent = 'Обновить записи';
++                load.disabled = false;
++            }
++        }
++    },
++
+     patientAttentionCard(p) {
+         const activeCount = (p.attention && p.attention.activeCount) || 0;
+         return el('div', { class: `panel panel--pad attention-panel ${activeCount ? 'attention-panel--active' : ''}` }, [
+@@ -9267,6 +9308,8 @@ const app = {
+         if(!current())return;
+         loadState.classList.add('is-hidden');this.setConsiliumReadPresentation('ready');
+         const allRows = this.consilium.appointments || [];
++        const showRecords = !chair && this.can('bookConsilium');
++        $('consiliumAppointmentsPanel').classList.toggle('is-hidden', !showRecords);
+         let rows = allRows;
+         if (chair) {
+             const selectedChairGroups = new Set(this.consiliumSelectedGroups('chair'));
+@@ -9307,11 +9350,11 @@ const app = {
+                 id: `consilium-row-${item.id}`,
+                 class: this.consilium.focusId === item.id ? 'consilium-row--focused' : '',
+             }, [
+-                el('td', { class: 'cell-when' }, [
++                el('td', {class: 'cell-when', 'data-label': 'Дата и время'}, [
+                     el('div', { class: 'cell-when__time', text: this.formatConsiliumDate(item.scheduledDate, item.scheduledTime) }),
+                     el('div', { class: 'person__meta', text: item.hasBenefit ? 'Есть льгота' : 'Без льготы' }),
+                 ]),
+-                el('td', {}, [
++                el('td', {'data-label': 'Пациент'}, [
+                     el('button', {
+                         type: 'button', class: 'consilium-patient-button', text: item.patientName,
+                         on: { click: () => this.openConsiliumDetails(item) },
+@@ -9322,13 +9365,13 @@ const app = {
+                     item.outsideSchedule ? el('span', { class: 'chip chip--warning', text: 'Вне расписания' }) : null,
+                     item.backdated ? el('span', { class: 'chip chip--neutral', text: 'Оформлено задним числом' }) : null,
+                 ]),
+-                el('td', { text: item.consiliumGroupLabel }),
+-                el('td', { class: 'consilium-diagnosis', text: diagnoses }),
+-                el('td', {}, specialists.length
++                el('td', {'data-label': 'Группа', text: item.consiliumGroupLabel}),
++                el('td', {class: 'consilium-diagnosis', 'data-label': 'Диагноз', text: diagnoses}),
++                el('td', {'data-label': 'Участники'}, specialists.length
+                     ? frag(specialists.map(label => el('span', { class: 'chip chip--neutral consilium-chip', text: label })))
+                     : el('span', { class: 'muted', text: 'Не указаны' })),
+-                el('td', {}, this.renderConsiliumStatus(item)),
+-                el('td', { class: 'cell-actions' }, chair
++                el('td', {'data-label': 'Статус'}, this.renderConsiliumStatus(item)),
++                el('td', {class: 'cell-actions', 'data-label': 'Действия'}, chair
+                     ? this.renderConsiliumChairActions(item)
+                     : (this.can('editPatients') && this.consiliumEditable(item)
+                         ? el('button', {
+@@ -9655,24 +9698,38 @@ const app = {
+     },
+ 
+     async deleteConsiliumAppointment(item) {
+-        if(this.consilium.formPending || this.consilium.refreshPending)return;
++        const owner = this.consilium, epoch = this.sessionEpoch;
++        const available = () => this.consilium === owner && epoch === this.sessionEpoch && !this.sessionExpired &&
++            !$('consiliumModal').hidden && owner.editingId === item.id && !owner.formPending &&
++            !owner.refreshPending && $('consiliumConflict').classList.contains('is-hidden');
++        if (!available() || ui.topModal() !== 'consiliumModal') return;
+         const confirmed = await ui.confirm({
+             title: 'Удалить запись на консилиум?',
+             text: `${item.patientName}. Слот ${this.formatConsiliumDate(item.scheduledDate, item.scheduledTime)} освободится для новой записи.`,
+             okLabel: 'Удалить запись',
+             danger: true,
+         });
+-        if (!confirmed || this.consilium.formPending || this.consilium.refreshPending) return;
++        if (!confirmed || !available()) return;
++        const form = $('consiliumForm');
++        const current = () => this.consilium === owner && epoch === this.sessionEpoch && !this.sessionExpired;
++        owner.formPending = true;
++        form.inert = true;
+         try {
+-            await apiDelete(`/api/consilium/appointments/${encodeURIComponent(item.id)}?version=${encodeURIComponent(item.version)}`);
+-            ui.closeModal('consiliumModal');
+-            this.consilium.editingId = null;
+-            this.consilium.loaded = false;
++            await apiDelete(`/api/consilium/appointments/${encodeURIComponent(item.id)}?version=${encodeURIComponent(owner.editingVersion)}`);
++            if (!current()) return;
++            ui.closeModal('consiliumModal', {force: true});
++            owner.editingId = null;
++            owner.loaded = false;
+             await this.renderConsilium();
+-            ui.toast('Запись удалена, слот снова свободен.', 'good');
++            if (current()) ui.toast('Запись удалена, слот снова свободен.', 'good');
+         } catch (error) {
+-            if (this.isConsiliumVersionConflict(error)) return this.showConsiliumConflict(error);
+-            ui.toast('Не удалось удалить запись: ' + error.message, 'danger');
++            if (!current()) return;
++            if (this.isConsiliumVersionConflict(error) || !error.status || error.status >= 500) {
++                this.showConsiliumConflict({message: 'Удаление не подтверждено. Обновите данные перед новым действием. ' + error.message});
++            } else ui.toast('Не удалось удалить запись: ' + error.message, 'danger');
++        } finally {
++            owner.formPending = false;
++            form.inert = false;
+         }
+     },
+ 
+@@ -9744,7 +9801,52 @@ const app = {
+         } finally {if(epoch===this.sessionEpoch)this.consilium.favoritePending=false;}
+     },
+ 
+-    openConsiliumDetails(item) {
++    async readConsiliumRecord(id, {archived = false} = {}) {
++        const {appointments} = await apiGetJson('/api/consilium/appointments' + (archived ? '?archived=true' : ''));
++        if (!Array.isArray(appointments)) throw new Error('Не удалось проверить список записей.');
++        return appointments.find(item => item.id === id) || null;
++    },
++
++    async openConsiliumDetails(item) {
++        if (!item?.id || !this.can('accessConsilium') || this.sessionExpired || this.consilium.archivePending) return;
++        const owner = this.consilium, epoch = this.sessionEpoch, view = this.currentView;
++        const read = this.beginRead('consilium-detail');
++        const modal = $('consiliumDetailsModal');
++        const current = () => this.consilium === owner && epoch === this.sessionEpoch && view === this.currentView &&
++            !this.sessionExpired && this.isCurrentRead('consilium-detail', read) && !modal.hidden;
++        owner.detailsItem = null;
++        $('consiliumDetailsTitle').textContent = 'Запись на онкологический консилиум';
++        $('consiliumDetailsBody').replaceChildren(el('p', {role: 'status', text: 'Проверяем доступ к записи…'}));
++        $('consiliumDetailsRevisions').replaceChildren();
++        $('consiliumDetailsRevisions').classList.add('is-hidden');
++        $('consiliumDetailsConflict').classList.add('is-hidden');
++        $('consiliumDetailsPrimaryAction').replaceChildren();
++        for (const id of ['consiliumArchiveToggleBtn', 'consiliumBackdatingReasonsBtn']) $(id).classList.add('is-hidden');
++        this.beginRead('consilium-history-consiliumDetailsRevisions');
++        if (modal.hidden) ui.openModal('consiliumDetailsModal');
++        modal.setAttribute('aria-busy', 'true');
++        try {
++            const fresh = await this.readConsiliumRecord(item.id, {
++                archived: Boolean(item.archived && !this.can('consiliumChair')),
++            });
++            if (!current()) return;
++            if (!fresh) {
++                $('consiliumDetailsBody').replaceChildren(el('p', {role: 'status', text: 'Запись больше недоступна.'}));
++                return;
++            }
++            this.renderConsiliumDetails(fresh);
++        } catch (error) {
++            if (current()) $('consiliumDetailsBody').replaceChildren(
++                el('p', {role: 'alert', text: 'Не удалось проверить доступ к записи.'}),
++                el('button', {type: 'button', class: 'btn btn--ghost', text: 'Обновить запись',
++                    on: {click: () => this.openConsiliumDetails(item)}}),
++            );
++        } finally {
++            if (current()) modal.setAttribute('aria-busy', 'false');
++        }
++    },
++
++    renderConsiliumDetails(item) {
+         const readonlyField = (label, value, wide = false) => el('div', { class: `field${wide ? ' field--wide' : ''}` }, [
+             el('span', { class: 'field__label', text: label }),
+             el('div', { class: 'consilium-detail-value', text: value || 'Не указано' }),
+@@ -9795,7 +9897,8 @@ const app = {
+         // Архив — личное действие автора над подписанной записью; сервер
+         // проверяет то же (автор, область видимости, подпись) и отвечает 409.
+         const toggle = $('consiliumArchiveToggleBtn');
+-        const canArchive = item.status === 'signed' && this.can('bookConsilium') && !this.can('consiliumChair');
++        const canArchive = this.currentView === 'consilium' && item.status === 'signed' &&
++            this.can('bookConsilium') && !this.can('consiliumChair');
+         toggle.classList.toggle('is-hidden', !canArchive);
+         toggle.textContent = item.archived ? 'Восстановить из архива' : 'Перенести в архив';
+         toggle.disabled = false;
+@@ -9804,7 +9907,18 @@ const app = {
+             && ['consilium_chair', 'department_head'].includes(this.user.roleId);
+         $('consiliumBackdatingReasonsBtn').classList.toggle('is-hidden', !canReadReasons);
+         this.consilium.detailsItem = item;
+-        ui.openModal('consiliumDetailsModal');
++        const chairAction = this.can('decideConsilium') && ['recorded', 'revised', 'in_review'].includes(item.status);
++        const editAction = this.can('bookConsilium') && this.consiliumEditable(item);
++        if (this.currentView === 'consilium' && (chairAction || editAction)) $('consiliumDetailsPrimaryAction').append(el('button', {
++            id: 'consiliumDetailsAction', type: 'button', class: 'btn btn--primary',
++            text: chairAction ? 'Открыть рассмотрение' : 'Изменить или перенести',
++            on: {click: () => {
++                if (this.consilium.detailsItem !== item || !this.consiliumGridReady()) return;
++                ui.closeModal('consiliumDetailsModal');
++                if (chairAction) void this.openConsiliumDecision(item.id);
++                else void this.openConsiliumModal(item.id);
++            }},
++        }));
+     },
+ 
+     async toggleConsiliumArchive() {
+@@ -9926,15 +10040,45 @@ const app = {
+     },
+ 
+     async prefillConsiliumDiagnosisFromPatient() {
+-        if (this.consilium.editingId) return;
+-        const selected=$('consiliumPatient').value;
+-        if(!selected)return;
+-        let patient=this.getPatient(selected);
+-        if(!patient){try{patient=await this.refreshPatientRecord(selected);}catch(error){ui.toast(error.message,'danger');return;}}
+-        if($('consiliumPatient').value!==selected||this.sessionExpired)return;
+-        const diagnosis = this.validConsiliumDiagnosis(patient && patient.diagnosis, false);
++        const owner = this.consilium;
++        if (owner.editingId) return;
++        const selected = $('consiliumPatient').value;
++        const fields = ['consiliumPrimaryDiagnosis', 'consiliumPolicyNumber', 'consiliumLocalization'];
++        if (owner.prefillPatientId !== selected) {
++            for (const id of [...fields, 'consiliumComment', 'consiliumAdditionalParticipant']) $(id).value = '';
++            this.toggleConsiliumAdditionalDiagnosis(false);
++            $('consiliumUvRuv').checked = false;
++            for (const id of ['consiliumBenefit', 'consiliumNeedsSurgeon', 'consiliumNeedsRadiotherapist']) $(id).value = 'no';
++        }
++        owner.prefillPatientId = selected;
++        owner.verifiedPatient = null;
++        $('submitConsiliumBtn').disabled = true;
++        if (!selected) return;
++        const epoch = this.sessionEpoch, read = this.beginRead('consilium-patient-prefill');
++        const initial = fields.map(id => $(id).value);
++        const current = () => this.consilium === owner && epoch === this.sessionEpoch && !this.sessionExpired &&
++            !$('consiliumModal').hidden && !owner.editingId && $('consiliumPatient').value === selected &&
++            this.isCurrentRead('consilium-patient-prefill', read);
++        let patient;
++        try {
++            patient = await apiGetJson('/api/patients/' + encodeURIComponent(selected));
++        } catch (error) {
++            if (current()) {
++                if ([403, 404].includes(error.status)) {
++                    for (const id of [...fields, 'consiliumComment', 'consiliumAdditionalParticipant']) $(id).value = '';
++                    this.toggleConsiliumAdditionalDiagnosis(false);
++                }
++                this.showConsiliumFormError('Не удалось подтвердить доступ к пациенту. Выберите пациента заново.');
++            }
++            return;
++        }
++        if (!current() || patient?.id !== selected) return;
++        owner.verifiedPatient = {id: selected, epoch};
++        $('submitConsiliumBtn').disabled = !$('consiliumConflict').classList.contains('is-hidden') || owner.formPending;
++        if (fields.some((id, index) => $(id).value !== initial[index])) return;
++        const diagnosis = this.validConsiliumDiagnosis(patient.diagnosis, false);
+         $('consiliumPrimaryDiagnosis').value = diagnosis || '';
+-        $('consiliumPolicyNumber').value = (patient && patient.policyNumber) || '';
++        $('consiliumPolicyNumber').value = patient.policyNumber || '';
+         const diagnosisItem = this.allDiagnosisOptions().find(item => item.code === diagnosis);
+         $('consiliumLocalization').value = diagnosisItem ? diagnosisItem.localizationLabel : '';
+         this.fillConsiliumDiagnosisList();
+@@ -10051,7 +10195,8 @@ const app = {
+             this.consilium.candidatePaging ||= {trail:[null],index:0};
+             if(!cursor)this.consilium.candidatePaging={trail:[null],index:0};
+             pager.replaceChildren(this.boundedPager(data,this.consilium.candidatePaging,next=>this.fillConsiliumPatientsForGroup(record,next)));
+-            $('submitConsiliumBtn').disabled=!rows.length;
++            if (!record && !$('consiliumModal').hidden) await this.prefillConsiliumDiagnosisFromPatient();
++            else $('submitConsiliumBtn').disabled = !record || !rows.length;
+             return rows;
+         } catch(error) {
+             if(!this.isCurrentRead('consilium-candidates',version))return [];
+@@ -10133,19 +10278,19 @@ const app = {
+             ? 'Изменение и перенос записи на консилиум'
+             : 'Запись на онкологический консилиум';
+         $('submitConsiliumBtn').textContent = record ? 'Сохранить изменения' : 'Создать запись';
+-        $('submitConsiliumBtn').disabled = patients.length === 0;
++        $('submitConsiliumBtn').disabled = !record || patients.length === 0;
+         $('deleteConsiliumBtn').classList.toggle('is-hidden', !record || !this.consiliumEditable(record));
+         $('deleteConsiliumBtn').disabled = false;
+         // Повторная подача — отдельное действие после возврата (WP2.3-B1):
+         // сохранение формы статус «На доработке» не меняет.
+         $('resubmitConsiliumBtn').classList.toggle('is-hidden', !record || record.status !== 'needs_revision');
+         $('resubmitConsiliumBtn').disabled = false;
++        this.setConsiliumBackdatedMode(!record && !!options.backdated);
++        if ($('consiliumModal').hidden) ui.openModal('consiliumModal');
+         if (!record && patients.length) {
+             $('consiliumPatient').value = patients[0].id;
+-            this.prefillConsiliumDiagnosisFromPatient();
++            void this.prefillConsiliumDiagnosisFromPatient();
+         }
+-        this.setConsiliumBackdatedMode(!record && !!options.backdated);
+-        ui.openModal('consiliumModal');
+     },
+ 
+     // Свободные исторические слоты председателя (WP2.3-B3), новые сверху.
+@@ -10180,7 +10325,6 @@ const app = {
+         if (!slot) return;
+         $('consiliumGroup').value = slot.consiliumGroupLabel;
+         await this.fillConsiliumPatientsForGroup();
+-        this.prefillConsiliumDiagnosisFromPatient();
+         this.updateConsiliumAvailableSlots();
+         $('submitConsiliumBtn').disabled = false;
+     },
+@@ -10326,6 +10470,7 @@ const app = {
+     },
+ 
+     resetConsiliumConflict() {
++        this.consilium.unconfirmedBooking = null;
+         $('consiliumConflict').classList.add('is-hidden');
+         $('consiliumConflictDraft').classList.add('is-hidden');
+         $('consiliumConflictDraftText').value = '';
+@@ -10361,6 +10506,35 @@ const app = {
+             return;
+         }
+         if(epoch!==this.sessionEpoch || owner!==this.consilium || this.sessionExpired)return;
++        if (!appointmentId && owner.unconfirmedBooking) {
++            const pending = owner.unconfirmedBooking;
++            const sameSlot = item => item.scheduledDate === pending.scheduledDate &&
++                item.scheduledTime === pending.scheduledTime && item.consiliumGroup === pending.consiliumGroup;
++            const existing = owner.appointments.find(item => item.patientId === pending.patientId && sameSlot(item));
++            const free = owner.schedule.some(slot => sameSlot(slot) && !slot.occupied &&
++                (pending.backdated ? slot.backdated : slot.bookable));
++            if (existing || owner.blockedPatientIds.includes(pending.patientId) || !free) {
++                $('consiliumConflictText').textContent = existing
++                    ? 'Сервер вернул запись для пациента на выбранное время. Новая отправка заблокирована.'
++                    : 'Сервер не подтвердил возможность записи. Новая отправка заблокирована.';
++                return;
++            }
++            try {
++                const patient = await apiGetJson('/api/patients/' + encodeURIComponent(pending.patientId));
++                if (epoch !== this.sessionEpoch || owner !== this.consilium || this.sessionExpired ||
++                    patient?.id !== pending.patientId || $('consiliumPatient').value !== pending.patientId) return;
++            } catch {
++                if (epoch === this.sessionEpoch && owner === this.consilium && !this.sessionExpired) {
++                    $('consiliumConflictText').textContent = 'Доступ к пациенту не подтвержден. Новая отправка заблокирована.';
++                }
++                return;
++            }
++            owner.verifiedPatient = {id: pending.patientId, epoch};
++            this.resetConsiliumConflict();
++            $('submitConsiliumBtn').disabled = false;
++            ui.toast('Сервер подтвердил свободное время. Проверьте поля перед новой отправкой.', 'warning');
++            return;
++        }
+         const fresh = this.consilium.appointments.find(item => item.id === appointmentId);
+         if (!fresh) {
+             ui.closeModal('consiliumModal',{force:true});
+@@ -10498,12 +10672,20 @@ const app = {
+ 
+     async submitConsiliumAppointment(event) {
+         event.preventDefault();
+-        if(this.consilium.formPending || !$('consiliumConflict').classList.contains('is-hidden'))return;
++        if (this.sessionExpired || $('consiliumModal').hidden || this.consilium.formPending ||
++            this.consilium.refreshPending || !$('consiliumConflict').classList.contains('is-hidden')) return;
++        const verified = this.consilium.verifiedPatient;
++        if (!this.consilium.editingId && (!verified || verified.id !== $('consiliumPatient').value ||
++            verified.epoch !== this.sessionEpoch)) {
++            this.showConsiliumFormError('Подтвердите доступ к выбранному пациенту перед сохранением.');
++            return;
++        }
+         const formOwner=this.consilium,form=$('consiliumForm'),deleteButton=$('deleteConsiliumBtn'),deleteDisabled=deleteButton.disabled;
+         formOwner.formPending=true;form.inert=true;deleteButton.disabled=true;const epoch=this.sessionEpoch;
+         $('resubmitConsiliumBtn').disabled=true;
+         const button = $('submitConsiliumBtn');
+         button.disabled = true;
++        let booking;
+         try {
+             const backdated = !this.consilium.editingId && this.consilium.backdatedMode;
+             if (this.consilium.editingId) {
+@@ -10516,12 +10698,15 @@ const app = {
+                     this.showConsiliumFormError('Выберите исторический слот и укажите причину позднего оформления.');
+                     return;
+                 }
++                booking = {...payload, backdated: true};
+                 await apiPost('/api/consilium/appointments/backdated', { ...payload, reason });
+             } else {
+                 const payload = this.consiliumFormPayload();
+                 if (!payload) return;
++                booking = payload;
+                 await apiPost('/api/consilium/appointments', payload);
+             }
++            if (epoch !== this.sessionEpoch || this.sessionExpired) return;
+             ui.closeModal('consiliumModal',{force:true});
+             ui.toast(this.consilium.editingId ? 'Запись обновлена.'
+                 : (backdated ? 'Консилиум оформлен задним числом.' : 'Пациент записан на консилиум.'), 'good');
+@@ -10531,7 +10716,13 @@ const app = {
+         } catch (error) {
+             if (this.isConsiliumVersionConflict(error)) return this.showConsiliumConflict(error);
+             if(epoch!==this.sessionEpoch || this.sessionExpired)return;
+-            if(!error.status || error.status>=500)this.showConsiliumConflict({message:'Результат сохранения не подтвержден. Ввод сохранен; проверьте состояние перед повтором. '+error.message});
++            if (!error.status || error.status >= 500) {
++                if (booking) {
++                    const {patientId, scheduledDate, scheduledTime, consiliumGroup, backdated} = booking;
++                    formOwner.unconfirmedBooking = {patientId, scheduledDate, scheduledTime, consiliumGroup, backdated};
++                }
++                this.showConsiliumConflict({message: 'Результат сохранения не подтвержден. Ввод сохранен. Обновите данные перед новым действием.'});
++            }
+             else this.showConsiliumFormError('Не удалось сохранить запись: ' + error.message);
+         } finally {
+             formOwner.formPending=false;form.inert=false;
+@@ -10592,6 +10783,18 @@ const app = {
+ 
+     allowConsiliumDecisionClose(id) {
+         if(id==='consiliumDetailsModal'&&this.consilium.archivePending&&!this.sessionExpired)return false;
++        if (id === 'consiliumModal' && !this.consilium.formPending && !this.consilium.refreshPending) {
++            this.beginRead('consilium-patient-prefill');
++        }
++        if (id === 'consiliumDetailsModal') {
++            this.beginRead('consilium-detail');
++            this.beginRead('consilium-history-consiliumDetailsRevisions');
++            this.consilium.detailsItem = null;
++            $('consiliumDetailsBody').replaceChildren();
++            $('consiliumDetailsRevisions').replaceChildren();
++            $('consiliumDetailsTitle').textContent = 'Запись на онкологический консилиум';
++            $('consiliumDetailsPrimaryAction').replaceChildren();
++        }
+         if(id==='consiliumArchiveModal'){this.consilium.archiveReady=false;this.beginRead('consilium-archive');}
+         if(id==='consiliumModal' && !this.sessionExpired && (this.consilium.formPending || this.consilium.refreshPending)) {ui.toast('Дождитесь завершения запроса. Автоматического повтора нет.','warning');return false;}
+         if (!['consiliumDecisionModal','consiliumRevisionModal'].includes(id) || $(id).hidden || this.sessionExpired) return true;
+@@ -10612,7 +10815,8 @@ const app = {
+ 
+     consiliumDecisionReady() {
+         const ctx=this.consilium.decisionContext;
+-        return ctx && ctx.epoch===this.sessionEpoch && !ctx.busy && !ctx.blocked && this.can('decideConsilium') && this.consiliumGridReady(ctx.generation);
++        return ctx && ctx.epoch===this.sessionEpoch && !ctx.busy && !ctx.confirmingSign && !ctx.blocked &&
++            this.can('decideConsilium') && this.consiliumGridReady(ctx.generation);
+     },
+ 
+     renderConsiliumDecisionContext(record) {
+@@ -10626,11 +10830,24 @@ const app = {
+     },
+ 
+     // Opening is read-only. All clinical transitions are explicit, separate requests.
+-    openConsiliumDecision(appointmentId) {
+-        if (!this.can('decideConsilium') || !this.consiliumGridReady()) return;
+-        if (!$('consiliumDecisionModal').hidden || !$('consiliumRevisionModal').hidden) return;
+-        const record=this.consilium.appointments.find(item=>item.id===appointmentId);
+-        if (!record || !['recorded','revised','in_review'].includes(record.status)) return;
++    async openConsiliumDecision(appointmentId) {
++        if (!this.can('decideConsilium') || !this.consiliumGridReady() || ui.topModal()) return;
++        const epoch = this.sessionEpoch, generation = this.consilium.gridGeneration;
++        const read = this.beginRead('consilium-decision-open');
++        const current = () => epoch === this.sessionEpoch && this.currentView === 'consilium' &&
++            this.consiliumGridReady(generation) && this.isCurrentRead('consilium-decision-open', read) && !ui.topModal();
++        let record;
++        try {
++            record = await this.readConsiliumRecord(appointmentId);
++        } catch {
++            if (current()) ui.toast('Не удалось проверить актуальность записи.', 'warning');
++            return;
++        }
++        if (!current()) return;
++        if (!record || !['recorded', 'revised', 'in_review'].includes(record.status)) {
++            ui.toast('Запись больше недоступна для рассмотрения.', 'warning');
++            return;
++        }
+         this.consilium.decisionId=appointmentId;
+         this.consilium.decisionContext={id:appointmentId,epoch:this.sessionEpoch,generation:this.consilium.gridGeneration,busy:false,blocked:false};
+         $('consiliumDecisionPatient').textContent=`${record.patientName} · ${this.formatConsiliumDate(record.scheduledDate,record.scheduledTime)} · ${record.consiliumGroupLabel}`;
+@@ -10655,10 +10872,23 @@ const app = {
+             await this.renderConsilium();
+             if(ctx!==this.consilium.decisionContext || ctx.epoch!==this.sessionEpoch || !this.consiliumGridReady())return;
+             const record=this.consilium.appointments.find(item=>item.id===ctx.id);
+-            ctx.generation=this.consilium.gridGeneration;ctx.blocked=!record || !['recorded','revised','in_review'].includes(record.status);
++            ctx.generation=this.consilium.gridGeneration;
++            const unchangedIntake = ctx.action === 'review' && record && ctx.record &&
++                ['recorded', 'revised'].includes(ctx.record.status) && record.status === 'in_review' &&
++                Object.keys(ctx.record).every(key => ['status', 'statusLabel', 'version', 'reviewStartedAt', 'updatedAt'].includes(key) ||
++                    JSON.stringify(record[key]) === JSON.stringify(ctx.record[key]));
++            if (unchangedIntake) ctx.stale = false;
++            else ctx.stale ||= Boolean(record && ctx.record && (record.version !== ctx.record.version || record.status !== ctx.record.status));
++            ctx.blocked=!record || ctx.stale || !['recorded','revised','in_review'].includes(record.status);
+             ctx.record=record;
++            if (!record) {
++                $('consiliumDecisionContext').replaceChildren();
++                $('consiliumDecisionPatient').textContent = 'Запись больше недоступна.';
++            }
+             if(record){this.renderConsiliumDecisionContext(record);this.renderConsiliumRevisionHistory('consiliumDecisionRevisions',record);}
+-            $('consiliumDecisionError').textContent=ctx.blocked?'Серверное состояние изменилось. Повторное действие недоступно; введенный текст сохранен в форме.':'';
++            $('consiliumDecisionError').textContent = ctx.blocked
++                ? 'Серверное состояние изменилось. Ввод сохранен. Чтобы начать новое действие, откройте актуальную запись заново.'
++                : '';
+             $('consiliumDecisionError').classList.toggle('is-hidden',!ctx.blocked);
+             $('consiliumDecisionUncertain').classList.add('is-hidden');
+             $('consiliumRevisionError').classList.add('is-hidden');
+@@ -10667,9 +10897,21 @@ const app = {
+ 
+     async runConsiliumDecisionAction(action,payload,path=null) {
+         if(!this.consiliumDecisionReady())return;
+-        const ctx=this.consilium.decisionContext;ctx.busy=true;this.syncConsiliumReviewState(ctx.record);
++        const ctx=this.consilium.decisionContext;ctx.busy=true;ctx.action=action;this.syncConsiliumReviewState(ctx.record);
+         const errorId=action==='return'?'consiliumRevisionError':'consiliumDecisionError';
+         try {
++            // The existing chair API atomically checks the source state, but accepts no version field.
++            const fresh = await this.readConsiliumRecord(ctx.id);
++            if (ctx !== this.consilium.decisionContext || ctx.epoch !== this.sessionEpoch ||
++                !this.can('decideConsilium') || !this.consiliumGridReady(ctx.generation)) return;
++            if (!fresh || fresh.version !== ctx.record.version || fresh.status !== ctx.record.status) {
++                ctx.stale = true;
++                if (!fresh) {
++                    $('consiliumDecisionContext').replaceChildren();
++                    $('consiliumDecisionPatient').textContent = 'Запись больше недоступна.';
++                }
++                throw new Error('Запись изменилась. Обновите данные.');
++            }
+             const record=await apiPost(path || `/api/consilium/appointments/${encodeURIComponent(ctx.id)}/${action}`,payload);
+             if(ctx!==this.consilium.decisionContext || ctx.epoch!==this.sessionEpoch)return;
+             ctx.record=record;ctx.blocked=action!=='review';
+@@ -10760,14 +11002,30 @@ const app = {
+ 
+     async submitConsiliumDecision(event) {
+         event.preventDefault();
+-        if(!this.consiliumDecisionReady())return;
++        if (!this.consiliumDecisionReady() || this.consilium.decisionContext.record?.status !== 'in_review' ||
++            ui.topModal() !== 'consiliumDecisionModal') return;
++        const ctx = this.consilium.decisionContext;
+         const treatmentType=$('consiliumTreatmentType').value,treatmentScheme=$('consiliumTreatmentScheme').value.trim();
+         this.syncConsiliumTreatmentScheme();
+         if(!treatmentType || (treatmentType==='chemotherapy'&&!treatmentScheme)) {
+             $('consiliumDecisionError').textContent='Выберите лечение и, для химиотерапии, укажите схему.';
+             $('consiliumDecisionError').classList.remove('is-hidden');return;
+         }
+-        await this.runConsiliumDecisionAction('sign',{treatmentType,treatmentScheme,treatmentSchemeCode:$('consiliumTreatmentSchemeCode').value.trim(),goc:$('consiliumGoc').checked,goc65Plus:$('consiliumGoc65Plus').checked});
++        const values = this.consiliumDecisionValues();
++        ctx.confirmingSign = true;
++        const confirmed = await ui.confirm({
++            title: 'Подписать решение консилиума?',
++            text: 'Подписанное решение и медицинский снимок сохранятся без возможности изменить их.',
++            okLabel: 'Подписать решение',
++        });
++        ctx.confirmingSign = false;
++        if (!confirmed || this.consilium.decisionContext !== ctx || !this.consiliumDecisionReady() ||
++            ui.topModal() !== 'consiliumDecisionModal' || values !== this.consiliumDecisionValues()) return;
++        await this.runConsiliumDecisionAction('sign', {
++            treatmentType, treatmentScheme: $('consiliumTreatmentScheme').value.trim(),
++            treatmentSchemeCode: $('consiliumTreatmentSchemeCode').value.trim(),
++            goc: $('consiliumGoc').checked, goc65Plus: $('consiliumGoc65Plus').checked,
++        });
+     },
+ 
+     openConsiliumRevision() {
+@@ -12106,8 +12364,7 @@ const app = {
+                 group.value.toLowerCase() === entered || group.label.toLowerCase() === entered
+             );
+             if (knownGroup) {
+-                const patients = await this.fillConsiliumPatientsForGroup(record);
+-                if (!record && patients.length) this.prefillConsiliumDiagnosisFromPatient();
++                await this.fillConsiliumPatientsForGroup(record);
+             }
+             this.updateConsiliumAvailableSlots(record);
+         });
+diff --git a/static/styles.css b/static/styles.css
+index a2d3df3..9317438 100644
+--- a/static/styles.css
++++ b/static/styles.css
+@@ -3197,6 +3197,103 @@ html[data-theme="light"] #consiliumForm .alert--danger { color:#b91c1c; }
+ 
+ #consiliumDecisionPatient { color:var(--text); }
+ 
++/* Staff-UX v2 record and decision panels reuse the existing dialog controls. */
++.consilium-work-panel {
++    align-items: stretch;
++    justify-content: flex-end;
++    padding: 0;
++    backdrop-filter: none;
++}
++
++.consilium-work-panel > .modal__box {
++    max-width: min(700px, 55vw);
++    max-height: 100%;
++    min-width: 0;
++    min-height: 0;
++    border-radius: var(--r-lg) 0 0 var(--r-lg);
++    border-inline-end: 0;
++}
++
++.consilium-work-panel .modal__head,
++.consilium-work-panel .modal__foot {
++    flex: 0 0 auto;
++}
++
++.consilium-work-panel .modal__head > .btn {
++    flex: none;
++}
++
++.consilium-work-panel .modal__title,
++.consilium-work-panel .modal__body {
++    min-width: 0;
++    overflow-wrap: anywhere;
++}
++
++.consilium-work-panel .modal__body {
++    min-height: 0;
++}
++
++.consilium-work-panel .modal__body:focus-visible {
++    outline-offset: -2px;
++}
++
++.consilium-work-panel .modal__foot {
++    flex-wrap: wrap;
++    flex-direction: row;
++}
++
++.consilium-work-panel .modal__foot .btn,
++.consilium-work-panel .consilium-decision-actions .btn {
++    min-width: 0;
++    white-space: normal;
++    overflow-wrap: anywhere;
++}
++
++#consiliumDetailsPrimaryAction:empty {
++    display: none;
++}
++
++#consiliumDetailsBody .grid-2 {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++}
++
++#consiliumDetailsBody .field {
++    gap: var(--sp-1);
++    min-width: 0;
++    margin-bottom: 0;
++}
++
++#consiliumDetailsBody .consilium-detail-value {
++    min-height: auto;
++    padding: 0;
++    border: 0;
++    background: transparent;
++}
++
++@media (max-width: 1023px) {
++    .consilium-work-panel > .modal__box {
++        max-width: 100%;
++        border: 0;
++        border-radius: 0;
++    }
++}
++
++@media (max-width: 700px) {
++    .consilium-work-panel .modal__head,
++    .consilium-work-panel .modal__body,
++    .consilium-work-panel .modal__foot {
++        padding: var(--sp-3) var(--sp-4);
++    }
++
++    #consiliumDetailsBody .grid-2 {
++        grid-template-columns: minmax(0, 1fr);
++    }
++
++    .consilium-work-panel .modal__foot > :not(.is-hidden) {
++        flex: 1 1 auto;
++    }
++}
++
+ /* I-5C: server registries, historical records and exact server analytics. */
+ .consilium-insight-filters { display:flex;flex-wrap:wrap;gap:1rem;align-items:end; }
+ .consilium-insight-filters .field { flex:1 1 12rem; }
+diff --git a/tools/tests/fast_track_f6/journey.cjs b/tools/tests/fast_track_f6/journey.cjs
+new file mode 100644
+index 0000000..5ef3830
+--- /dev/null
++++ b/tools/tests/fast_track_f6/journey.cjs
+@@ -0,0 +1,336 @@
++'use strict';
++
++const assert = require('node:assert/strict');
++const {createHash} = require('node:crypto');
++const fs = require('node:fs');
++const path = require('node:path');
++const {chromium} = require(process.env.PLAYWRIGHT_MODULE);
++const {setup, login, password} = require('../wp_i_consilium/fixtures.cjs');
++
++const origin = process.env.WP_H_ORIGIN;
++assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/);
++const appointments = '/api/consilium/appointments';
++const checks = [];
++const writes = [];
++const readHashes = [];
++const axeStates = [];
++const transportFaults = [];
++let phase = 'startup';
++let pageErrors = 0;
++
++async function keyboard(control) {
++    await control.and(control.page().locator(':not(:disabled)')).waitFor();
++    await control.focus();
++    assert(await control.evaluate(node => node === document.activeElement && !node.disabled));
++    await control.press('Enter');
++}
++
++function response(page, method, pathname) {
++    return page.waitForResponse(res => new URL(res.url()).pathname === pathname && res.request().method() === method);
++}
++
++async function medicalWrite(page, method, pathname, control, status = 200) {
++    const [res] = await Promise.all([response(page, method, pathname), keyboard(control)]);
++    assert.equal(res.status(), status);
++    return res.json();
++}
++
++async function authenticated(browser, fixture, role) {
++    const context = await browser.newContext({reducedMotion: 'reduce', viewport: {width: 1440, height: 1000}});
++    await context.route('**/*', route => new URL(route.request().url()).origin === origin
++        ? route.continue() : route.abort('blockedbyclient'));
++    const page = await context.newPage();
++    page.on('pageerror', () => { pageErrors++; });
++    page.on('request', req => {
++        const pathname = new URL(req.url()).pathname;
++        if (pathname.startsWith(appointments) && !['GET', 'HEAD'].includes(req.method())) {
++            writes.push({role, method: req.method(), pathname, body: req.postDataJSON()});
++        }
++    });
++    await login(page, origin, fixture.roles[role].username);
++    await keyboard(page.locator('[data-view=consilium]').first());
++    await page.waitForFunction(() => app.consiliumGridReady());
++    const date = page.locator(role === 'consilium_chair' ? '#consiliumDateFilter' : '#consiliumDoctorDate');
++    await date.fill(fixture.day);
++    await page.locator('.consilium-slot').first().waitFor();
++    await page.waitForFunction(() => app.consiliumGridReady());
++    return {context, page};
++}
++
++function slot(page, time) {
++    return page.locator('.consilium-slot').filter({has: page.locator('.consilium-slot-time', {hasText: time})});
++}
++
++function row(page, id) {
++    return page.locator('#consilium-grid-row-' + id);
++}
++
++async function refresh(page) {
++    const [res] = await Promise.all([response(page, 'GET', appointments), keyboard(page.locator('#consiliumRefreshBtn'))]);
++    assert.equal(res.status(), 200);
++    const bytes = await res.body();
++    readHashes.push(createHash('sha256').update(bytes).digest('hex'));
++    await page.waitForFunction(() => app.consiliumGridReady());
++    return JSON.parse(bytes).appointments;
++}
++
++async function detail(page, appointment, patient) {
++    const trigger = row(page, appointment.id).getByRole('button', {name: patient.name, exact: true});
++    const [fresh] = await Promise.all([response(page, 'GET', appointments), keyboard(trigger)]);
++    assert.equal(fresh.status(), 200);
++    const bytes = await fresh.body();
++    readHashes.push(createHash('sha256').update(bytes).digest('hex'));
++    const verified = JSON.parse(bytes).appointments.find(item => item.id === appointment.id);
++    assert.equal(verified.version, appointment.version);
++    await page.locator('#consiliumDetailsModal').waitFor();
++    await page.locator('#consiliumDetailsBody').getByText(patient.name, {exact: true}).waitFor();
++    const modal = page.locator('#consiliumDetailsModal');
++    await page.keyboard.press('Shift+Tab');
++    assert(await modal.evaluate(node => node.contains(document.activeElement)));
++    await page.keyboard.press('Tab');
++    await page.keyboard.press('Escape');
++    await modal.waitFor({state: 'hidden'});
++    assert(await trigger.evaluate(node => node === document.activeElement));
++    return verified;
++}
++
++async function appearance(page) {
++    const script = fs.readFileSync(process.env.AXE_SOURCE, 'utf8');
++    await page.evaluate(script);
++    const view = page.locator('#view-consilium');
++    for (const theme of ['light', 'dark']) {
++        if ((await page.locator('html').getAttribute('data-theme')) !== theme) {
++            await page.locator('#themeToggle').click();
++        }
++        assert.equal(await page.locator('html').getAttribute('data-theme'), theme);
++        for (const width of [320, 375, 768, 1440]) {
++            await page.setViewportSize({width, height: 1000});
++            const geometry = await view.evaluate(node => {
++                window.scrollTo(0, 0);
++                const title = node.querySelector('h1');
++                const box = title.getBoundingClientRect();
++                const x = box.left + Math.min(12, box.width / 2);
++                const y = box.top + box.height / 2;
++                const hit = document.elementFromPoint(x, y);
++                return {overflow: document.documentElement.scrollWidth > innerWidth,
++                    titleVisible: box.top >= 0 && (hit === title || title.contains(hit))};
++            });
++            assert.deepEqual(geometry, {overflow: false, titleVisible: true});
++            const violations = await page.evaluate(async () => (await axe.run(document, {
++                runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']},
++            })).violations.map(item => ({id: item.id, targets: item.nodes.map(node => node.target)})));
++            assert.deepEqual(violations, []);
++            axeStates.push({theme, width, violations: 0, titleVisible: true});
++            if (theme === 'light' && width === 1440 || theme === 'dark' && width === 375) {
++                await page.screenshot({path: path.join(process.env.OUT, 'f6-consilium-' + theme + '-' + width + '.png'),
++                    animations: 'disabled'});
++            }
++        }
++    }
++}
++
++async function run() {
++    const browser = await chromium.launch({headless: true, executablePath: process.env.BROWSER_EXECUTABLE,
++        args: ['--disable-background-networking']});
++    try {
++        const f = await setup(browser, origin);
++        const settings = {returnComment: 'Синтетическое основание F6', original: 'Синтетическая запись F6',
++            corrected: 'Синтетическое уточнение F6'};
++        phase = 'doctor booking slot and draft';
++        const doctor = await authenticated(browser, f, 'doctor');
++        const dp = doctor.page;
++        // The foreign appointment's time is occupied, with no identity or action.
++        const foreignSlot = slot(dp, '10:30');
++        assert((await foreignSlot.innerText()).includes('Занято'));
++        assert(!(await foreignSlot.innerText()).includes(f.foreign.name));
++        assert.equal(await foreignSlot.getByRole('button').count(), 0);
++        const selectedPatient = f.patients[0];
++        const patientPath = '/api/patients/' + selectedPatient.id;
++        const patientBefore = await f.call(doctor.context, 'GET', patientPath);
++        await keyboard(slot(dp, '10:00').getByRole('button', {name: /записать/i}));
++        await dp.locator('#consiliumModal').waitFor();
++        await dp.locator('#consiliumPatient').selectOption(f.patients[1].id);
++        await dp.waitForFunction(id => app.consilium.verifiedPatient?.id === id, f.patients[1].id);
++        await dp.locator('#consiliumComment').fill('Синтетический ввод другого пациента');
++        let fetched;
++        let release;
++        const arrived = new Promise(resolve => { fetched = resolve; });
++        const held = new Promise(resolve => { release = resolve; });
++        await dp.route(origin + patientPath, async route => {
++            const result = await route.fetch();
++            fetched(result.status());
++            await held;
++            await route.fulfill({response: result});
++        }, {times: 1});
++        const freshPatient = response(dp, 'GET', patientPath);
++        try {
++            await dp.locator('#consiliumPatient').selectOption(selectedPatient.id);
++            assert.equal(await Promise.race([arrived, freshPatient.then(() => null)]), 200);
++            assert.equal(await dp.locator('#submitConsiliumBtn').isDisabled(), true);
++            assert.equal(await dp.locator('#consiliumComment').inputValue(), '');
++            assert.equal(await dp.locator('#consiliumPrimaryDiagnosis').inputValue(), '');
++            assert.equal(writes.length, 0);
++        } finally {
++            release();
++        }
++        assert.equal((await freshPatient).status(), 200);
++        await dp.waitForFunction(() => document.querySelector('#consiliumPrimaryDiagnosis').value === 'C34.1');
++        checks.push('switching booked patient clears prior clinical fields and blocks writes until a fresh successful object read');
++        await dp.locator('#consiliumComment').fill(settings.original);
++        assert.equal(writes.length, 0);
++
++        // A real 201/commit is deliberately withheld to create an unknown result.
++        phase = 'actual booking COMMIT with lost reply';
++        let record;
++        await dp.route(origin + appointments, async route => {
++            assert.equal(route.request().method(), 'POST');
++            const committed = await route.fetch();
++            assert.equal(committed.status(), 201);
++            record = await committed.json();
++            await route.abort('connectionreset');
++        }, {times: 1});
++        await keyboard(dp.locator('#submitConsiliumBtn'));
++        await dp.locator('#consiliumConflict').waitFor();
++        assert(record && record.status === 'recorded' && record.patientId === selectedPatient.id);
++        assert.equal(await dp.locator('#consiliumComment').inputValue(), settings.original);
++        assert.equal(await dp.locator('#submitConsiliumBtn').isDisabled(), true);
++        assert.equal(writes.length, 1);
++        const [reconciled] = await Promise.all([response(dp, 'GET', appointments),
++            keyboard(dp.locator('#consiliumConflictRefreshBtn'))]);
++        assert.equal(reconciled.status(), 200);
++        const matching = (await reconciled.json()).appointments.filter(item => item.patientId === selectedPatient.id);
++        assert.equal(matching.length, 1);
++        assert.equal(matching[0].id, record.id);
++        await dp.locator('#consiliumConflictText').getByText(/Сервер вернул запись/).waitFor();
++        assert.equal(await dp.locator('#consiliumComment').inputValue(), settings.original);
++        assert.equal(await dp.locator('#submitConsiliumBtn').isDisabled(), true);
++        assert.equal(writes.length, 1);
++        await keyboard(dp.locator('#closeConsiliumBtn'));
++        await dp.locator('#consiliumModal').waitFor({state: 'hidden'});
++        await refresh(dp);
++        await row(dp, record.id).waitFor();
++        assert.equal(writes.length, 1);
++        transportFaults.push('browser connection reset after actual FastAPI 201 and COMMIT');
++        checks.push('saved free slot, masked foreign occupation, one real booking COMMIT with dropped reply, retained input until explicit authorized reconciliation');
++
++        phase = 'doctor detail authorization and transfer';
++        await detail(dp, record, selectedPatient);
++        await keyboard(row(dp, record.id).getByRole('button', {name: 'Изменить', exact: true}));
++        await dp.locator('#consiliumTime').selectOption('11:00');
++        const moved = await medicalWrite(dp, 'PUT', appointments + '/' + record.id, dp.locator('#submitConsiliumBtn'));
++        assert.equal(moved.scheduledTime, '11:00');
++        assert.equal(moved.version, record.version + 1);
++        assert.equal(writes.at(-1).body.version, record.version);
++        assert.equal(moved.patientId, record.patientId);
++        assert.equal(moved.consiliumGroup, record.consiliumGroup);
++        await dp.locator('#consiliumModal').waitFor({state: 'hidden'});
++        checks.push('fresh authorized detail with keyboard focus trap and restoration; one versioned transfer preserving patient and group');
++
++        phase = 'chair review and revision';
++        const chair = await authenticated(browser, f, 'consilium_chair');
++        const cp = chair.page;
++        const queueRow = cp.locator('#consiliumReviewList li').filter({hasText: selectedPatient.name});
++        const openReview = name => keyboard(queueRow.getByRole('button', {name, exact: true}));
++        await openReview('Рассмотреть');
++        const reviewing = await medicalWrite(cp, 'POST', appointments + '/' + record.id + '/review',
++            cp.locator('#startConsiliumReviewBtn'));
++        assert.equal(reviewing.status, 'in_review');
++        await keyboard(cp.locator('#returnConsiliumBtn'));
++        await cp.locator('#consiliumRevisionComment').fill(settings.returnComment);
++        const returned = await medicalWrite(cp, 'POST', appointments + '/' + record.id + '/return',
++            cp.locator('#confirmConsiliumRevisionBtn'));
++        assert.equal(returned.status, 'needs_revision');
++        await cp.locator('#consiliumDecisionModal').waitFor({state: 'hidden'});
++
++        phase = 'doctor correction and explicit resubmit';
++        assert.equal((await refresh(dp)).find(item => item.id === record.id).status, 'needs_revision');
++        await keyboard(row(dp, record.id).getByRole('button', {name: 'Изменить', exact: true}));
++        await dp.locator('#consiliumComment').fill(settings.corrected);
++        const resubmitted = await medicalWrite(dp, 'POST', appointments + '/' + record.id + '/resubmit',
++            dp.locator('#resubmitConsiliumBtn'));
++        assert.equal(resubmitted.status, 'revised');
++        assert.equal(resubmitted.comment, settings.corrected);
++        const correction = writes.find(item => item.role === 'doctor' && item.method === 'PUT' &&
++            item.body.comment === settings.corrected);
++        assert.equal(correction.body.version, returned.version);
++        await dp.locator('#consiliumModal').waitFor({state: 'hidden'});
++        checks.push('real review, one return round with reason, doctor observed versioned correction and explicit resubmit');
++
++        phase = 'chair fresh second review and sign confirmation';
++        assert.equal((await refresh(cp)).find(item => item.id === record.id).status, 'revised');
++        await openReview('Рассмотреть повторно');
++        const renewed = await medicalWrite(cp, 'POST', appointments + '/' + record.id + '/review',
++            cp.locator('#startConsiliumReviewBtn'));
++        assert.equal(renewed.status, 'in_review');
++        await cp.locator('#consiliumTreatmentType').selectOption('surgery');
++        await keyboard(cp.locator('#signConsiliumBtn'));
++        await cp.locator('#confirmModal').waitFor();
++        assert.equal(writes.filter(item => item.pathname.endsWith('/sign')).length, 0);
++        await keyboard(cp.locator('#confirmCancelBtn'));
++        await cp.locator('#confirmModal').waitFor({state: 'hidden'});
++        assert.equal(writes.filter(item => item.pathname.endsWith('/sign')).length, 0);
++        assert.equal(await cp.locator('#consiliumTreatmentType').inputValue(), 'surgery');
++        await keyboard(cp.locator('#signConsiliumBtn'));
++        const signed = await medicalWrite(cp, 'POST', appointments + '/' + record.id + '/sign',
++            cp.locator('#confirmOkBtn'));
++        assert.equal(signed.status, 'signed');
++        assert.equal(signed.treatmentType, 'surgery');
++        await cp.locator('#consiliumDecisionModal').waitFor({state: 'hidden'});
++
++        phase = 'immutability, denied write and true synthetic rendering';
++        const after = (await refresh(dp)).find(item => item.id === record.id);
++        assert.equal(after.status, 'signed');
++        assert.equal(after.version, signed.version);
++        await detail(dp, signed, selectedPatient);
++        assert.equal(await row(dp, record.id).getByRole('button', {name: 'Изменить', exact: true}).count(), 0);
++        const illegal = await f.request(doctor.context, 'POST', appointments + '/' + record.id + '/sign', {treatmentType: 'surgery'});
++        assert.equal(illegal.status(), 403);
++        const secondSign = await f.request(chair.context, 'POST', appointments + '/' + record.id + '/sign', {treatmentType: 'surgery'});
++        assert.equal(secondSign.status(), 409);
++        const patientAfter = await f.call(doctor.context, 'GET', patientPath);
++        assert.equal(patientAfter.stage, patientBefore.stage);
++        assert.equal(patientAfter.version, patientBefore.version);
++        assert.deepEqual((await refresh(dp)).find(item => item.id === record.id), after);
++        phase = 'patient card authorized signed history read';
++        await keyboard(dp.locator('[data-view=patients]').first());
++        const card = dp.locator('[data-registry-patient="' + selectedPatient.id + '"]');
++        const [cardRead] = await Promise.all([response(dp, 'GET', patientPath), keyboard(card)]);
++        assert.equal(cardRead.status(), 200);
++        readHashes.push(createHash('sha256').update(await cardRead.body()).digest('hex'));
++        const [cardHistory] = await Promise.all([response(dp, 'GET', appointments),
++            keyboard(dp.locator('#loadPatientConsiliumBtn'))]);
++        assert.equal(cardHistory.status(), 200);
++        readHashes.push(createHash('sha256').update(await cardHistory.body()).digest('hex'));
++        const cardRecord = dp.locator('#patientConsiliumRecords').getByRole('button', {name: /Подписан$/});
++        await keyboard(cardRecord);
++        const cardDetails = dp.locator('#consiliumDetailsModal');
++        await cardDetails.getByText(/Подписанное решение/).waitFor();
++        assert.equal(await dp.locator('#consiliumArchiveToggleBtn').isVisible(), false);
++        assert.equal(await cardDetails.getByRole('button', {name: /Изменить|Рассмотреть/}).count(), 0);
++        await dp.keyboard.press('Escape');
++        await cardDetails.waitFor({state: 'hidden'});
++        assert(await cardRecord.evaluate(node => node === document.activeElement));
++        assert(await dp.locator('#view-patient').isVisible());
++        assert.equal(writes.length, 8);
++        checks.push('patient overview opens authorized signed snapshot by stable patient ID, no mutation controls and Escape restores exact link focus');
++        phase = 'presentational checks';
++        checks.push('second review and explicit confirm; cancel causes no write, one sign only, signed state immutable, 403 for doctor and 409 for repeat chair, patient stage unchanged');
++        await appearance(cp);
++        checks.push('both approved themes at 320/375/768/1440, full-document axe A/AA, no horizontal page overflow, title remains visible');
++        assert.equal(pageErrors, 0);
++        const privateProof = {id: record.id, patient: selectedPatient.id, doctor: f.roles.doctor.id,
++            chair: f.roles.consilium_chair.id, version: signed.version, readHashes, stage: patientBefore.stage,
++            returnComment: settings.returnComment};
++        fs.writeFileSync(path.join(process.env.OUT, 'journey.local.json'), JSON.stringify({
++            suite: 'journey', browser: browser.version(), checks, axe: axeStates, transportFaults,
++            requests: {medicalWrites: writes.length, unexpectedMedicalWrites: 0}, pageErrors, privateProof,
++        }, null, 2));
++    } finally {
++        await browser.close();
++    }
++}
++
++run().catch(error => {
++    process.stderr.write(phase + '\n' + error.stack + '\n');
++    process.exitCode = 1;
++});
+diff --git a/tools/tests/fast_track_f6/run.py b/tools/tests/fast_track_f6/run.py
+new file mode 100644
+index 0000000..2cdc1b7
+--- /dev/null
++++ b/tools/tests/fast_track_f6/run.py
+@@ -0,0 +1,172 @@
++"""Collect exact-revision F6 Chromium receipts from disposable FastAPI fixtures."""
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import signal
++import socket
++import sqlite3
++import subprocess
++import sys
++import tempfile
++import time
++from urllib.error import URLError
++from urllib.request import ProxyHandler, build_opener
++
++HERE = Path(__file__).resolve().parent
++APP = HERE.parents[2]
++LEGACY = ("schedule", "workflows", "loading", "decisions", "records", "zoom", "decisionzoom", "recordszoom")
++BROWSER_ENV = ("PLAYWRIGHT_MODULE", "PLAYWRIGHT_BROWSERS_PATH", "BROWSER_EXECUTABLE", "WP_H_FULL_CHROMIUM", "AXE_SOURCE")
++
++
++def execute(command, env, folder, timeout=540):
++    with (folder / "browser.local.log").open("wb") as log:
++        subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=timeout, check=True, cwd=APP)
++
++
++def wait_ready(worker, origin, scratch):
++    opener = build_opener(ProxyHandler({}))
++    until = time.monotonic() + 90
++    while time.monotonic() < until:
++        if worker.poll() is not None:
++            raise RuntimeError("Synthetic FastAPI exited before startup")
++        dbs = list(scratch.glob("clinic-wph-baseline-*/clinic.db"))
++        if len(dbs) == 1:
++            try:
++                with opener.open(origin + "/api/ready", timeout=1) as response:
++                    if response.status == 200 and json.load(response)["status"] in {"ok", "ready"}:
++                        return dbs[0]
++            except (URLError, TimeoutError, ValueError):
++                pass
++        time.sleep(0.1)
++    raise RuntimeError("Synthetic FastAPI readiness deadline exceeded")
++
++
++def verify_journey(db, result):
++    proof = result.pop("privateProof")
++    with sqlite3.connect(f"{db.as_uri()}?mode=ro", uri=True) as conn:
++        conn.row_factory = sqlite3.Row
++        assert conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
++        assert conn.execute("SELECT version FROM schema_version").fetchone()[0] == 33
++        record = conn.execute(
++            "SELECT patient_id,status,scheduled_time,version,revision_count,treatment_type,signed_at "
++            "FROM oncology_consilium_appointments WHERE id=?", (proof["id"],)
++        ).fetchone()
++        assert record is not None
++        assert tuple(record)[:6] == (proof["patient"], "signed", "11:00", proof["version"], 1, "surgery")
++        assert record["signed_at"]
++        rounds = conn.execute(
++            "SELECT round,returned_by_user_id,comment FROM consilium_revision_history WHERE appointment_id=?",
++            (proof["id"],),
++        ).fetchall()
++        assert len(rounds) == 1 and tuple(rounds[0]) == (1, proof["chair"], proof["returnComment"])
++        mutations = conn.execute(
++            "SELECT event_type,actor_user_id,result,detail FROM audit_events "
++            "WHERE patient_id=? AND event_type LIKE 'consilium_%' ORDER BY id", (proof["patient"],),
++        ).fetchall()
++        expected = [("consilium_appointment_created", proof["doctor"]),
++                    ("consilium_appointment_updated", proof["doctor"]),
++                    ("consilium_review_started", proof["chair"]),
++                    ("consilium_returned_for_revision", proof["chair"]),
++                    ("consilium_appointment_updated", proof["doctor"]),
++                    ("consilium_resubmitted", proof["doctor"]),
++                    ("consilium_review_started", proof["chair"]),
++                    ("consilium_signed", proof["chair"])]
++        assert [(row["event_type"], row["actor_user_id"]) for row in mutations] == expected
++        assert all(row["result"] == "ok" for row in mutations)
++        assert all(proof["id"] in row["detail"] for row in mutations if row["event_type"] in {
++            "consilium_appointment_created", "consilium_appointment_updated", "consilium_resubmitted",
++        })
++        for response_sha in proof["readHashes"]:
++            assert conn.execute(
++                "SELECT 1 FROM read_access_manifests WHERE snapshot_sha256=?", (response_sha,),
++            ).fetchone() is not None
++        assert conn.execute("SELECT stage FROM patients WHERE id=?", (proof["patient"],)).fetchone()[0] == proof["stage"]
++    result["database"] = {"schema": 33, "signatureCount": 1, "revisionRounds": 1, "exactWrites": len(mutations),
++                          "readManifestHashes": len(proof["readHashes"]), "unchangedPatientStage": True}
++    return result
++
++
++def journey(folder, environment):
++    with socket.socket() as listener:
++        listener.bind(("127.0.0.1", 0))
++        port = listener.getsockname()[1]
++    origin = f"http://127.0.0.1:{port}"
++    scratch = Path(environment["TMPDIR"])
++    with (folder / "server.local.log").open("wb") as log:
++        worker = subprocess.Popen([sys.executable, "-I", "-B", str(HERE.parent / "wp_h/server.py"),
++                                  "--count", "100", "--port", str(port)],
++                                  env=environment, stdout=log, stderr=subprocess.STDOUT, cwd=scratch)
++        try:
++            db = wait_ready(worker, origin, scratch)
++            execute(["node", str(HERE / "journey.cjs")],
++                    {**environment, "WP_H_ORIGIN": origin, "COUNT": "100", "OUT": str(folder)}, folder)
++            result = verify_journey(db, json.loads((folder / "journey.local.json").read_bytes()))
++        finally:
++            if worker.poll() is None:
++                worker.send_signal(signal.SIGINT)
++            try:
++                clean = worker.wait(timeout=20) == 0
++            except subprocess.TimeoutExpired:
++                worker.kill()
++                worker.wait()
++                clean = False
++    with socket.socket() as listener:
++        listener.settimeout(0.5)
++        closed = listener.connect_ex(("127.0.0.1", port)) != 0
++    assert clean and closed and not list(scratch.glob("clinic-wph-baseline-*"))
++    result["cleanup"] = {"cleanExit": clean, "listenerClosed": closed, "databaseRemoved": True}
++    return result
++
++
++def public_legacy_result(folder, suite):
++    result_file = folder / "results.json"
++    if result_file.is_file():
++        raw = json.loads(result_file.read_bytes())
++    else:
++        # The checked-in native zoom suites emit a single JSON line on stdout.
++        zoom = (folder / "card.log").read_text().splitlines()
++        raw = next(json.loads(line) for line in zoom if line.startswith("{"))
++        assert raw["nativeChromeZoom"] and raw["temporaryProfile"]
++        return {"suite": suite, "nativeZoom": len(raw["samples"]), "exit": 0}
++    assert all(not state.get("violations") for state in raw.get("axe", ()))
++    exports = [{key: item[key] for key in ("kind", "sha256", "bytes")} for item in raw.get("xlsx", ())]
++    return {"suite": suite, "checks": len(raw["checks"]), "axe": len(raw.get("axe", ())), "xlsx": exports, "exit": 0}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--suite", required=True, choices=("journey", *LEGACY))
++    parser.add_argument("--out", type=Path, required=True)
++    args = parser.parse_args()
++    os.umask(0o077)
++    output = args.out.resolve()
++    if output == APP or APP in output.parents:
++        parser.error("write artifacts outside the checkout")
++    output.mkdir(mode=0o700, parents=True, exist_ok=False)
++    sha = subprocess.check_output(["git", "-C", APP, "rev-parse", "HEAD"], text=True).strip()
++    tree = subprocess.check_output(["git", "-C", APP, "rev-parse", "HEAD^{tree}"], text=True).strip()
++    dirty = bool(subprocess.check_output(["git", "-C", APP, "status", "--porcelain"]))
++    with tempfile.TemporaryDirectory(prefix="clinic-f6-") as temporary:
++        scratch = Path(temporary).resolve()
++        browser_env = {key: os.environ[key] for key in BROWSER_ENV if key in os.environ}
++        env = {**browser_env, "PATH": os.environ["PATH"], "HOME": str(scratch), "TMPDIR": str(scratch),
++               "LANG": "C.UTF-8", "TZ": "UTC", "PYTHONDONTWRITEBYTECODE": "1",
++               "CLINIC_HOST": "127.0.0.1", "CLINIC_HTTPS": "false", "CLINIC_AI_DATA_MODE": "disabled"}
++        if args.suite == "journey":
++            receipt = journey(output, env)
++        else:
++            execute([sys.executable, "-B", str(HERE.parent / "wp_i_consilium/run.py"),
++                     "--suite", args.suite, "--out", str(output)], env, output, timeout=540)
++            receipt = public_legacy_result(output, args.suite)
++        assert not list(scratch.glob("clinic-wph-baseline-*"))
++    receipt.update(candidateSha=sha, candidateTree=tree, dirtyCheckout=dirty, syntheticOnly=True)
++    receipt["screenshots"] = {file.name: hashlib.sha256(file.read_bytes()).hexdigest()
++                              for file in sorted(output.glob("f6-*.png"))}
++    (output / "public.json").write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n")
++    print(f"F6 {args.suite} Chromium PASS")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/tools/tests/wp_i_consilium/decisions.cjs b/tools/tests/wp_i_consilium/decisions.cjs
+index 336eb89..a0834f5 100644
+--- a/tools/tests/wp_i_consilium/decisions.cjs
++++ b/tools/tests/wp_i_consilium/decisions.cjs
+@@ -19,7 +19,7 @@ const {setup,login,password}=require('./fixtures.cjs');
+    await page.evaluate(async day=>{app.consilium.dateFilter=day;app.consilium.doctorDate=day;app.showView('consilium');if(app.currentView==='consilium')await app.renderConsilium()},f.day);
+    assert.equal(await page.locator('#consiliumReviewWorkspace').isVisible(),role==='consilium_chair');
+    const trigger=page.locator('#consiliumReviewList li').filter({hasText:f.patients[0].name}).getByRole('button',{name:'Рассмотреть',exact:true});
+-   if(role==='consilium_chair')await trigger.click();else await page.evaluate(id=>app.openConsiliumDecision(id),record.id);
++   if(role==='consilium_chair'){await trigger.click();await page.locator('#consiliumDecisionModal').waitFor();}else await page.evaluate(id=>app.openConsiliumDecision(id),record.id);
+    assert.equal(await page.locator('#consiliumDecisionModal').isVisible(),role==='consilium_chair');
+    await page.evaluate(fs.readFileSync(process.env.AXE_SOURCE,'utf8'));
+    for(const theme of ['light','dark'])for(const width of [1440,375,320]){
+@@ -85,7 +85,7 @@ const {setup,login,password}=require('./fixtures.cjs');
+   await p.locator('#consiliumTreatmentType').selectOption('surgery');let signPosts=0;
+   p.on('request',r=>{if(r.method()==='POST'&&r.url().endsWith('/'+record.id+'/sign'))signPosts++});
+   await p.route('**/appointments/'+record.id+'/sign',async route=>{const committed=await route.fetch();assert.equal(committed.status(),200);await route.abort('connectionreset')});
+-  await p.locator('#signConsiliumBtn').click();await p.waitForFunction(()=>app.consilium.decisionContext?.blocked&&!app.consilium.decisionContext.busy);
++  await p.locator('#signConsiliumBtn').click();await p.locator('#confirmOkBtn').click();await p.waitForFunction(()=>app.consilium.decisionContext?.blocked&&!app.consilium.decisionContext.busy);
+   assert.equal(signPosts,1);assert.equal(await p.locator('#consiliumTreatmentType').inputValue(),'surgery');assert.equal(await p.locator('#signConsiliumBtn').isDisabled(),true);
+   await p.evaluate(()=>app.submitConsiliumDecision({preventDefault(){}}));assert.equal(signPosts,1);
+   await p.unrouteAll({behavior:'wait'});await p.locator('#refreshConsiliumDecisionBtn').click();await p.waitForFunction(()=>app.consilium.decisionContext?.record.status==='signed'&&!app.consilium.decisionContext.busy);
+@@ -126,7 +126,7 @@ const {setup,login,password}=require('./fixtures.cjs');
+   await p.evaluate(async id=>{await app.renderConsilium();app.openConsiliumDecision(id)},third.id);
+   await p.locator('#startConsiliumReviewBtn').click();await p.waitForFunction(()=>app.consilium.decisionContext?.record.status==='in_review'&&!app.consilium.decisionContext.busy);
+   await p.locator('#consiliumTreatmentType').selectOption('active_observation');
+-  const positiveSign=p.waitForResponse(r=>r.url().endsWith('/'+third.id+'/sign'));await p.locator('#signConsiliumBtn').click();assert.equal((await positiveSign).status(),200);await p.locator('#consiliumDecisionModal').waitFor({state:'hidden'});
++  const positiveSign=p.waitForResponse(r=>r.url().endsWith('/'+third.id+'/sign'));await p.locator('#signConsiliumBtn').click();await p.locator('#confirmOkBtn').click();assert.equal((await positiveSign).status(),200);await p.locator('#consiliumDecisionModal').waitFor({state:'hidden'});
+   results.checks.push('confirmed successful sign closes form and refreshes queue without an automatic stage change');
+   // Identity switch in shared cookie context clears the old clinical input, no writes.
+   await p.evaluate(()=>app.renderConsilium());await p.evaluate(id=>app.openConsiliumDecision(id),second.id);
+@@ -144,7 +144,11 @@ const {setup,login,password}=require('./fixtures.cjs');
+   await rp.evaluate(()=>apiGetJson('/api/consilium/schedule').catch(()=>{}));await rp.waitForFunction(()=>app.sessionExpired);
+   oldRelease();await rp.unrouteAll({behavior:'wait'});assert.equal(await rp.locator('#consiliumDecisionModal').isVisible(),false);
+   await rp.locator('#password').fill(password);await rp.locator('#loginSubmit').click();await rp.waitForFunction(()=>app.appReady&&!app.sessionExpired);
+-  await rp.evaluate(async id=>{await app.renderConsilium();app.openConsiliumDecision(id)},second.id);
++  await rp.locator('[data-view=consilium]').first().click();
++  await rp.waitForFunction(()=>app.consiliumGridReady());
++  await rp.locator('#consiliumDateFilter').fill(f.day);
++  await rp.locator('#consiliumReviewList li').filter({hasText:second.patientName})
++   .getByRole('button',{name:'Продолжить рассмотрение',exact:true}).click();
+   await rp.locator('#consiliumTreatmentType').selectOption('chemotherapy');await rp.locator('#consiliumTreatmentScheme').fill('Синтетический ввод до отзыва');
+   await f.api('PATCH','/api/users/'+f.roles.consilium_chair.id,{roleId:'caop_head',departmentIds:[]});
+   await rp.evaluate(()=>apiGetJson('/api/consilium/schedule').catch(()=>{}));await rp.waitForFunction(()=>app.sessionExpired);
+diff --git a/tools/tests/wp_i_consilium/decisionzoom.cjs b/tools/tests/wp_i_consilium/decisionzoom.cjs
+index 8209609..3c1a9e5 100644
+--- a/tools/tests/wp_i_consilium/decisionzoom.cjs
++++ b/tools/tests/wp_i_consilium/decisionzoom.cjs
+@@ -17,7 +17,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),asse
+   await api('POST','/api/consilium/schedule/generate',{scheduledDate:'2090-11-12',consiliumGroup:'thoracic',startTime:'10:00',endTime:'12:00',intervalMinutes:30});
+   const record=await api('POST','/api/consilium/appointments',{patientId:patient.id,scheduledDate:'2090-11-12',scheduledTime:'10:00',consiliumGroup:'thoracic',hasBenefit:false,diagnosisLocalization:'Органы дыхания и грудной клетки',primaryDiagnosis:'C34.1',additionalDiagnosis:'',comment:'Синтетический zoom',additionalParticipant:'',needsSurgeon:false,needsRadiotherapist:false,uvRuv:false});
+   await api('POST','/api/auth/logout',{});await api('POST','/api/auth/login',{username:'i5b.zoomchair',password:'Synthetic-WPH-Research-991!'});await page.reload();await page.waitForFunction(()=>app.appReady&&!app.sessionExpired);
+-  await page.evaluate(async id=>{app.consilium.dateFilter='2090-11-12';app.showView('consilium');await app.renderConsilium();app.openConsiliumDecision(id)},record.id);
++  await page.evaluate(async id=>{app.consilium.dateFilter='2090-11-12';app.showView('consilium');await app.renderConsilium();await app.openConsiliumDecision(id)},record.id);
+   const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');const samples=[];
+   for(const factor of [1,2,4]){
+    const zoom=await worker.evaluate(async({origin,factor})=>{const tabs=await chrome.tabs.query({});const tab=tabs.find(t=>t.url.startsWith(origin+'/'));if(!tab)throw new Error('synthetic tab missing');await chrome.tabs.setZoom(tab.id,factor);return chrome.tabs.getZoom(tab.id);},{origin,factor});assert.equal(Math.round(zoom*100),factor*100);
+diff --git a/tools/tests/wp_i_consilium/records.cjs b/tools/tests/wp_i_consilium/records.cjs
+index 432c7c2..5cfc3b8 100644
+--- a/tools/tests/wp_i_consilium/records.cjs
++++ b/tools/tests/wp_i_consilium/records.cjs
+@@ -22,7 +22,7 @@ const dp=await doc.newPage();await workspace(dp,f.roles.doctor.username,true);le
+ await dp.evaluate(item=>app.openConsiliumDetails(item),signed);await f.call(head,'POST','/api/consilium/appointments/'+signed.id+'/archive',{version:signed.version});const conflict=dp.waitForResponse(r=>r.url().endsWith('/'+signed.id+'/archive'));await dp.locator('#consiliumArchiveToggleBtn').click();assert.equal((await conflict).status(),409);assert.equal(await dp.locator('#consiliumArchiveToggleBtn').isDisabled(),true);await dp.locator('#consiliumDetailsConflictRefreshBtn').click();await dp.waitForFunction(()=>app.consilium.detailsItem?.archived);assert.equal(await dp.locator('#consiliumArchiveToggleBtn').textContent(),'Восстановить из архива');
+ const restored=dp.waitForResponse(r=>r.url().endsWith('/'+signed.id+'/restore'));await dp.locator('#consiliumArchiveToggleBtn').click();assert.equal((await restored).status(),200);await dp.locator('#consiliumDetailsModal').waitFor({state:'hidden'});await dp.waitForFunction(()=>!app.consilium.archivePending&&app.consiliumGridReady());signed=(await f.call(doc,'GET','/api/consilium/appointments')).appointments.find(x=>x.id===surgery.id);
+ // Lose archive response only after genuine commit. No automatic or blind second POST.
+-await dp.evaluate(item=>app.openConsiliumDetails(item),signed);let archivePosts=0;await dp.route('**/appointments/'+signed.id+'/archive',async route=>{archivePosts++;const response=await route.fetch();assert.equal(response.status(),200);await route.abort('connectionreset')});await dp.locator('#consiliumArchiveToggleBtn').click();await dp.locator('#consiliumDetailsConflict').waitFor({state:'visible'});assert.equal(archivePosts,1);assert.equal(await dp.locator('#consiliumArchiveToggleBtn').isDisabled(),true);await dp.evaluate(()=>app.toggleConsiliumArchive());assert.equal(archivePosts,1);await dp.unrouteAll({behavior:'wait'});await dp.locator('#consiliumDetailsConflictRefreshBtn').click();await dp.waitForFunction(()=>app.consilium.detailsItem?.archived);assert.equal(archivePosts,1);await dp.locator('#closeConsiliumDetailsBtn').click();await dp.locator('#openConsiliumArchiveBtn').click();await dp.waitForFunction(()=>app.consilium.archiveReady);assert((await dp.locator('#consiliumArchiveBody').textContent()).includes(signed.patientName));await dp.locator('#consiliumArchiveBody button').first().focus();await dp.keyboard.press('Enter');await dp.locator('#consiliumDetailsModal').waitFor({state:'visible'});assert.equal(await dp.evaluate(()=>ui.openModals.filter(x=>x==='consiliumDetailsModal').length),1);assert((await dp.locator('#consiliumDetailsBody').textContent()).includes('Подписанное решение'));assert.equal((await f.call(doc,'GET','/api/patients/'+surgery.patientId)).stage,stage);results.transportFaults.push('archive response lost after real200/commit');results.checks.push('head/doc genuine archive version409; restore; lost archive response no duplicate; keyboard archive opens immutable signed snapshot; no stage change');
++await dp.evaluate(item=>app.openConsiliumDetails(item),signed);let archivePosts=0;await dp.route('**/appointments/'+signed.id+'/archive',async route=>{archivePosts++;const response=await route.fetch();assert.equal(response.status(),200);await route.abort('connectionreset')});await dp.locator('#consiliumArchiveToggleBtn').click();await dp.locator('#consiliumDetailsConflict').waitFor({state:'visible'});assert.equal(archivePosts,1);assert.equal(await dp.locator('#consiliumArchiveToggleBtn').isDisabled(),true);await dp.evaluate(()=>app.toggleConsiliumArchive());assert.equal(archivePosts,1);await dp.unrouteAll({behavior:'wait'});await dp.locator('#consiliumDetailsConflictRefreshBtn').click();await dp.waitForFunction(()=>app.consilium.detailsItem?.archived);assert.equal(archivePosts,1);await dp.locator('#closeConsiliumDetailsBtn').click();await dp.locator('#openConsiliumArchiveBtn').click();await dp.waitForFunction(()=>app.consilium.archiveReady);assert((await dp.locator('#consiliumArchiveBody').textContent()).includes(signed.patientName));await dp.locator('#consiliumArchiveBody button').first().focus();await dp.keyboard.press('Enter');await dp.locator('#consiliumDetailsModal').waitFor({state:'visible'});assert.equal(await dp.evaluate(()=>ui.openModals.filter(x=>x==='consiliumDetailsModal').length),1);await dp.locator('#consiliumDetailsBody').getByText(/Подписанное решение/).waitFor();assert((await dp.locator('#consiliumDetailsBody').textContent()).includes('Подписанное решение'));assert.equal((await f.call(doc,'GET','/api/patients/'+surgery.patientId)).stage,stage);results.transportFaults.push('archive response lost after real200/commit');results.checks.push('head/doc genuine archive version409; restore; lost archive response no duplicate; keyboard archive opens immutable signed snapshot; no stage change');
+ await dp.locator('#closeConsiliumDetailsBtn').click();await dp.locator('#openConsiliumArchiveBtn').click();await dp.waitForFunction(()=>app.consilium.archiveReady);await dp.locator('#consiliumArchiveBody button').first().focus();await dp.keyboard.press('Space');await dp.locator('#consiliumDetailsModal').waitFor({state:'visible'});assert.equal(await dp.evaluate(()=>ui.openModals.filter(x=>x==='consiliumDetailsModal').length),1);await dp.locator('#closeConsiliumDetailsBtn').click();results.checks.push('explicit Enter/Space contract opens exactly one native-button detail dialog');await dp.locator('#openConsiliumHistoryBtn').click();await dp.waitForFunction(()=>app.consilium.archiveReady);await dp.locator('#consiliumArchiveRefreshBtn').focus();await dp.keyboard.press('Tab');assert(await dp.locator('#consiliumArchiveModal').evaluate(n=>n.contains(document.activeElement)));
+ await dp.evaluate(fs.readFileSync(process.env.AXE_SOURCE,'utf8'));for(const theme of ['light','dark'])for(const width of [375,320]){await dp.setViewportSize({width,height:1000});await dp.evaluate(t=>app.applyTheme(t),theme);await dp.evaluate(()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{}))));const v=await dp.evaluate(async()=>{const r=await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}});return r.violations.map(x=>({id:x.id,nodes:x.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))});assert.deepEqual(v,[]);results.axe.push({theme,width,screen:'history',violations:v});await dp.screenshot({path:path.join(process.env.OUT,`history-${theme}-${width}.png`),fullPage:true});}
+ // Archive has its own supersession/error barrier, independent of schedule reads.

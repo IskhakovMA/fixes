@@ -1,0 +1,169 @@
+{
+  "productSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "productTree": "bc26b4164c7322881e6943d3c0a82c0714c39273",
+  "directParent": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+  "productBranch": "feature/fast-track-f6-consilium-staffux",
+  "baseTree": "4df68d538f04f4c62f606fb90a96fe34f7332f4d",
+  "f5Evidence": "15202013e8b30e128bd3e33db289b8c185fedca9",
+  "protectedSourcePathsUnchanged": [
+    "backend/app",
+    "backend/migrations",
+    "prototype",
+    "backend/requirements-dev.txt",
+    "tools/tests/wp_h/package-lock.json",
+    ".github/workflows/ci.yml"
+  ],
+  "protectedRefsBefore": {
+    "refs/heads/evidence/fast-track-f5-2026-11-26": "15202013e8b30e128bd3e33db289b8c185fedca9",
+    "refs/heads/feature/fast-track-f1-management-doctor": "0fae327791b8f9379d8870f5afe76c5dbaa44338",
+    "refs/heads/feature/fast-track-f2-actionable-routes": "f255c279212a5c1d8e44b22b904238cb4d32381f",
+    "refs/heads/feature/fast-track-f3-registry-stage35": "0b91473ffb65892ce8551755a8d31118c332a000",
+    "refs/heads/feature/fast-track-f4-schedule-notifications": "f2e9e08dedf7c4287dd16f740f719ac7a28e810e",
+    "refs/heads/feature/fast-track-f5-analytics-reporting": "78f02d0f4c278b9e2a836993519816604ea11cc3",
+    "refs/heads/fix/i9-b1-focus-history-review": "b5b408fe411f4431042eced96f0801cffb577a83",
+    "refs/heads/fix/wp-i-redesign-integration": "f849b2909c2d23923e0ce996f0aca4b670ca9c18",
+    "refs/heads/main": "20a7505d8ba0302f298f3d6998bb0fa20d0278e9"
+  },
+  "localExactSHA256": {
+    "F6_LOCAL_EXACT.json": "1ea2d22a7bb03ed832f264ff3fdfcc3dc19c1dfb2162a3763da1169f4e2d3f05",
+    "f6-consilium-dark-375.png": "cf6e310b78cae4c724d1d72f56f98a3f0a4c29dece75eb60e7b3b79c88a558d5",
+    "f6-consilium-light-1440.png": "4aca89456b60fdf8bd12a77322eaffb8cbd57affc4e4f8d4bba4c1d3025574cb"
+  },
+  "hostedRun": {
+    "conclusion": "success",
+    "event": "push",
+    "headBranch": "feature/fast-track-f6-consilium-staffux",
+    "headSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+    "jobs": [
+      {
+        "completedAt": "2026-11-26T06:48:44Z",
+        "conclusion": "success",
+        "databaseId": 139740484417,
+        "name": "f6-chromium",
+        "startedAt": "2026-11-26T06:43:05Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-26T06:43:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-26T06:43:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:43:12Z",
+            "conclusion": "success",
+            "name": "Checkout exact F6 candidate",
+            "number": 2,
+            "startedAt": "2026-11-26T06:43:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:43:12Z",
+            "conclusion": "success",
+            "name": "Check Git tree and protect existing medical contracts",
+            "number": 3,
+            "startedAt": "2026-11-26T06:43:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:43:12Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 4,
+            "startedAt": "2026-11-26T06:43:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:43:15Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 5,
+            "startedAt": "2026-11-26T06:43:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:44:20Z",
+            "conclusion": "success",
+            "name": "Install pinned synthetic test dependencies",
+            "number": 6,
+            "startedAt": "2026-11-26T06:43:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:41Z",
+            "conclusion": "success",
+            "name": "Run F6 and affected browser regressions",
+            "number": 7,
+            "startedAt": "2026-11-26T06:44:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:42Z",
+            "conclusion": "success",
+            "name": "Retain sanitized machine receipts",
+            "number": 8,
+            "startedAt": "2026-11-26T06:48:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:42Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 14,
+            "startedAt": "2026-11-26T06:48:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:42Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            "number": 15,
+            "startedAt": "2026-11-26T06:48:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:42Z",
+            "conclusion": "success",
+            "name": "Post Checkout exact F6 candidate",
+            "number": 16,
+            "startedAt": "2026-11-26T06:48:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-26T06:48:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 17,
+            "startedAt": "2026-11-26T06:48:42Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770123000/job/139740484417"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/IskhakovMA/fixes/actions/runs/45770123000",
+    "workflowName": "Fast Track F6 Chromium",
+    "receiptSHA256": {
+      "f6-decisions.json": "361ab551de535042b4aaca0b80a0bcd0e399393ef1c8e48a951a37b4eadc1fcb",
+      "f6-decisionzoom.json": "8735d0a270a63e9a2ea4d7f7eb9d07c6a0679cda505f63d0e538d255b48af7fd",
+      "f6-journey.json": "c7c6737b18f0baa885e31e2064b3934cae350c6305accd363c7b5e4a1f7b68cd",
+      "f6-loading.json": "1e6f7ee6b796661a3beb095aa553893a41e4a56adf490739e2a32ce1dd698eb4",
+      "f6-records.json": "ae9f22d206bb85c0ec289965957cc0515f3b26ef1f2875c3cace7be77d2d435e",
+      "f6-recordszoom.json": "3b6b6a06b928374430d280f410b7a2e40289f91f2bea6161d1f043707bdfa2a9",
+      "f6-schedule.json": "8730a898f02b2acd781f029d259f85f31e56d5510a35882c328cb24ef3536a66",
+      "f6-workflows.json": "19181a27170ec341f8e23b65a96440f7324f6ed0ede921e78535bca7a47b87e4",
+      "f6-zoom.json": "e1f9d286e33cedfdddccf0f83784eef48fc1e103b477a69b7443b2cad90133ce",
+      "fast_track_f1.json": "b9414a64952f240a5c16e5baf9bba23b77d3cdd72afea9442bfbc48e448f51aa",
+      "fast_track_f2.json": "e824677d855d30840f7af5b9aeef8ee07193fc16b7da877b369d57025e878990",
+      "fast_track_f3.json": "d6765a9638f8c113688b8166b8c541e04aa5502dafecf9254eda544c9997aa4b",
+      "fast_track_f4.json": "3b14ee0050a18f94fae2f9ed3750eb7b74774a435afeae5eb74df143a5409cb8",
+      "fast_track_f5.json": "9f142b0ff6ee466c23d8412905b15da3dc13d60658da562a6185cd588d603b89",
+      "history-navigation.json": "1652d8d6052f4a908bf70e8a64c8970ac4874e9410bafd3fa8b7b5a54d27b133",
+      "history-unknownDenial.json": "af94fa7a68da0eb8f72efba472be0b2f9bb32318a231144e9275edbf8dca816b",
+      "notifications-fix1.json": "e107cb490a0ca7cddfb6975713e62a4aacc9940970a4df4bb441cb923fbba0af"
+    }
+  }
+}

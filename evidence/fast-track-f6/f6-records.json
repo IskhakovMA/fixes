@@ -1,0 +1,28 @@
+{
+  "suite": "records",
+  "checks": 10,
+  "axe": 40,
+  "xlsx": [
+    {
+      "kind": "chemotherapy",
+      "sha256": "6b964dda3d9e60dbaf07c07602466cc5970ab0f6f1b28c7525cc0583dddb0e87",
+      "bytes": 2291
+    },
+    {
+      "kind": "goc",
+      "sha256": "0a9789ba1804d81effb538d7003ed77a83a980e988048521e72ed74760eff885",
+      "bytes": 2294
+    },
+    {
+      "kind": "goc-65-plus",
+      "sha256": "fa7e81ce147f779dbac226ae040ccdf60177252e92875cb617dac814a4458b73",
+      "bytes": 2299
+    }
+  ],
+  "exit": 0,
+  "candidateSha": "67001b50bfc28410b7bb4e290c46b876fda2f96f",
+  "candidateTree": "bc26b4164c7322881e6943d3c0a82c0714c39273",
+  "dirtyCheckout": false,
+  "syntheticOnly": true,
+  "screenshots": {}
+}
